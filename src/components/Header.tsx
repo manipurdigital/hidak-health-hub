@@ -92,7 +92,7 @@ const Header = () => {
           </div>
           
           {/* Search bar */}
-          <div className="flex-1 max-w-2xl mx-8">
+          <div className="flex-1 max-w-4xl mx-12">
             <SearchBar 
               placeholder="Search for medicines, health products, lab tests..."
               className="w-full"
