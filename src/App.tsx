@@ -28,6 +28,9 @@ import { MedicineDetailPage } from "./pages/MedicineDetailPage";
 import { OrderSuccessPage } from "./pages/OrderSuccessPage";
 import { LabTestDetailPage } from "./pages/LabTestDetailPage";
 import { LabBookingSuccessPage } from "./pages/LabBookingSuccessPage";
+import { DoctorProfilePage } from "./pages/DoctorProfilePage";
+import { ConsultationSuccessPage } from "./pages/ConsultationSuccessPage";
+import { ConsultationRoomPage } from "./pages/ConsultationRoomPage";
 
 const queryClient = new QueryClient();
 
@@ -65,12 +68,14 @@ const App = () => (
               {/* Doctor Routes */}
               <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
               
-              {/* Search Result Placeholder Routes */}
+              {/* Search Result Routes */}
               <Route path="/medicines/:id" element={<MedicineDetailPage />} />
-              <Route path="/doctors/:id" element={<SearchResultPlaceholder type="doctors" />} />
+              <Route path="/doctors/:id" element={<DoctorProfilePage />} />
               <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
               <Route path="/order-success/:orderId" element={<AuthGuard><OrderSuccessPage /></AuthGuard>} />
               <Route path="/lab-booking-success/:bookingId" element={<AuthGuard><LabBookingSuccessPage /></AuthGuard>} />
+              <Route path="/consult-success/:consultId" element={<AuthGuard><ConsultationSuccessPage /></AuthGuard>} />
+              <Route path="/consult/:consultId" element={<AuthGuard><ConsultationRoomPage /></AuthGuard>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
