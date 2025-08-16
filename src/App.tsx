@@ -9,6 +9,9 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminMedicinesPage from "./pages/admin/AdminMedicinesPage";
+import AdminLabTestsPage from "./pages/admin/AdminLabTestsPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ReportsPage from "./pages/ReportsPage";
 import ConsultationChatPage from "./pages/ConsultationChatPage";
@@ -31,6 +34,9 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin/medicines" element={<AdminMedicinesPage />} />
+              <Route path="/admin/lab-tests" element={<AdminLabTestsPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/consultation/:consultationId" element={<ConsultationChatPage />} />
