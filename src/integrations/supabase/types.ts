@@ -915,6 +915,26 @@ export type Database = {
           subscription_id: string
         }[]
       }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       has_active_subscription: {
         Args: { user_uuid: string }
         Returns: boolean
@@ -929,6 +949,30 @@ export type Database = {
       is_admin: {
         Args: { _user_id?: string }
         Returns: boolean
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
+      }
+      universal_search: {
+        Args: { max_per_group?: number; q: string }
+        Returns: {
+          href: string
+          id: string
+          price: number
+          subtitle: string
+          thumbnail_url: string
+          title: string
+          type: string
+        }[]
       }
     }
     Enums: {
