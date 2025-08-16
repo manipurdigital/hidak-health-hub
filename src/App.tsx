@@ -13,6 +13,9 @@ import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminMedicinesPage from "./pages/admin/AdminMedicinesPage";
 import AdminLabTestsPage from "./pages/admin/AdminLabTestsPage";
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { LabDashboardPage } from "./pages/lab/LabDashboardPage";
+import { DoctorDashboardPage } from "./pages/doctor/DoctorDashboardPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ReportsPage from "./pages/ReportsPage";
 import ConsultationChatPage from "./pages/ConsultationChatPage";
@@ -47,6 +50,13 @@ const App = () => (
               <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboardPage /></AuthGuard>} />
               <Route path="/admin/medicines" element={<AuthGuard requiredRole="admin"><AdminMedicinesPage /></AuthGuard>} />
               <Route path="/admin/lab-tests" element={<AuthGuard requiredRole="admin"><AdminLabTestsPage /></AuthGuard>} />
+              <Route path="/admin/users" element={<AuthGuard requiredRole="admin"><AdminUsersPage /></AuthGuard>} />
+              
+              {/* Lab Routes */}
+              <Route path="/lab" element={<AuthGuard requiredRole="lab"><LabDashboardPage /></AuthGuard>} />
+              
+              {/* Doctor Routes */}
+              <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
