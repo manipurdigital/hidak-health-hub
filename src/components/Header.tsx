@@ -3,12 +3,16 @@ import { Search, User, ShoppingCart, Phone, Menu } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { toast } = useToast();
   const { itemCount } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +47,11 @@ const Header = () => {
   };
 
   const handleLogin = () => {
-    toast({
-      title: "Login",
-      description: "Redirecting to login page...",
-    });
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      navigate("/auth");
+    }
   };
 
   const handleCart = () => {
@@ -113,7 +118,7 @@ const Header = () => {
               onClick={handleLogin}
             >
               <User className="w-4 h-4" />
-              Login
+              {user ? "Dashboard" : "Login"}
             </Button>
             <Button 
               variant="ghost" 
