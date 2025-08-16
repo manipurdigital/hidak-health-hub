@@ -11,7 +11,7 @@ const Footer = () => {
           {/* Company info */}
           <div className="space-y-4">
             <h3 className="text-2xl font-bold text-white">
-              Hidak<span className="text-accent">+</span>
+              HAK SHEL<span className="text-accent">+</span>
             </h3>
             <p className="text-background/80 leading-relaxed">
               Your trusted digital healthcare partner. Providing authentic medicines, 
@@ -69,7 +69,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-primary" />
-                <span>support@hidak.com</span>
+                <span>support@hakshel.com</span>
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-primary mt-1" />
@@ -97,7 +97,7 @@ const Footer = () => {
         {/* Bottom section */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-background/80">
           <div>
-            <p>&copy; 2024 Hidak Healthcare Pvt. Ltd. All rights reserved.</p>
+            <p>&copy; 2024 HAK SHEL Healthcare Pvt. Ltd. All rights reserved.</p>
           </div>
           <div className="flex gap-6">
             <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
@@ -109,7 +109,7 @@ const Footer = () => {
         {/* Regulatory info */}
         <div className="mt-8 p-4 bg-background/5 rounded-lg text-xs text-background/60">
           <p className="mb-2">
-            <strong>Regulatory Information:</strong> Hidak Healthcare Pvt. Ltd. is a licensed online pharmacy 
+            <strong>Regulatory Information:</strong> HAK SHEL Healthcare Pvt. Ltd. is a licensed online pharmacy 
             platform. All medicines are dispensed from licensed pharmacies. Prescription medicines require 
             valid prescription from registered medical practitioners.
           </p>

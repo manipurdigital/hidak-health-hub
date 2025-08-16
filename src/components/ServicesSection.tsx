@@ -134,7 +134,7 @@ const ServicesSection = () => {
           <div className="bg-gradient-to-r from-primary to-accent p-8 rounded-2xl text-white">
             <h3 className="text-2xl font-bold mb-4">Ready to Get Started?</h3>
             <p className="text-white/90 mb-6 max-w-2xl mx-auto">
-              Join millions of users who trust Hidak for their healthcare needs. Experience the future of digital healthcare today.
+              Join millions of users who trust HAK SHEL for their healthcare needs. Experience the future of digital healthcare today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="outline" size="lg" className="bg-white text-primary border-white hover:bg-white/90">

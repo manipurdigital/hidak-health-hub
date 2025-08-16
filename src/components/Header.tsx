@@ -22,7 +22,7 @@ const Header = () => {
           {/* Logo */}
           <div className="flex items-center">
             <h1 className="text-2xl font-bold text-primary">
-              Hidak
+              HAK SHEL
               <span className="text-accent">+</span>
             </h1>
           </div>
