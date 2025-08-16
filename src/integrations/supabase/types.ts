@@ -14,6 +14,135 @@ export type Database = {
   }
   public: {
     Tables: {
+      lab_bookings: {
+        Row: {
+          booking_date: string
+          created_at: string
+          id: string
+          patient_email: string | null
+          patient_name: string
+          patient_phone: string
+          payment_status: string | null
+          special_instructions: string | null
+          status: string | null
+          test_id: string
+          time_slot: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_date: string
+          created_at?: string
+          id?: string
+          patient_email?: string | null
+          patient_name: string
+          patient_phone: string
+          payment_status?: string | null
+          special_instructions?: string | null
+          status?: string | null
+          test_id: string
+          time_slot: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_date?: string
+          created_at?: string
+          id?: string
+          patient_email?: string | null
+          patient_name?: string
+          patient_phone?: string
+          payment_status?: string | null
+          special_instructions?: string | null
+          status?: string | null
+          test_id?: string
+          time_slot?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lab_reports: {
+        Row: {
+          booking_id: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          report_name: string
+          report_url: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          report_name: string
+          report_url: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          report_name?: string
+          report_url?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lab_tests: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          preparation_required: boolean | null
+          price: number
+          reporting_time: string | null
+          sample_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          preparation_required?: boolean | null
+          price: number
+          reporting_time?: string | null
+          sample_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          preparation_required?: boolean | null
+          price?: number
+          reporting_time?: string | null
+          sample_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       medicine_categories: {
         Row: {
           created_at: string

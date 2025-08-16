@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Search, User, ShoppingCart, Phone, Menu } from "lucide-react";
+import { Search, User, ShoppingCart, Phone, Menu, FileText } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
@@ -114,6 +114,15 @@ const Header = () => {
             >
               <Phone className="w-4 h-4" />
               Emergency
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+              onClick={() => navigate('/reports')}
+            >
+              <FileText className="w-4 h-4" />
+              Reports
             </Button>
             <Button 
               variant="ghost" 
