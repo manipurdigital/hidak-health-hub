@@ -31,13 +31,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           setTimeout(async () => {
             try {
-              const { data: roles } = await supabase
+              console.log('Fetching role for user:', session.user.id);
+              const { data: roles, error } = await supabase
                 .from('user_roles')
                 .select('role')
                 .eq('user_id', session.user.id)
                 .single();
               
+              console.log('Role query result:', { roles, error });
+              
               setUserRole(roles?.role || 'user');
+              console.log('Set user role to:', roles?.role || 'user');
             } catch (error) {
               console.error('Error fetching user role:', error);
               setUserRole('user');
