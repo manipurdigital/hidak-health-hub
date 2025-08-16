@@ -22,10 +22,6 @@ const AdminDashboardPage = () => {
   const { user, userRole, signOut } = useAuth();
   const { toast } = useToast();
 
-  // Check if user is admin
-  if (userRole !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   const handleSignOut = async () => {
     const { error } = await signOut();
