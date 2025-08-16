@@ -14,6 +14,209 @@ export type Database = {
   }
   public: {
     Tables: {
+      medicine_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      medicines: {
+        Row: {
+          brand: string | null
+          category_id: string | null
+          created_at: string
+          description: string | null
+          discount_percentage: number | null
+          dosage: string | null
+          expiry_date: string | null
+          fast_delivery: boolean | null
+          form: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          manufacturer: string | null
+          name: string
+          original_price: number | null
+          pack_size: string | null
+          price: number
+          rating: number | null
+          requires_prescription: boolean | null
+          review_count: number | null
+          stock_quantity: number | null
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          dosage?: string | null
+          expiry_date?: string | null
+          fast_delivery?: boolean | null
+          form?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          manufacturer?: string | null
+          name: string
+          original_price?: number | null
+          pack_size?: string | null
+          price: number
+          rating?: number | null
+          requires_prescription?: boolean | null
+          review_count?: number | null
+          stock_quantity?: number | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          dosage?: string | null
+          expiry_date?: string | null
+          fast_delivery?: boolean | null
+          form?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          manufacturer?: string | null
+          name?: string
+          original_price?: number | null
+          pack_size?: string | null
+          price?: number
+          rating?: number | null
+          requires_prescription?: boolean | null
+          review_count?: number | null
+          stock_quantity?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicines_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          medicine_id: string
+          order_id: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          medicine_id: string
+          order_id: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          medicine_id?: string
+          order_id?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          order_number: string
+          payment_method: string | null
+          payment_status: string | null
+          prescription_required: boolean | null
+          prescription_url: string | null
+          shipping_address: Json
+          status: string | null
+          stripe_session_id: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_number: string
+          payment_method?: string | null
+          payment_status?: string | null
+          prescription_required?: boolean | null
+          prescription_url?: string | null
+          shipping_address: Json
+          status?: string | null
+          stripe_session_id?: string | null
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_number?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          prescription_required?: boolean | null
+          prescription_url?: string | null
+          shipping_address?: Json
+          status?: string | null
+          stripe_session_id?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -112,6 +315,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
