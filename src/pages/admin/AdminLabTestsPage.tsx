@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
+import { BulkUpload } from '@/components/BulkUpload';
 import { 
   User, 
   LogOut,
@@ -299,6 +300,10 @@ const AdminLabTestsPage = () => {
                   </form>
                 </DialogContent>
               </Dialog>
+              <BulkUpload 
+                type="lab-tests" 
+                onUploadComplete={fetchLabTests}
+              />
             </div>
 
             {/* Search Bar */}
