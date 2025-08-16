@@ -10,11 +10,13 @@ import { cn } from "@/lib/utils";
 interface SearchBarProps {
   className?: string;
   placeholder?: string;
+  inputClassName?: string;
 }
 
 export function SearchBar({ 
   className, 
-  placeholder = "Search medicines, doctors, lab tests…" 
+  placeholder = "Search medicines, doctors, lab tests…",
+  inputClassName,
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -181,7 +183,7 @@ export function SearchBar({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={handleInputBlur}
-          className="pl-10 pr-10"
+          className={cn("pl-10 pr-10", inputClassName)}
         />
         {isLoading && query.length >= 2 && (
           <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 animate-spin" />

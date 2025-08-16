@@ -91,13 +91,7 @@ const Header = () => {
             </h1>
           </div>
           
-          {/* Search bar */}
-          <div className="flex-1 max-w-4xl mx-12">
-            <SearchBar 
-              placeholder="Search for medicines, health products, lab tests..."
-              className="w-full"
-            />
-          </div>
+          {/* Search moved to dedicated row below */}
           
           {/* Right actions */}
           <div className="flex items-center gap-4">
@@ -158,6 +152,17 @@ const Header = () => {
                 {itemCount}
               </span>
             </Button>
+          </div>
+        </div>
+        
+        {/* Centered search row */}
+        <div className="py-3">
+          <div className="mx-auto w-full max-w-5xl">
+            <SearchBar 
+              placeholder="Search for medicines, health products, lab tests..."
+              className="w-full"
+              inputClassName="h-12 md:h-14 text-base"
+            />
           </div>
         </div>
         
