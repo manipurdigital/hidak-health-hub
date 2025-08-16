@@ -84,16 +84,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
 
   const downloadTemplate = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-templates', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (error) throw error;
-
-      // Create download link
+      // Create download link directly with type parameter
       const url = `https://qaqmlmshpifwdnrvfkao.supabase.co/functions/v1/generate-templates?type=${type}`;
       const link = document.createElement('a');
       link.href = url;
