@@ -32,26 +32,49 @@ export const AdminUsersPage = () => {
   const queryClient = useQueryClient();
 
   // Fetch users with profiles and roles
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('Fetching users...');
+      
+      // First, let's try a simpler query to see if we can get profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles(role)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Transform the data to include roles array
-      return data.map(user => ({
-        ...user,
-        roles: Array.isArray(user.user_roles) ? user.user_roles : []
-      }));
+      if (profilesError) {
+        console.error('Profiles error:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Profiles data:', profilesData);
+
+      // Get user roles separately
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) {
+        console.error('Roles error:', rolesError);
+        // Don't throw error for roles, just log it
+        console.warn('Could not fetch roles, using empty array');
+      }
+
+      console.log('Roles data:', rolesData);
+
+      // Combine the data
+      const usersWithRoles = profilesData?.map(profile => ({
+        ...profile,
+        roles: rolesData?.filter(role => role.user_id === profile.user_id) || []
+      })) || [];
+
+      console.log('Final users with roles:', usersWithRoles);
+      return usersWithRoles;
     }
   });
+
+  console.log('Query result:', { users, isLoading, error });
 
   // Update user role mutation
   const updateRoleMutation = useMutation({
@@ -166,6 +189,20 @@ export const AdminUsersPage = () => {
     );
   }
 
+  if (error) {
+    console.error('Query error:', error);
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-destructive">Error loading users: {error instanceof Error ? error.message : 'Unknown error'}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -178,6 +215,16 @@ export const AdminUsersPage = () => {
           <span className="text-sm text-muted-foreground">{filteredUsers.length} users</span>
         </div>
       </div>
+
+      {/* Debug Info */}
+      <Card className="bg-muted/50">
+        <CardContent className="p-4">
+          <p className="text-sm">Debug: Total users loaded: {users.length}</p>
+          <p className="text-sm">Filtered users: {filteredUsers.length}</p>
+          <p className="text-sm">Search term: "{searchTerm}"</p>
+          <p className="text-sm">Role filter: {roleFilter}</p>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>
@@ -217,74 +264,102 @@ export const AdminUsersPage = () => {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>Users ({filteredUsers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{user.full_name || 'No name'}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{user.phone || 'No phone'}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      {Array.isArray(user.roles) && user.roles.map((role, index) => (
-                        <Badge key={index} variant={getRoleBadgeColor(role.role)}>
-                          {role.role}
-                        </Badge>
-                      ))}
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                {users.length === 0 ? 'No users found in the system.' : 'No users match your current filters.'}
+              </p>
+              {users.length === 0 && (
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh Data
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Current Role</TableHead>
+                  <TableHead>Change Role</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{user.full_name || 'No name'}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{user.phone || 'No phone'}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {Array.isArray(user.roles) && user.roles.length > 0 ? (
+                          user.roles.map((role, index) => (
+                            <Badge key={index} variant={getRoleBadgeColor(role.role)}>
+                              {role.role}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline">No role assigned</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <Select
                         value={Array.isArray(user.roles) && user.roles[0]?.role || 'user'}
                         onValueChange={(value) => handleRoleChange(user.user_id, value)}
+                        disabled={updateRoleMutation.isPending}
                       >
-                        <SelectTrigger className="w-24 h-8">
-                          <Shield className="h-3 w-3" />
+                        <SelectTrigger className="w-32 h-8">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-3 w-3" />
+                            <SelectValue />
+                          </div>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="user">User</SelectItem>
                           <SelectItem value="doctor">Doctor</SelectItem>
-                          <SelectItem value="lab">Lab</SelectItem>
+                          <SelectItem value="lab">Lab Staff</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {format(new Date(user.created_at), 'MMM dd, yyyy')}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {format(new Date(user.created_at), 'MMM dd, yyyy')}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
