@@ -16,7 +16,10 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   const { user, userRole, loading } = useAuth();
   const location = useLocation();
 
-  console.log('AuthGuard - user:', user?.email, 'userRole:', userRole, 'requiredRole:', requiredRole, 'loading:', loading);
+  // Ensure requiredRole is properly typed as string
+  const normalizedRequiredRole = typeof requiredRole === 'string' ? requiredRole : undefined;
+
+  console.log('AuthGuard - user:', user?.email, 'userRole:', userRole, 'requiredRole:', normalizedRequiredRole, 'loading:', loading);
 
   if (loading) {
     return (
@@ -30,7 +33,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     return <Navigate to={fallbackTo} state={{ from: location }} replace />;
   }
 
-  if (requiredRole && userRole !== requiredRole) {
+  if (normalizedRequiredRole && userRole !== normalizedRequiredRole) {
     // Redirect based on user role
     switch (userRole) {
       case 'admin':
