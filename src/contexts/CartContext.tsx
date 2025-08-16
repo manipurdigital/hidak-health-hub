@@ -1,30 +1,30 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
-export interface CartItem {
+interface CartItem {
   id: string;
   name: string;
+  brand?: string;
   price: number;
   quantity: number;
-  image?: string;
+  image_url?: string;
+  requires_prescription: boolean;
 }
 
 interface CartState {
   items: CartItem[];
-  total: number;
+  totalItems: number;
+  totalAmount: number;
 }
 
-type CartAction = 
+type CartAction =
   | { type: 'ADD_ITEM'; payload: Omit<CartItem, 'quantity'> }
   | { type: 'REMOVE_ITEM'; payload: string }
   | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
-  | { type: 'CLEAR_CART' };
+  | { type: 'CLEAR_CART' }
+  | { type: 'LOAD_CART'; payload: CartItem[] };
 
-const initialState: CartState = {
-  items: [],
-  total: 0
-};
-
-function cartReducer(state: CartState, action: CartAction): CartState {
+const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'ADD_ITEM': {
       const existingItem = state.items.find(item => item.id === action.payload.id);
@@ -41,16 +41,20 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       }
       
       return {
+        ...state,
         items: newItems,
-        total: newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
+        totalAmount: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       };
     }
     
     case 'REMOVE_ITEM': {
       const newItems = state.items.filter(item => item.id !== action.payload);
       return {
+        ...state,
         items: newItems,
-        total: newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
+        totalAmount: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       };
     }
     
@@ -62,18 +66,32 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       ).filter(item => item.quantity > 0);
       
       return {
+        ...state,
         items: newItems,
-        total: newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        totalItems: newItems.reduce((sum, item) => sum + item.quantity, 0),
+        totalAmount: newItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
       };
     }
     
     case 'CLEAR_CART':
-      return initialState;
+      return {
+        items: [],
+        totalItems: 0,
+        totalAmount: 0,
+      };
+    
+    case 'LOAD_CART':
+      return {
+        ...state,
+        items: action.payload,
+        totalItems: action.payload.reduce((sum, item) => sum + item.quantity, 0),
+        totalAmount: action.payload.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      };
     
     default:
       return state;
   }
-}
+};
 
 interface CartContextType {
   state: CartState;
@@ -81,20 +99,61 @@ interface CartContextType {
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  // Legacy support for existing header
   itemCount: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState);
+const CART_STORAGE_KEY = 'healthcare-cart';
+
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(cartReducer, {
+    items: [],
+    totalItems: 0,
+    totalAmount: 0,
+  });
+  const { toast } = useToast();
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+      if (savedCart) {
+        const cartItems = JSON.parse(savedCart);
+        dispatch({ type: 'LOAD_CART', payload: cartItems });
+      }
+    } catch (error) {
+      console.error('Failed to load cart from localStorage:', error);
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items));
+    } catch (error) {
+      console.error('Failed to save cart to localStorage:', error);
+    }
+  }, [state.items]);
 
   const addItem = (item: Omit<CartItem, 'quantity'>) => {
     dispatch({ type: 'ADD_ITEM', payload: item });
+    toast({
+      title: "Added to Cart",
+      description: `${item.name} has been added to your cart.`,
+    });
   };
 
   const removeItem = (id: string) => {
+    const item = state.items.find(item => item.id === id);
     dispatch({ type: 'REMOVE_ITEM', payload: id });
+    if (item) {
+      toast({
+        title: "Removed from Cart",
+        description: `${item.name} has been removed from your cart.`,
+      });
+    }
   };
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -103,9 +162,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     dispatch({ type: 'CLEAR_CART' });
+    toast({
+      title: "Cart Cleared",
+      description: "All items have been removed from your cart.",
+    });
   };
-
-  const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <CartContext.Provider value={{
@@ -114,17 +175,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem,
       updateQuantity,
       clearCart,
-      itemCount
+      itemCount: state.totalItems, // Legacy support
     }}>
       {children}
     </CartContext.Provider>
   );
-}
+};
 
-export function useCart() {
+export const useCart = () => {
   const context = useContext(CartContext);
   if (context === undefined) {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
-}
+};

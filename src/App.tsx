@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -31,17 +32,22 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/admin" element={<AdminDashboardPage />} />
-              <Route path="/admin/medicines" element={<AdminMedicinesPage />} />
-              <Route path="/admin/lab-tests" element={<AdminLabTestsPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/consultation/:consultationId" element={<ConsultationChatPage />} />
-              <Route path="/prescriptions" element={<PrescriptionsPage />} />
-              <Route path="/care-plus" element={<CareSubscriptionPage />} />
+              <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+              <Route path="/auth" element={<GuestRoute><AuthPage /></GuestRoute>} />
+              
+              {/* Protected Routes */}
+              <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
+              <Route path="/checkout" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
+              <Route path="/reports" element={<AuthGuard><ReportsPage /></AuthGuard>} />
+              <Route path="/consultation/:consultationId" element={<AuthGuard><ConsultationChatPage /></AuthGuard>} />
+              <Route path="/prescriptions" element={<AuthGuard><PrescriptionsPage /></AuthGuard>} />
+              <Route path="/care-plus" element={<AuthGuard><CareSubscriptionPage /></AuthGuard>} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboardPage /></AuthGuard>} />
+              <Route path="/admin/medicines" element={<AuthGuard requiredRole="admin"><AdminMedicinesPage /></AuthGuard>} />
+              <Route path="/admin/lab-tests" element={<AuthGuard requiredRole="admin"><AdminLabTestsPage /></AuthGuard>} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

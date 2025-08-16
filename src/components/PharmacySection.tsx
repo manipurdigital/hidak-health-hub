@@ -123,7 +123,8 @@ const PharmacySection = () => {
     addItem({
       id: medicine.id,
       name: medicine.name,
-      price: medicine.price
+      price: medicine.price,
+      requires_prescription: medicine.requires_prescription || false,
     });
     
     toast({

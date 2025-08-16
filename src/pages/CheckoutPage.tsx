@@ -47,8 +47,8 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
 
   const deliveryFee = freeDelivery ? 0 : 50;
-  const subscriptionDiscount = (cartState.total * extraDiscount) / 100;
-  const finalTotal = cartState.total - subscriptionDiscount;
+  const subscriptionDiscount = (cartState.totalAmount * extraDiscount) / 100;
+  const finalTotal = cartState.totalAmount - subscriptionDiscount;
   const totalAmount = finalTotal + deliveryFee;
 
   const handleInputChange = (field: keyof ShippingAddress, value: string) => {
@@ -351,7 +351,7 @@ const CheckoutPage = () => {
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>₹{cartState.total.toFixed(0)}</span>
+                    <span>₹{cartState.totalAmount.toFixed(0)}</span>
                   </div>
                   
                   {extraDiscount > 0 && (
