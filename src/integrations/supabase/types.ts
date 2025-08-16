@@ -14,6 +14,207 @@ export type Database = {
   }
   public: {
     Tables: {
+      consultation_messages: {
+        Row: {
+          consultation_id: string
+          content: string
+          file_url: string | null
+          id: string
+          is_read: boolean | null
+          message_type: string | null
+          sender_id: string
+          sender_type: string
+          sent_at: string
+        }
+        Insert: {
+          consultation_id: string
+          content: string
+          file_url?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          sender_id: string
+          sender_type: string
+          sent_at?: string
+        }
+        Update: {
+          consultation_id?: string
+          content?: string
+          file_url?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          sender_id?: string
+          sender_type?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_consultation_messages_consultation"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultations: {
+        Row: {
+          consultation_date: string
+          consultation_type: string | null
+          created_at: string
+          doctor_id: string
+          doctor_notes: string | null
+          id: string
+          patient_id: string
+          patient_notes: string | null
+          payment_status: string | null
+          status: string | null
+          time_slot: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          consultation_date: string
+          consultation_type?: string | null
+          created_at?: string
+          doctor_id: string
+          doctor_notes?: string | null
+          id?: string
+          patient_id: string
+          patient_notes?: string | null
+          payment_status?: string | null
+          status?: string | null
+          time_slot: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          consultation_date?: string
+          consultation_type?: string | null
+          created_at?: string
+          doctor_id?: string
+          doctor_notes?: string | null
+          id?: string
+          patient_id?: string
+          patient_notes?: string | null
+          payment_status?: string | null
+          status?: string | null
+          time_slot?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_consultations_doctor"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id: string
+          is_active: boolean | null
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_doctor_availability_doctor"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctors: {
+        Row: {
+          bio: string | null
+          consultation_fee: number
+          created_at: string
+          experience_years: number | null
+          full_name: string
+          hospital_affiliation: string | null
+          id: string
+          is_available: boolean | null
+          is_verified: boolean | null
+          languages: string[] | null
+          license_number: string | null
+          profile_image_url: string | null
+          qualification: string | null
+          rating: number | null
+          review_count: number | null
+          specialization: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          consultation_fee: number
+          created_at?: string
+          experience_years?: number | null
+          full_name: string
+          hospital_affiliation?: string | null
+          id?: string
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          license_number?: string | null
+          profile_image_url?: string | null
+          qualification?: string | null
+          rating?: number | null
+          review_count?: number | null
+          specialization: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          consultation_fee?: number
+          created_at?: string
+          experience_years?: number | null
+          full_name?: string
+          hospital_affiliation?: string | null
+          id?: string
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          license_number?: string | null
+          profile_image_url?: string | null
+          qualification?: string | null
+          rating?: number | null
+          review_count?: number | null
+          specialization?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lab_bookings: {
         Row: {
           booking_date: string
@@ -346,6 +547,59 @@ export type Database = {
         }
         Relationships: []
       }
+      prescriptions: {
+        Row: {
+          consultation_id: string
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string
+          follow_up_date: string | null
+          id: string
+          instructions: string | null
+          medications: Json
+          patient_id: string
+          prescription_number: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          consultation_id: string
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id: string
+          follow_up_date?: string | null
+          id?: string
+          instructions?: string | null
+          medications: Json
+          patient_id: string
+          prescription_number: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consultation_id?: string
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string
+          follow_up_date?: string | null
+          id?: string
+          instructions?: string | null
+          medications?: Json
+          patient_id?: string
+          prescription_number?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_prescriptions_consultation"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -445,6 +699,10 @@ export type Database = {
     }
     Functions: {
       generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_prescription_number: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
