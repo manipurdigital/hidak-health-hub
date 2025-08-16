@@ -23,6 +23,7 @@ import ConsultationChatPage from "./pages/ConsultationChatPage";
 import PrescriptionsPage from "./pages/PrescriptionsPage";
 import CareSubscriptionPage from "./pages/CareSubscriptionPage";
 import NotFound from "./pages/NotFound";
+import { SearchResultPlaceholder } from "./components/SearchResultPlaceholder";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,11 @@ const App = () => (
               
               {/* Doctor Routes */}
               <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
+              
+              {/* Search Result Placeholder Routes */}
+              <Route path="/medicines/:id" element={<SearchResultPlaceholder type="medicines" />} />
+              <Route path="/doctors/:id" element={<SearchResultPlaceholder type="doctors" />} />
+              <Route path="/lab-tests/:id" element={<SearchResultPlaceholder type="lab-tests" />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
