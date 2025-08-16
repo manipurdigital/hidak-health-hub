@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -12,6 +13,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import ReportsPage from "./pages/ReportsPage";
 import ConsultationChatPage from "./pages/ConsultationChatPage";
 import PrescriptionsPage from "./pages/PrescriptionsPage";
+import CareSubscriptionPage from "./pages/CareSubscriptionPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,7 +21,8 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <CartProvider>
+      <SubscriptionProvider>
+        <CartProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -32,12 +35,14 @@ const App = () => (
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/consultation/:consultationId" element={<ConsultationChatPage />} />
               <Route path="/prescriptions" element={<PrescriptionsPage />} />
+              <Route path="/care-plus" element={<CareSubscriptionPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </CartProvider>
+        </CartProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

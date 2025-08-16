@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import SubscriptionBenefits from './SubscriptionBenefits';
 import { cn } from '@/lib/utils';
 
 interface Doctor {
@@ -43,6 +45,7 @@ const ConsultationsSection = () => {
   const [patientNotes, setPatientNotes] = useState('');
   
   const { user } = useAuth();
+  const { hasActiveSubscription, canBookConsultation, extraDiscount } = useSubscription();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -115,6 +118,17 @@ const ConsultationsSection = () => {
       navigate('/auth');
       return;
     }
+    
+    if (!canBookConsultation) {
+      toast({
+        title: "Consultation Limit Reached",
+        description: "You've reached your monthly consultation limit. Upgrade your Care+ plan for more consultations.",
+        variant: "destructive"
+      });
+      navigate('/care-plus');
+      return;
+    }
+    
     setBookingDoctor(doctor);
   };
 
@@ -122,6 +136,7 @@ const ConsultationsSection = () => {
     if (!bookingDoctor || !selectedDate || !selectedTimeSlot || !user) return;
 
     try {
+      const consultationFee = hasActiveSubscription ? 0 : bookingDoctor.consultation_fee;
       const { data: consultation, error } = await supabase
         .from('consultations')
         .insert([{
@@ -129,7 +144,7 @@ const ConsultationsSection = () => {
           doctor_id: bookingDoctor.id,
           consultation_date: format(selectedDate, 'yyyy-MM-dd'),
           time_slot: selectedTimeSlot,
-          total_amount: bookingDoctor.consultation_fee,
+          total_amount: consultationFee,
           patient_notes: patientNotes || null,
           status: 'scheduled'
         }])
@@ -189,6 +204,9 @@ const ConsultationsSection = () => {
             Book online consultations with verified doctors and get expert medical advice
           </p>
         </div>
+
+        {/* Subscription Benefits */}
+        <SubscriptionBenefits className="mb-8" />
 
         {/* Search and Filters */}
         <div className="mb-8 space-y-4">
@@ -272,7 +290,16 @@ const ConsultationsSection = () => {
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-sm font-medium">Consultation Fee</span>
-                    <span className="text-lg font-bold text-primary">₹{doctor.consultation_fee}</span>
+                    <div className="text-right">
+                      {hasActiveSubscription ? (
+                        <div>
+                          <span className="text-lg font-bold text-green-600">FREE</span>
+                          <p className="text-xs text-muted-foreground line-through">₹{doctor.consultation_fee}</p>
+                        </div>
+                      ) : (
+                        <span className="text-lg font-bold text-primary">₹{doctor.consultation_fee}</span>
+                      )}
+                    </div>
                   </div>
                   
                   <Button 

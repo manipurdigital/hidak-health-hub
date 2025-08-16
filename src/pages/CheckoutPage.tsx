@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import SubscriptionBenefits from '@/components/SubscriptionBenefits';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, MapPin, Phone, Mail, CreditCard, Truck } from 'lucide-react';
 
@@ -40,11 +42,14 @@ const CheckoutPage = () => {
   
   const { state: cartState, clearCart } = useCart();
   const { user } = useAuth();
+  const { extraDiscount, freeDelivery } = useSubscription();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const deliveryFee = 50;
-  const totalAmount = cartState.total + deliveryFee;
+  const deliveryFee = freeDelivery ? 0 : 50;
+  const subscriptionDiscount = (cartState.total * extraDiscount) / 100;
+  const finalTotal = cartState.total - subscriptionDiscount;
+  const totalAmount = finalTotal + deliveryFee;
 
   const handleInputChange = (field: keyof ShippingAddress, value: string) => {
     setShippingAddress(prev => ({
@@ -208,6 +213,9 @@ const CheckoutPage = () => {
       </div>
 
       <div className="container mx-auto p-6">
+        {/* Subscription Benefits */}
+        <SubscriptionBenefits showInCheckout className="mb-6" />
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Shipping Address Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -345,13 +353,25 @@ const CheckoutPage = () => {
                     <span>Subtotal</span>
                     <span>₹{cartState.total.toFixed(0)}</span>
                   </div>
+                  
+                  {extraDiscount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Care+ Discount ({extraDiscount}%)</span>
+                      <span>-₹{subscriptionDiscount.toFixed(0)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between">
                     <span className="flex items-center gap-1">
                       <Truck className="w-4 h-4" />
                       Delivery Fee
+                      {freeDelivery && <span className="text-green-600 text-xs">(Free)</span>}
                     </span>
-                    <span>₹{deliveryFee}</span>
+                    <span className={freeDelivery ? "line-through text-muted-foreground" : ""}>
+                      ₹{freeDelivery ? 0 : 50}
+                    </span>
                   </div>
+                  
                   <div className="flex justify-between font-semibold text-lg border-t pt-2">
                     <span>Total</span>
                     <span>₹{totalAmount.toFixed(0)}</span>
