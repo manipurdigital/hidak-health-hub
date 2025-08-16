@@ -224,6 +224,8 @@ export type Database = {
           patient_name: string
           patient_phone: string
           payment_status: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           special_instructions: string | null
           status: string | null
           test_id: string
@@ -240,6 +242,8 @@ export type Database = {
           patient_name: string
           patient_phone: string
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           special_instructions?: string | null
           status?: string | null
           test_id: string
@@ -256,6 +260,8 @@ export type Database = {
           patient_name?: string
           patient_phone?: string
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           special_instructions?: string | null
           status?: string | null
           test_id?: string
@@ -506,10 +512,13 @@ export type Database = {
           payment_status: string | null
           prescription_required: boolean | null
           prescription_url: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           shipping_address: Json
           status: string | null
           stripe_session_id: string | null
           total_amount: number
+          tracking_status: string | null
           updated_at: string
           user_id: string
         }
@@ -522,10 +531,13 @@ export type Database = {
           payment_status?: string | null
           prescription_required?: boolean | null
           prescription_url?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           shipping_address: Json
           status?: string | null
           stripe_session_id?: string | null
           total_amount: number
+          tracking_status?: string | null
           updated_at?: string
           user_id: string
         }
@@ -538,10 +550,13 @@ export type Database = {
           payment_status?: string | null
           prescription_required?: boolean | null
           prescription_url?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           shipping_address?: Json
           status?: string | null
           stripe_session_id?: string | null
           total_amount?: number
+          tracking_status?: string | null
           updated_at?: string
           user_id?: string
         }
