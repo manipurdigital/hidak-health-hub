@@ -1,8 +1,33 @@
 import { Button } from "@/components/ui/button";
 import { Shield, Truck, Clock, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import heroImage from "@/assets/healthcare-hero.jpg";
 
 const HeroSection = () => {
+  const { toast } = useToast();
+
+  const handleOrderMedicines = () => {
+    const element = document.getElementById('pharmacy');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    toast({
+      title: "Order Medicines",
+      description: "Browse our extensive medicine catalog below",
+    });
+  };
+
+  const handleBookLabTest = () => {
+    const element = document.getElementById('services');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    toast({
+      title: "Lab Tests",
+      description: "Explore our comprehensive lab testing services",
+    });
+  };
+
   return (
     <section className="relative bg-gradient-to-br from-primary/5 via-background to-accent/5 py-16 overflow-hidden">
       <div className="container mx-auto px-4">
@@ -23,10 +48,20 @@ const HeroSection = () => {
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="hero" size="lg" className="text-lg">
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="text-lg hover:scale-105 transition-transform duration-200"
+                onClick={handleOrderMedicines}
+              >
                 Order Medicines
               </Button>
-              <Button variant="outline" size="lg" className="text-lg border-primary text-primary hover:bg-primary hover:text-white">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="text-lg border-primary text-primary hover:bg-primary hover:text-white hover:scale-105 transition-all duration-200"
+                onClick={handleBookLabTest}
+              >
                 Book Lab Test
               </Button>
             </div>

@@ -1,11 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pill, TestTube2, Video, Heart, ArrowRight } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import pharmacyImage from "@/assets/pharmacy-section.jpg";
 import consultationImage from "@/assets/consultation-section.jpg";
 import labImage from "@/assets/lab-section.jpg";
 
 const ServicesSection = () => {
+  const { toast } = useToast();
+
+  const handleServiceClick = (serviceName: string) => {
+    toast({
+      title: `${serviceName} Service`,
+      description: `Exploring ${serviceName.toLowerCase()} options...`,
+    });
+  };
+
   const services = [
     {
       icon: <Pill className="w-8 h-8" />,
@@ -50,7 +60,7 @@ const ServicesSection = () => {
   ];
 
   return (
-    <section className="py-20 bg-muted/30">
+    <section id="services" className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
         {/* Section header */}
         <div className="text-center mb-16 animate-fade-in">
@@ -120,9 +130,10 @@ const ServicesSection = () => {
                   variant={service.buttonVariant} 
                   className="w-full group-hover:scale-105 transition-transform duration-200"
                   size="lg"
+                  onClick={() => handleServiceClick(service.title)}
                 >
                   {service.buttonText}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
                 </Button>
               </CardContent>
             </Card>
@@ -137,10 +148,20 @@ const ServicesSection = () => {
               Join millions of users who trust HAK SHEL for their healthcare needs. Experience the future of digital healthcare today.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="outline" size="lg" className="bg-white text-primary border-white hover:bg-white/90">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="bg-white text-primary border-white hover:bg-white/90 hover:scale-105 transition-all duration-200"
+                onClick={() => toast({ title: "App Download", description: "Redirecting to app store..." })}
+              >
                 Download App
               </Button>
-              <Button variant="ghost" size="lg" className="text-white border-white/20 border hover:bg-white/10">
+              <Button 
+                variant="ghost" 
+                size="lg" 
+                className="text-white border-white/20 border hover:bg-white/10 hover:scale-105 transition-all duration-200"
+                onClick={() => toast({ title: "Learn More", description: "Exploring more features..." })}
+              >
                 Learn More
               </Button>
             </div>

@@ -2,8 +2,46 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Star, Clock, Truck } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const PharmacySection = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cartItems, setCartItems] = useState(3);
+  const { toast } = useToast();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      toast({
+        title: "Searching Medicines",
+        description: `Looking for "${searchQuery}"`,
+      });
+    }
+  };
+
+  const handleAddToCart = (medicineName: string) => {
+    setCartItems(prev => prev + 1);
+    toast({
+      title: "Added to Cart",
+      description: `${medicineName} added to your cart`,
+    });
+  };
+
+  const handleCategoryClick = (categoryName: string) => {
+    toast({
+      title: "Category Selected",
+      description: `Browsing ${categoryName} products`,
+    });
+  };
+
+  const handleUploadPrescription = () => {
+    toast({
+      title: "Upload Prescription",
+      description: "Please select your prescription file",
+    });
+  };
+
   const categories = [
     { name: "Diabetes Care", icon: "🩸", count: "500+ products" },
     { name: "Heart Care", icon: "❤️", count: "300+ products" },
@@ -61,7 +99,7 @@ const PharmacySection = () => {
   ];
 
   return (
-    <section className="py-16 bg-background">
+    <section id="pharmacy" className="py-16 bg-background">
       <div className="container mx-auto px-4">
         {/* Section header */}
         <div className="flex items-center justify-between mb-12">
@@ -69,28 +107,47 @@ const PharmacySection = () => {
             <h2 className="text-3xl font-bold text-foreground mb-2">Online Pharmacy</h2>
             <p className="text-muted-foreground">Order medicines with prescription upload</p>
           </div>
-          <Button variant="outline">View All Medicines</Button>
+          <Button 
+            variant="outline" 
+            className="hover:bg-primary hover:text-primary-foreground transition-colors"
+            onClick={() => toast({ title: "All Medicines", description: "Loading complete medicine catalog..." })}
+          >
+            View All Medicines
+          </Button>
         </div>
 
         {/* Search and filters */}
         <div className="bg-white p-6 rounded-xl shadow-sm border mb-12">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for medicines, brands, or health conditions..."
-                className="w-full pl-12 pr-4 py-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full pl-12 pr-4 py-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-200 hover:border-primary/50"
               />
             </div>
-            <Button variant="outline" size="lg" className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="flex items-center gap-2 hover:bg-primary/10 transition-colors"
+              type="button"
+              onClick={() => toast({ title: "Filters", description: "Opening filter options..." })}
+            >
               <Filter className="w-4 h-4" />
               Filters
             </Button>
-            <Button variant="medical" size="lg">
+            <Button 
+              variant="medical" 
+              size="lg" 
+              type="button"
+              onClick={handleUploadPrescription}
+            >
               Upload Prescription
             </Button>
-          </div>
+          </form>
         </div>
 
         {/* Categories */}
@@ -98,10 +155,14 @@ const PharmacySection = () => {
           <h3 className="text-xl font-semibold mb-6">Shop by Categories</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {categories.map((category, index) => (
-              <Card key={index} className="group hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1">
+              <Card 
+                key={index} 
+                className="group hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:border-primary/20"
+                onClick={() => handleCategoryClick(category.name)}
+              >
                 <CardContent className="p-6 text-center">
-                  <div className="text-3xl mb-3">{category.icon}</div>
-                  <h4 className="font-semibold text-sm mb-1">{category.name}</h4>
+                  <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-200">{category.icon}</div>
+                  <h4 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{category.name}</h4>
                   <p className="text-xs text-muted-foreground">{category.count}</p>
                 </CardContent>
               </Card>
@@ -113,12 +174,18 @@ const PharmacySection = () => {
         <div>
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold">Featured Medicines</h3>
-            <Button variant="ghost">View All</Button>
+            <Button 
+              variant="ghost" 
+              className="hover:text-primary transition-colors"
+              onClick={() => toast({ title: "All Medicines", description: "Loading complete medicine catalog..." })}
+            >
+              View All
+            </Button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredMedicines.map((medicine, index) => (
-              <Card key={index} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <Card key={index} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 hover:border-primary/20 cursor-pointer">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant={medicine.prescription ? "destructive" : "secondary"} className="text-xs">
@@ -159,7 +226,10 @@ const PharmacySection = () => {
                   </div>
 
                   {/* Add to cart */}
-                  <Button className="w-full group-hover:scale-105 transition-transform duration-200">
+                  <Button 
+                    className="w-full group-hover:scale-105 transition-transform duration-200"
+                    onClick={() => handleAddToCart(medicine.name)}
+                  >
                     Add to Cart
                   </Button>
                 </CardContent>

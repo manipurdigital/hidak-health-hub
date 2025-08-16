@@ -1,7 +1,60 @@
 import { Button } from "@/components/ui/button";
-import { Search, User, ShoppingCart, Phone } from "lucide-react";
+import { Search, User, ShoppingCart, Phone, Menu } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Header = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cartItems, setCartItems] = useState(3);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      toast({
+        title: "Searching...",
+        description: `Looking for "${searchQuery}"`,
+      });
+      // Simulate search
+      setTimeout(() => {
+        toast({
+          title: "Search Complete",
+          description: `Found ${Math.floor(Math.random() * 50) + 10} results for "${searchQuery}"`,
+        });
+      }, 1000);
+    }
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleEmergency = () => {
+    toast({
+      title: "Emergency Service",
+      description: "Connecting you to emergency healthcare services...",
+      variant: "destructive",
+    });
+  };
+
+  const handleLogin = () => {
+    toast({
+      title: "Login",
+      description: "Redirecting to login page...",
+    });
+  };
+
+  const handleCart = () => {
+    toast({
+      title: "Cart",
+      description: `You have ${cartItems} items in your cart`,
+    });
+  };
+
   return (
     <header className="bg-white border-b border-border shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -29,31 +82,48 @@ const Header = () => {
           
           {/* Search bar */}
           <div className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for medicines, health products, lab tests..."
-                className="w-full pl-10 pr-4 py-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-muted/30"
+                className="w-full pl-10 pr-4 py-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-muted/30 transition-all duration-200 hover:bg-muted/50"
               />
-            </div>
+            </form>
           </div>
           
           {/* Right actions */}
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center gap-2 hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={handleEmergency}
+            >
               <Phone className="w-4 h-4" />
               Emergency
             </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+              onClick={handleLogin}
+            >
               <User className="w-4 h-4" />
               Login
             </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2 relative">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center gap-2 relative hover:bg-accent/10 hover:text-accent transition-colors"
+              onClick={handleCart}
+            >
               <ShoppingCart className="w-4 h-4" />
               Cart
-              <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                0
+              <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                {cartItems}
               </span>
             </Button>
           </div>
@@ -62,19 +132,39 @@ const Header = () => {
         {/* Navigation */}
         <div className="flex items-center justify-between py-3 border-t border-border">
           <nav className="flex items-center gap-8">
-            <Button variant="ghost" className="text-primary font-medium">
+            <Button 
+              variant="ghost" 
+              className="text-primary font-medium hover:bg-primary/10 transition-colors"
+              onClick={() => scrollToSection('pharmacy')}
+            >
               Medicines
             </Button>
-            <Button variant="ghost" className="text-foreground">
+            <Button 
+              variant="ghost" 
+              className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              onClick={() => scrollToSection('services')}
+            >
               Lab Tests
             </Button>
-            <Button variant="ghost" className="text-foreground">
+            <Button 
+              variant="ghost" 
+              className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              onClick={() => scrollToSection('services')}
+            >
               Consult Doctors
             </Button>
-            <Button variant="ghost" className="text-foreground">
+            <Button 
+              variant="ghost" 
+              className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              onClick={() => scrollToSection('services')}
+            >
               Wellness
             </Button>
-            <Button variant="ghost" className="text-foreground">
+            <Button 
+              variant="ghost" 
+              className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              onClick={() => scrollToSection('services')}
+            >
               Care Plan
             </Button>
           </nav>
