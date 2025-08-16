@@ -13,6 +13,7 @@ import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminMedicinesPage from "./pages/admin/AdminMedicinesPage";
 import AdminLabTestsPage from "./pages/admin/AdminLabTestsPage";
+import AdminDoctorsPage from "./pages/admin/AdminDoctorsPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { LabDashboardPage } from "./pages/lab/LabDashboardPage";
 import { DoctorDashboardPage } from "./pages/doctor/DoctorDashboardPage";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/admin/medicines" element={<AuthGuard requiredRole="admin"><AdminMedicinesPage /></AuthGuard>} />
               <Route path="/admin/lab-tests" element={<AuthGuard requiredRole="admin"><AdminLabTestsPage /></AuthGuard>} />
               <Route path="/admin/users" element={<AuthGuard requiredRole="admin"><AdminUsersPage /></AuthGuard>} />
+              <Route path="/admin/doctors" element={<AuthGuard requiredRole="admin"><AdminDoctorsPage /></AuthGuard>} />
               
               {/* Lab Routes */}
               <Route path="/lab" element={<AuthGuard requiredRole="lab"><LabDashboardPage /></AuthGuard>} />

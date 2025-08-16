@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from '@/components/AdminSidebar';
@@ -24,10 +27,15 @@ interface Medicine {
   name: string;
   brand: string;
   price: number;
+  original_price: number;
   stock_quantity: number;
   requires_prescription: boolean;
   is_active: boolean;
   category_id: string;
+  description: string;
+  manufacturer: string;
+  dosage: string;
+  pack_size: string;
 }
 
 const AdminMedicinesPage = () => {
@@ -36,6 +44,9 @@ const AdminMedicinesPage = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
 
   // Check if user is admin
   if (userRole !== 'admin') {
@@ -72,6 +83,112 @@ const AdminMedicinesPage = () => {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAddMedicine = async (formData: FormData) => {
+    try {
+      const medicineData = {
+        name: formData.get('name') as string,
+        brand: formData.get('brand') as string,
+        price: parseFloat(formData.get('price') as string),
+        original_price: parseFloat(formData.get('original_price') as string),
+        stock_quantity: parseInt(formData.get('stock_quantity') as string),
+        requires_prescription: formData.get('requires_prescription') === 'true',
+        description: formData.get('description') as string,
+        manufacturer: formData.get('manufacturer') as string,
+        dosage: formData.get('dosage') as string,
+        pack_size: formData.get('pack_size') as string,
+        is_active: true
+      };
+
+      const { error } = await supabase
+        .from('medicines')
+        .insert(medicineData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Medicine added successfully"
+      });
+
+      setIsAddDialogOpen(false);
+      fetchMedicines();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add medicine",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditMedicine = async (formData: FormData) => {
+    if (!editingMedicine) return;
+
+    try {
+      const medicineData = {
+        name: formData.get('name') as string,
+        brand: formData.get('brand') as string,
+        price: parseFloat(formData.get('price') as string),
+        original_price: parseFloat(formData.get('original_price') as string),
+        stock_quantity: parseInt(formData.get('stock_quantity') as string),
+        requires_prescription: formData.get('requires_prescription') === 'true',
+        description: formData.get('description') as string,
+        manufacturer: formData.get('manufacturer') as string,
+        dosage: formData.get('dosage') as string,
+        pack_size: formData.get('pack_size') as string,
+        is_active: formData.get('is_active') === 'true'
+      };
+
+      const { error } = await supabase
+        .from('medicines')
+        .update(medicineData)
+        .eq('id', editingMedicine.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Medicine updated successfully"
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingMedicine(null);
+      fetchMedicines();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update medicine",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteMedicine = async (medicineId: string) => {
+    if (!confirm('Are you sure you want to delete this medicine?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('medicines')
+        .delete()
+        .eq('id', medicineId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Medicine deleted successfully"
+      });
+
+      fetchMedicines();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete medicine",
         variant: "destructive"
       });
     }
@@ -130,10 +247,82 @@ const AdminMedicinesPage = () => {
                   <p className="text-muted-foreground">Manage your medicine inventory</p>
                 </div>
               </div>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Medicine
-              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Medicine
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New Medicine</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    handleAddMedicine(formData);
+                  }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="name">Medicine Name</Label>
+                        <Input id="name" name="name" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="brand">Brand</Label>
+                        <Input id="brand" name="brand" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="price">Price</Label>
+                        <Input id="price" name="price" type="number" step="0.01" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="original_price">Original Price</Label>
+                        <Input id="original_price" name="original_price" type="number" step="0.01" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="stock_quantity">Stock Quantity</Label>
+                        <Input id="stock_quantity" name="stock_quantity" type="number" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="requires_prescription">Requires Prescription</Label>
+                        <select id="requires_prescription" name="requires_prescription" className="w-full p-2 border rounded">
+                          <option value="false">No</option>
+                          <option value="true">Yes</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="manufacturer">Manufacturer</Label>
+                        <Input id="manufacturer" name="manufacturer" />
+                      </div>
+                      <div>
+                        <Label htmlFor="dosage">Dosage</Label>
+                        <Input id="dosage" name="dosage" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="pack_size">Pack Size</Label>
+                      <Input id="pack_size" name="pack_size" />
+                    </div>
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" name="description" rows={3} />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit">Add Medicine</Button>
+                      <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Search Bar */}
@@ -196,10 +385,21 @@ const AdminMedicinesPage = () => {
                             </td>
                             <td className="py-4">
                               <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingMedicine(medicine);
+                                    setIsEditDialogOpen(true);
+                                  }}
+                                >
                                   <Edit className="w-4 h-4" />
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteMedicine(medicine.id)}
+                                >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
@@ -215,6 +415,87 @@ const AdminMedicinesPage = () => {
           </div>
         </main>
       </div>
+
+      {/* Edit Medicine Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Medicine</DialogTitle>
+          </DialogHeader>
+          {editingMedicine && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              handleEditMedicine(formData);
+            }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_name">Medicine Name</Label>
+                  <Input id="edit_name" name="name" defaultValue={editingMedicine.name} required />
+                </div>
+                <div>
+                  <Label htmlFor="edit_brand">Brand</Label>
+                  <Input id="edit_brand" name="brand" defaultValue={editingMedicine.brand || ''} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_price">Price</Label>
+                  <Input id="edit_price" name="price" type="number" step="0.01" defaultValue={editingMedicine.price} required />
+                </div>
+                <div>
+                  <Label htmlFor="edit_original_price">Original Price</Label>
+                  <Input id="edit_original_price" name="original_price" type="number" step="0.01" defaultValue={editingMedicine.original_price || ''} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_stock_quantity">Stock Quantity</Label>
+                  <Input id="edit_stock_quantity" name="stock_quantity" type="number" defaultValue={editingMedicine.stock_quantity} required />
+                </div>
+                <div>
+                  <Label htmlFor="edit_requires_prescription">Requires Prescription</Label>
+                  <select id="edit_requires_prescription" name="requires_prescription" className="w-full p-2 border rounded" defaultValue={editingMedicine.requires_prescription.toString()}>
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_manufacturer">Manufacturer</Label>
+                  <Input id="edit_manufacturer" name="manufacturer" defaultValue={editingMedicine.manufacturer || ''} />
+                </div>
+                <div>
+                  <Label htmlFor="edit_dosage">Dosage</Label>
+                  <Input id="edit_dosage" name="dosage" defaultValue={editingMedicine.dosage || ''} />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="edit_pack_size">Pack Size</Label>
+                <Input id="edit_pack_size" name="pack_size" defaultValue={editingMedicine.pack_size || ''} />
+              </div>
+              <div>
+                <Label htmlFor="edit_description">Description</Label>
+                <Textarea id="edit_description" name="description" rows={3} defaultValue={editingMedicine.description || ''} />
+              </div>
+              <div>
+                <Label htmlFor="edit_is_active">Status</Label>
+                <select id="edit_is_active" name="is_active" className="w-full p-2 border rounded" defaultValue={editingMedicine.is_active.toString()}>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit">Save Changes</Button>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };

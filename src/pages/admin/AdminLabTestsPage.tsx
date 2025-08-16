@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from '@/components/AdminSidebar';
@@ -37,6 +40,9 @@ const AdminLabTestsPage = () => {
   const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingLabTest, setEditingLabTest] = useState<LabTest | null>(null);
 
   // Check if user is admin
   if (userRole !== 'admin') {
@@ -73,6 +79,106 @@ const AdminLabTestsPage = () => {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAddLabTest = async (formData: FormData) => {
+    try {
+      const labTestData = {
+        name: formData.get('name') as string,
+        description: formData.get('description') as string,
+        price: parseFloat(formData.get('price') as string),
+        category: formData.get('category') as string,
+        sample_type: formData.get('sample_type') as string,
+        reporting_time: formData.get('reporting_time') as string,
+        preparation_required: formData.get('preparation_required') === 'true',
+        is_active: true
+      };
+
+      const { error } = await supabase
+        .from('lab_tests')
+        .insert(labTestData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Lab test added successfully"
+      });
+
+      setIsAddDialogOpen(false);
+      fetchLabTests();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add lab test",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditLabTest = async (formData: FormData) => {
+    if (!editingLabTest) return;
+
+    try {
+      const labTestData = {
+        name: formData.get('name') as string,
+        description: formData.get('description') as string,
+        price: parseFloat(formData.get('price') as string),
+        category: formData.get('category') as string,
+        sample_type: formData.get('sample_type') as string,
+        reporting_time: formData.get('reporting_time') as string,
+        preparation_required: formData.get('preparation_required') === 'true',
+        is_active: formData.get('is_active') === 'true'
+      };
+
+      const { error } = await supabase
+        .from('lab_tests')
+        .update(labTestData)
+        .eq('id', editingLabTest.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Lab test updated successfully"
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingLabTest(null);
+      fetchLabTests();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update lab test",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteLabTest = async (labTestId: string) => {
+    if (!confirm('Are you sure you want to delete this lab test?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('lab_tests')
+        .delete()
+        .eq('id', labTestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Lab test deleted successfully"
+      });
+
+      fetchLabTests();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete lab test",
         variant: "destructive"
       });
     }
@@ -131,10 +237,68 @@ const AdminLabTestsPage = () => {
                   <p className="text-muted-foreground">Manage available diagnostic tests</p>
                 </div>
               </div>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Lab Test
-              </Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Lab Test
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New Lab Test</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    handleAddLabTest(formData);
+                  }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="name">Test Name</Label>
+                        <Input id="name" name="name" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="category">Category</Label>
+                        <Input id="category" name="category" required />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="price">Price</Label>
+                        <Input id="price" name="price" type="number" step="0.01" required />
+                      </div>
+                      <div>
+                        <Label htmlFor="sample_type">Sample Type</Label>
+                        <Input id="sample_type" name="sample_type" placeholder="e.g., Blood, Urine" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="reporting_time">Reporting Time</Label>
+                        <Input id="reporting_time" name="reporting_time" placeholder="e.g., 24 hours" />
+                      </div>
+                      <div>
+                        <Label htmlFor="preparation_required">Preparation Required</Label>
+                        <select id="preparation_required" name="preparation_required" className="w-full p-2 border rounded">
+                          <option value="false">No</option>
+                          <option value="true">Yes</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" name="description" rows={3} />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit">Add Lab Test</Button>
+                      <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Search Bar */}
@@ -195,10 +359,21 @@ const AdminLabTestsPage = () => {
                             </td>
                             <td className="py-4">
                               <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingLabTest(test);
+                                    setIsEditDialogOpen(true);
+                                  }}
+                                >
                                   <Edit className="w-4 h-4" />
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteLabTest(test.id)}
+                                >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
@@ -214,6 +389,73 @@ const AdminLabTestsPage = () => {
           </div>
         </main>
       </div>
+
+      {/* Edit Lab Test Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Lab Test</DialogTitle>
+          </DialogHeader>
+          {editingLabTest && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              handleEditLabTest(formData);
+            }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_name">Test Name</Label>
+                  <Input id="edit_name" name="name" defaultValue={editingLabTest.name} required />
+                </div>
+                <div>
+                  <Label htmlFor="edit_category">Category</Label>
+                  <Input id="edit_category" name="category" defaultValue={editingLabTest.category || ''} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_price">Price</Label>
+                  <Input id="edit_price" name="price" type="number" step="0.01" defaultValue={editingLabTest.price} required />
+                </div>
+                <div>
+                  <Label htmlFor="edit_sample_type">Sample Type</Label>
+                  <Input id="edit_sample_type" name="sample_type" defaultValue={editingLabTest.sample_type || ''} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_reporting_time">Reporting Time</Label>
+                  <Input id="edit_reporting_time" name="reporting_time" defaultValue={editingLabTest.reporting_time || ''} />
+                </div>
+                <div>
+                  <Label htmlFor="edit_preparation_required">Preparation Required</Label>
+                  <select id="edit_preparation_required" name="preparation_required" className="w-full p-2 border rounded" defaultValue={editingLabTest.preparation_required.toString()}>
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="edit_description">Description</Label>
+                <Textarea id="edit_description" name="description" rows={3} defaultValue={editingLabTest.description || ''} />
+              </div>
+              <div>
+                <Label htmlFor="edit_is_active">Status</Label>
+                <select id="edit_is_active" name="is_active" className="w-full p-2 border rounded" defaultValue={editingLabTest.is_active.toString()}>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit">Save Changes</Button>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
