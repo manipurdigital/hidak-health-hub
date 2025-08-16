@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Star, Clock, Truck } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext";
 
 const PharmacySection = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [cartItems, setCartItems] = useState(3);
   const { toast } = useToast();
+  const { addItem } = useCart();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,11 +21,17 @@ const PharmacySection = () => {
     }
   };
 
-  const handleAddToCart = (medicineName: string) => {
-    setCartItems(prev => prev + 1);
+  const handleAddToCart = (medicine: { id: string; name: string; price: string }) => {
+    // Convert price string to number (remove currency symbol and convert)
+    const priceNumber = parseFloat(medicine.price.replace('₹', ''));
+    addItem({
+      id: medicine.id,
+      name: medicine.name,
+      price: priceNumber
+    });
     toast({
       title: "Added to Cart",
-      description: `${medicineName} added to your cart`,
+      description: `${medicine.name} added to your cart`,
     });
   };
 
@@ -53,6 +60,7 @@ const PharmacySection = () => {
 
   const featuredMedicines = [
     {
+      id: "paracetamol-500",
       name: "Paracetamol 500mg",
       brand: "Crocin",
       price: "₹24",
@@ -64,6 +72,7 @@ const PharmacySection = () => {
       fastDelivery: true
     },
     {
+      id: "vitamin-d3",
       name: "Vitamin D3 Tablets",
       brand: "HealthVit",
       price: "₹185",
@@ -75,6 +84,7 @@ const PharmacySection = () => {
       fastDelivery: true
     },
     {
+      id: "metformin-500",
       name: "Metformin 500mg",
       brand: "Glycomet",
       price: "₹45",
@@ -86,6 +96,7 @@ const PharmacySection = () => {
       fastDelivery: false
     },
     {
+      id: "calcium-vit-d",
       name: "Calcium + Vitamin D",
       brand: "Shelcal",
       price: "₹135",
@@ -228,7 +239,11 @@ const PharmacySection = () => {
                   {/* Add to cart */}
                   <Button 
                     className="w-full group-hover:scale-105 transition-transform duration-200"
-                    onClick={() => handleAddToCart(medicine.name)}
+                    onClick={() => handleAddToCart({
+                      id: medicine.id,
+                      name: medicine.name,
+                      price: medicine.price
+                    })}
                   >
                     Add to Cart
                   </Button>

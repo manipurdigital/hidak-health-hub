@@ -2,12 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Search, User, ShoppingCart, Phone, Menu } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext";
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [cartItems, setCartItems] = useState(3);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { toast } = useToast();
+  const { itemCount } = useCart();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +52,7 @@ const Header = () => {
   const handleCart = () => {
     toast({
       title: "Cart",
-      description: `You have ${cartItems} items in your cart`,
+      description: `You have ${itemCount} items in your cart`,
     });
   };
 
@@ -123,7 +124,7 @@ const Header = () => {
               <ShoppingCart className="w-4 h-4" />
               Cart
               <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                {cartItems}
+                {itemCount}
               </span>
             </Button>
           </div>
