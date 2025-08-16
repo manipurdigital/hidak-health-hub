@@ -33,6 +33,15 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     return <Navigate to={fallbackTo} state={{ from: location }} replace />;
   }
 
+  // If a specific role is required but the role hasn't been resolved yet, wait.
+  if (normalizedRequiredRole && (userRole === null || userRole === undefined)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   if (normalizedRequiredRole && userRole !== normalizedRequiredRole) {
     // Redirect based on user role
     switch (userRole) {
