@@ -669,6 +669,89 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          description: string | null
+          extra_discount_percentage: number | null
+          features: Json
+          free_delivery: boolean | null
+          id: string
+          is_active: boolean | null
+          max_consultations: number | null
+          plan_code: string
+          plan_name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          created_at?: string
+          description?: string | null
+          extra_discount_percentage?: number | null
+          features?: Json
+          free_delivery?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_consultations?: number | null
+          plan_code: string
+          plan_name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          description?: string | null
+          extra_discount_percentage?: number | null
+          features?: Json
+          free_delivery?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_consultations?: number | null
+          plan_code?: string
+          plan_name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_usage: {
+        Row: {
+          created_at: string
+          feature_type: string
+          id: string
+          month_year: string
+          subscription_id: string
+          used_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          feature_type: string
+          id?: string
+          month_year: string
+          subscription_id: string
+          used_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          feature_type?: string
+          id?: string
+          month_year?: string
+          subscription_id?: string
+          used_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_subscription_usage_subscription"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -693,11 +776,71 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          consultations_used: number | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          customer_id: string | null
+          id: string
+          plan_id: string
+          razorpay_payment_id: string | null
+          status: string
+          subscription_id: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consultations_used?: number | null
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          customer_id?: string | null
+          id?: string
+          plan_id: string
+          razorpay_payment_id?: string | null
+          status?: string
+          subscription_id: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consultations_used?: number | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          customer_id?: string | null
+          id?: string
+          plan_id?: string
+          razorpay_payment_id?: string | null
+          status?: string
+          subscription_id?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_user_subscriptions_plan"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_book_consultation: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       generate_order_number: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -709,6 +852,24 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_user_subscription: {
+        Args: { user_uuid: string }
+        Returns: {
+          consultations_used: number
+          current_period_end: string
+          extra_discount_percentage: number
+          free_delivery: boolean
+          max_consultations: number
+          plan_code: string
+          plan_name: string
+          status: string
+          subscription_id: string
+        }[]
+      }
+      has_active_subscription: {
+        Args: { user_uuid: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
