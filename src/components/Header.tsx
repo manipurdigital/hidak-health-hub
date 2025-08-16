@@ -55,10 +55,14 @@ const Header = () => {
   };
 
   const handleCart = () => {
-    toast({
-      title: "Cart",
-      description: `You have ${itemCount} items in your cart`,
-    });
+    if (itemCount > 0) {
+      navigate("/checkout");
+    } else {
+      toast({
+        title: "Cart Empty",
+        description: "Add some medicines to your cart first",
+      });
+    }
   };
 
   return (
