@@ -233,7 +233,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
                 <div className="space-y-4">
                   {/* File Drop Zone */}
                   <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                       dragActive
                         ? 'border-primary bg-primary/5'
                         : 'border-muted-foreground/25 hover:border-primary/50'
