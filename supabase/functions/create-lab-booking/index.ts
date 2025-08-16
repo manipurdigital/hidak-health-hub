@@ -1,0 +1,198 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Helper logging function
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-LAB-BOOKING] ${step}${detailsStr}`);
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    logStep("Function started");
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header provided");
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    
+    const user = userData.user;
+    if (!user) throw new Error("User not authenticated");
+
+    logStep("User authenticated", { userId: user.id, email: user.email });
+
+    const body = await req.json();
+    const { 
+      testId, 
+      bookingDate, 
+      timeSlot, 
+      patientName, 
+      patientPhone, 
+      patientEmail, 
+      specialInstructions 
+    } = body;
+
+    if (!testId || !bookingDate || !timeSlot || !patientName || !patientPhone) {
+      throw new Error("Missing required booking information");
+    }
+
+    logStep("Request validated", { testId, bookingDate, timeSlot });
+
+    // Get test details
+    const { data: test, error: testError } = await supabaseClient
+      .from('lab_tests')
+      .select('*')
+      .eq('id', testId)
+      .eq('is_active', true)
+      .single();
+
+    if (testError || !test) {
+      logStep("Test not found", { testId, error: testError });
+      throw new Error("Test not found or not available");
+    }
+
+    logStep("Test found", { testName: test.name, price: test.price });
+
+    // Check slot availability (basic check - can be enhanced with proper slot management)
+    const { data: existingBookings, error: slotError } = await supabaseClient
+      .from('lab_bookings')
+      .select('id')
+      .eq('test_id', testId)
+      .eq('booking_date', bookingDate)
+      .eq('time_slot', timeSlot)
+      .in('status', ['confirmed', 'pending']);
+
+    if (slotError) {
+      logStep("Error checking slot availability", slotError);
+      throw new Error("Error checking slot availability");
+    }
+
+    // Simple slot limit (can be enhanced based on test capacity)
+    if (existingBookings && existingBookings.length >= 5) {
+      logStep("Slot unavailable", { existingBookings: existingBookings.length });
+      throw new Error("Selected time slot is not available");
+    }
+
+    logStep("Slot available", { existingBookings: existingBookings?.length || 0 });
+
+    // Create lab booking
+    const { data: booking, error: bookingError } = await supabaseClient
+      .from('lab_bookings')
+      .insert({
+        user_id: user.id,
+        test_id: testId,
+        booking_date: bookingDate,
+        time_slot: timeSlot,
+        patient_name: patientName,
+        patient_phone: patientPhone,
+        patient_email: patientEmail || user.email,
+        special_instructions: specialInstructions || null,
+        total_amount: test.price,
+        status: 'pending',
+        payment_status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (bookingError) {
+      logStep("Error creating booking", bookingError);
+      throw new Error(`Failed to create booking: ${bookingError.message}`);
+    }
+
+    logStep("Booking created", { bookingId: booking.id });
+
+    // Create Razorpay order for lab booking
+    const razorpayKeyId = "rzp_test_NKngyBlKJZZxzR";
+    const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+
+    if (!razorpayKeySecret) {
+      throw new Error("Razorpay secret key not configured");
+    }
+
+    const razorpayOrderData = {
+      amount: Math.round(test.price * 100), // Convert to paisa
+      currency: "INR",
+      receipt: `LAB_${booking.id}`,
+      notes: {
+        booking_id: booking.id,
+        test_id: testId,
+        user_id: user.id,
+        type: "lab_booking"
+      }
+    };
+
+    logStep("Creating Razorpay order", razorpayOrderData);
+
+    const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKeySecret}`)}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(razorpayOrderData),
+    });
+
+    if (!razorpayResponse.ok) {
+      const errorText = await razorpayResponse.text();
+      logStep("Razorpay API error", { status: razorpayResponse.status, error: errorText });
+      throw new Error(`Razorpay API error: ${errorText}`);
+    }
+
+    const razorpayOrder = await razorpayResponse.json();
+    logStep("Razorpay order created", { razorpayOrderId: razorpayOrder.id });
+
+    // Update booking with Razorpay order ID
+    const { error: updateError } = await supabaseClient
+      .from('lab_bookings')
+      .update({ razorpay_order_id: razorpayOrder.id })
+      .eq('id', booking.id);
+
+    if (updateError) {
+      logStep("Error updating booking with Razorpay ID", updateError);
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      booking: {
+        id: booking.id,
+        test_name: test.name,
+        booking_date: bookingDate,
+        time_slot: timeSlot,
+        total_amount: test.price,
+        razorpay_order_id: razorpayOrder.id,
+        razorpay_key_id: razorpayKeyId
+      }
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR in create-lab-booking", { message: errorMessage });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: errorMessage 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
