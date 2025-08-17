@@ -56,13 +56,14 @@ const Header = () => {
   };
 
   const handleCart = () => {
-    if (itemCount > 0) {
-      navigate("/checkout");
+    navigate("/checkout");
+  };
+
+  const handleProfile = () => {
+    if (user) {
+      navigate("/dashboard");
     } else {
-      toast({
-        title: "Cart Empty",
-        description: "Add some medicines to your cart first",
-      });
+      navigate("/auth");
     }
   };
 
@@ -135,10 +136,10 @@ const Header = () => {
               variant="ghost" 
               size="sm" 
               className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
-              onClick={handleLogin}
+              onClick={handleProfile}
             >
               <User className="w-4 h-4" />
-              {user ? "Dashboard" : "Login"}
+              {user ? "Profile" : "Login"}
             </Button>
             <Button 
               variant="ghost" 
@@ -148,9 +149,11 @@ const Header = () => {
             >
               <ShoppingCart className="w-4 h-4" />
               Cart
-              <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                {itemCount}
-              </span>
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
             </Button>
           </div>
         </div>

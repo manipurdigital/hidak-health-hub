@@ -12,6 +12,7 @@ import { SlotPicker } from '@/components/SlotPicker';
 import { LabBookingReview } from '@/components/LabBookingReview';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
+import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
 
 type BookingStep = 'details' | 'slot' | 'review';
 
@@ -69,14 +70,19 @@ export function LabTestDetailPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
+        {currentStep === 'details' && (
+          <Breadcrumb 
+            items={[
+              { label: "Lab Tests", href: "/#services" },
+              { label: labTest.name }
+            ]} 
+            className="mb-4" 
+          />
+        )}
+        <BackButton 
           onClick={() => currentStep === 'details' ? navigate(-1) : handleBackToDetails()}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          {currentStep === 'details' ? 'Back' : 'Back to Details'}
-        </Button>
+          label={currentStep === 'details' ? 'Back' : 'Back to Details'}
+        />
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">

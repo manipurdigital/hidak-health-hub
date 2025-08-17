@@ -14,6 +14,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
+import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
 
 type BookingStep = 'profile' | 'slot' | 'mode' | 'review';
 type ConsultationType = 'text' | 'audio' | 'video';
@@ -126,14 +127,16 @@ export function DoctorProfilePage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={handleBack}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+        {currentStep === 'profile' && (
+          <Breadcrumb 
+            items={[
+              { label: "Doctors", href: "/#services" },
+              { label: doctor.full_name }
+            ]} 
+            className="mb-4" 
+          />
+        )}
+        <BackButton onClick={handleBack} />
 
         {/* Progress Steps */}
         {currentStep !== 'profile' && (

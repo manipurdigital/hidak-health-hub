@@ -12,6 +12,7 @@ import { useCart } from '@/contexts/CartContext';
 import { PrescriptionUpload } from '@/components/PrescriptionUpload';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
+import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
 
 export function MedicineDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -94,14 +95,14 @@ export function MedicineDetailPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+        <Breadcrumb 
+          items={[
+            { label: "Medicines", href: "/#pharmacy" },
+            { label: medicine.name }
+          ]} 
+          className="mb-4" 
+        />
+        <BackButton onClick={() => navigate(-1)} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Medicine Image */}
