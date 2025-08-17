@@ -8,6 +8,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
+import MedicinesPage from "./pages/MedicinesPage";
+import LabTestsPage from "./pages/LabTestsPage";
+import DoctorsPage from "./pages/DoctorsPage";
+import WellnessPage from "./pages/WellnessPage";
+import CarePlanPage from "./pages/CarePlanPage";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
@@ -23,7 +28,6 @@ import ConsultationChatPage from "./pages/ConsultationChatPage";
 import PrescriptionsPage from "./pages/PrescriptionsPage";
 import CareSubscriptionPage from "./pages/CareSubscriptionPage";
 import NotFound from "./pages/NotFound";
-import { SearchResultPlaceholder } from "./components/SearchResultPlaceholder";
 import { MedicineDetailPage } from "./pages/MedicineDetailPage";
 import { OrderSuccessPage } from "./pages/OrderSuccessPage";
 import { LabTestDetailPage } from "./pages/LabTestDetailPage";
@@ -45,6 +49,11 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+              <Route path="/medicines" element={<PublicRoute><MedicinesPage /></PublicRoute>} />
+              <Route path="/lab-tests" element={<PublicRoute><LabTestsPage /></PublicRoute>} />
+              <Route path="/doctors" element={<PublicRoute><DoctorsPage /></PublicRoute>} />
+              <Route path="/wellness" element={<PublicRoute><WellnessPage /></PublicRoute>} />
+              <Route path="/care-plan" element={<PublicRoute><CarePlanPage /></PublicRoute>} />
               <Route path="/auth" element={<GuestRoute><AuthPage /></GuestRoute>} />
               
               {/* Protected Routes */}

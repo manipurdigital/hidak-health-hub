@@ -174,36 +174,36 @@ const Header = () => {
           <nav className="flex items-center gap-8">
             <Button 
               variant="ghost" 
-              className="text-primary font-medium hover:bg-primary/10 transition-colors"
-              onClick={() => scrollToSection('pharmacy')}
+              className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              onClick={() => navigate('/medicines')}
             >
               Medicines
             </Button>
             <Button 
               variant="ghost" 
               className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-              onClick={() => scrollToSection('services')}
+              onClick={() => navigate('/lab-tests')}
             >
               Lab Tests
             </Button>
             <Button 
               variant="ghost" 
               className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-              onClick={() => scrollToSection('services')}
+              onClick={() => navigate('/doctors')}
             >
               Consult Doctors
             </Button>
             <Button 
               variant="ghost" 
               className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-              onClick={() => scrollToSection('services')}
+              onClick={() => navigate('/wellness')}
             >
               Wellness
             </Button>
             <Button 
               variant="ghost" 
               className="text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-              onClick={() => scrollToSection('services')}
+              onClick={() => navigate('/care-plan')}
             >
               Care Plan
             </Button>
