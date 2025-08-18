@@ -12,6 +12,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { BulkUpload } from '@/components/BulkUpload';
+import { URLImportDialog } from '@/components/URLImportDialog';
+import { BulkImportDialog } from '@/components/BulkImportDialog';
 import { 
   User, 
   LogOut,
@@ -19,7 +21,9 @@ import {
   Search,
   Edit,
   Trash2,
-  Package
+  Package,
+  Link,
+  Upload
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
@@ -37,6 +41,7 @@ interface Medicine {
   manufacturer: string;
   dosage: string;
   pack_size: string;
+  image_url?: string;
 }
 
 const AdminMedicinesPage = () => {
@@ -47,6 +52,8 @@ const AdminMedicinesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUrlImportOpen, setIsUrlImportOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
 
   // Check if user is admin
@@ -102,6 +109,7 @@ const AdminMedicinesPage = () => {
         manufacturer: formData.get('manufacturer') as string,
         dosage: formData.get('dosage') as string,
         pack_size: formData.get('pack_size') as string,
+        image_url: formData.get('image_url') as string || null,
         is_active: true
       };
 
@@ -142,6 +150,7 @@ const AdminMedicinesPage = () => {
         manufacturer: formData.get('manufacturer') as string,
         dosage: formData.get('dosage') as string,
         pack_size: formData.get('pack_size') as string,
+        image_url: formData.get('image_url') as string || null,
         is_active: formData.get('is_active') === 'true'
       };
 
@@ -240,7 +249,7 @@ const AdminMedicinesPage = () => {
         <main className="flex-1 pt-16 p-6 bg-background">
           <div className="space-y-6">
             {/* Header Actions */}
-            <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Package className="w-8 h-8 text-primary" />
                 <div>
@@ -248,13 +257,28 @@ const AdminMedicinesPage = () => {
                   <p className="text-muted-foreground">Manage your medicine inventory</p>
                 </div>
               </div>
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Medicine
-                  </Button>
-                </DialogTrigger>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsUrlImportOpen(true)}
+                >
+                  <Link className="w-4 h-4 mr-2" />
+                  Add via URL
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsBulkImportOpen(true)}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Import
+                </Button>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Medicine
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Medicine</DialogTitle>
@@ -312,6 +336,10 @@ const AdminMedicinesPage = () => {
                       <Input id="pack_size" name="pack_size" />
                     </div>
                     <div>
+                      <Label htmlFor="image_url">Thumbnail URL (optional)</Label>
+                      <Input id="image_url" name="image_url" type="url" placeholder="https://..." />
+                    </div>
+                    <div>
                       <Label htmlFor="description">Description</Label>
                       <Textarea id="description" name="description" rows={3} />
                     </div>
@@ -324,10 +352,7 @@ const AdminMedicinesPage = () => {
                   </form>
                 </DialogContent>
               </Dialog>
-              <BulkUpload 
-                type="medicines" 
-                onUploadComplete={fetchMedicines}
-              />
+              </div>
             </div>
 
             {/* Search Bar */}
@@ -481,6 +506,10 @@ const AdminMedicinesPage = () => {
                 <Input id="edit_pack_size" name="pack_size" defaultValue={editingMedicine.pack_size || ''} />
               </div>
               <div>
+                <Label htmlFor="edit_image_url">Thumbnail URL</Label>
+                <Input id="edit_image_url" name="image_url" type="url" defaultValue={editingMedicine.image_url || ''} />
+              </div>
+              <div>
                 <Label htmlFor="edit_description">Description</Label>
                 <Textarea id="edit_description" name="description" rows={3} defaultValue={editingMedicine.description || ''} />
               </div>
@@ -501,6 +530,20 @@ const AdminMedicinesPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* URL Import Dialog */}
+      <URLImportDialog
+        open={isUrlImportOpen}
+        onOpenChange={setIsUrlImportOpen}
+        onSuccess={fetchMedicines}
+      />
+
+      {/* Bulk Import Dialog */}
+      <BulkImportDialog
+        open={isBulkImportOpen}
+        onOpenChange={setIsBulkImportOpen}
+        onSuccess={fetchMedicines}
+      />
     </SidebarProvider>
   );
 };
