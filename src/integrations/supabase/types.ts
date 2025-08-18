@@ -2272,6 +2272,19 @@ export type Database = {
         Args: { "": number }
         Returns: string
       }
+      get_service_area_info: {
+        Args: { in_lat: number; in_lng: number; in_type: string }
+        Returns: {
+          area_id: string
+          area_name: string
+          capacity_per_day: number
+          center_id: string
+          color: string
+          distance_m: number
+          priority: number
+          working_hours: Json
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -2339,6 +2352,10 @@ export type Database = {
       }
       is_admin: {
         Args: { _user_id?: string }
+        Returns: boolean
+      }
+      is_location_serviceable: {
+        Args: { in_lat: number; in_lng: number; in_type: string }
         Returns: boolean
       }
       json: {
@@ -2501,6 +2518,21 @@ export type Database = {
       pgis_geometry_union_parallel_serialfn: {
         Args: { "": unknown }
         Returns: string
+      }
+      pick_center_for_job: {
+        Args: { in_lat: number; in_lng: number; in_type: string }
+        Returns: {
+          center_id: string
+          reason: string
+        }[]
+      }
+      pick_center_with_load_balancing: {
+        Args: { in_lat: number; in_lng: number; in_type: string }
+        Returns: {
+          center_id: string
+          current_load: number
+          reason: string
+        }[]
       }
       point: {
         Args: { "": unknown }
@@ -2670,6 +2702,16 @@ export type Database = {
           category: string
           orders: number
           revenue: number
+        }[]
+      }
+      serviceable_centers: {
+        Args: { in_lat: number; in_lng: number; in_type: string }
+        Returns: {
+          area_id: string
+          center_id: string
+          center_type: string
+          distance_m: number
+          priority: number
         }[]
       }
       set_cached_recommendations: {
