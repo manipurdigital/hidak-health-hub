@@ -2766,6 +2766,20 @@ export type Database = {
           revenue: number
         }[]
       }
+      search_medicines_brand_or_composition: {
+        Args: { max_rows?: number; q: string }
+        Returns: {
+          composition_family_key: string
+          composition_key: string
+          composition_text: string
+          generic_name: string
+          id: string
+          name: string
+          price: number
+          rank_score: number
+          thumbnail_url: string
+        }[]
+      }
       serviceable_centers: {
         Args: { in_lat: number; in_lng: number; in_type: string }
         Returns: {
@@ -2816,6 +2830,15 @@ export type Database = {
       show_trgm: {
         Args: { "": string }
         Returns: string[]
+      }
+      similar_medicines: {
+        Args: { mode?: string; ref_medicine_id: string }
+        Returns: {
+          id: string
+          name: string
+          price: number
+          thumbnail_url: string
+        }[]
       }
       spheroid_in: {
         Args: { "": unknown }
