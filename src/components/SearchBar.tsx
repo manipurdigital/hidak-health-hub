@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -22,6 +22,7 @@ export function SearchBar({
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const navigate = useNavigate();
+  const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -55,25 +56,32 @@ export function SearchBar({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen || flatResults.length === 0) return;
+    if (!isOpen && e.key !== "Enter") return;
 
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < flatResults.length - 1 ? prev + 1 : 0
-        );
+        if (flatResults.length > 0) {
+          setSelectedIndex(prev => 
+            prev < flatResults.length - 1 ? prev + 1 : 0
+          );
+        }
         break;
       case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : flatResults.length - 1
-        );
+        if (flatResults.length > 0) {
+          setSelectedIndex(prev => 
+            prev > 0 ? prev - 1 : flatResults.length - 1
+          );
+        }
         break;
       case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0 && flatResults[selectedIndex]) {
           handleResultClick(flatResults[selectedIndex]);
+        } else if (query.trim()) {
+          // Universal search handoff - navigate to corresponding list route with query
+          handleUniversalSearch(query.trim());
         }
         break;
       case "Escape":
@@ -87,6 +95,27 @@ export function SearchBar({
 
   const handleResultClick = (result: SearchResult) => {
     navigate(result.href);
+    setQuery("");
+    setIsOpen(false);
+    setSelectedIndex(-1);
+    inputRef.current?.blur();
+  };
+
+  const handleUniversalSearch = (searchQuery: string) => {
+    // Determine which route to navigate to based on current page
+    const currentPath = location.pathname;
+    let targetRoute = '/medicines'; // Default to medicines
+    
+    if (currentPath.startsWith('/lab-tests')) {
+      targetRoute = '/lab-tests';
+    } else if (currentPath.startsWith('/doctors')) {
+      targetRoute = '/doctors';
+    } else if (currentPath.startsWith('/medicines')) {
+      targetRoute = '/medicines';
+    }
+    
+    // Navigate with query parameter
+    navigate(`${targetRoute}?q=${encodeURIComponent(searchQuery)}`);
     setQuery("");
     setIsOpen(false);
     setSelectedIndex(-1);
