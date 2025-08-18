@@ -11,6 +11,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { CenterLayout } from "@/components/CenterLayout";
 import { CenterGuard } from "@/components/CenterGuard";
 import { AdminAnalyticsDashboard } from "./pages/admin/AdminAnalyticsDashboard";
+import AdminReportsPage from "./pages/admin/AdminReportsPage";
 import Index from "./pages/Index";
 import MedicinesPage from "./pages/MedicinesPage";
 import LabTestsPage from "./pages/LabTestsPage";
@@ -90,6 +91,7 @@ const App = () => (
               <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminLayout /></AuthGuard>}>
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminAnalyticsDashboard />} />
+                <Route path="reports" element={<AdminReportsPage />} />
                 <Route path="medicines" element={<AdminMedicinesPage />} />
                 <Route path="lab-tests" element={<AdminLabTestsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />

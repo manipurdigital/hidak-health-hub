@@ -1215,6 +1215,36 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      consultation_kpis: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          care_plus_consultations: number
+          care_plus_share: number
+          completed_consultations: number
+          completion_rate: number
+          consultation_revenue: number
+          total_consultations: number
+        }[]
+      }
+      consultations_by_day: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          completed: number
+          consultation_date: string
+          consultations: number
+          revenue: number
+        }[]
+      }
+      consultations_by_specialty: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          avg_fee: number
+          completed: number
+          consultations: number
+          revenue: number
+          specialization: string
+        }[]
+      }
       create_booking_notification: {
         Args: {
           booking_id: string
@@ -1317,6 +1347,78 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      lab_collections_by_center: {
+        Args: {
+          center_filter?: string
+          city_filter?: string
+          end_date: string
+          pincode_filter?: string
+          start_date: string
+          test_filter?: string
+        }
+        Returns: {
+          bookings: number
+          center_name: string
+          collected: number
+          payouts: number
+          revenue: number
+        }[]
+      }
+      lab_collections_by_day: {
+        Args: {
+          center_filter?: string
+          city_filter?: string
+          end_date: string
+          pincode_filter?: string
+          start_date: string
+          test_filter?: string
+        }
+        Returns: {
+          bookings: number
+          collected: number
+          collection_date: string
+          payouts: number
+          revenue: number
+        }[]
+      }
+      lab_collections_kpis: {
+        Args: {
+          center_filter?: string
+          city_filter?: string
+          end_date: string
+          pincode_filter?: string
+          start_date: string
+          test_filter?: string
+        }
+        Returns: {
+          center_payouts: number
+          collected_bookings: number
+          collection_rate: number
+          lab_revenue: number
+          total_bookings: number
+        }[]
+      }
+      medicine_sales_by_day: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          aov: number
+          orders: number
+          revenue: number
+          sale_date: string
+        }[]
+      }
+      medicine_sales_kpis: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          aov: number
+          cod_gmv: number
+          cod_orders: number
+          gmv: number
+          prepaid_gmv: number
+          prepaid_orders: number
+          total_orders: number
+        }[]
+      }
       recommend_medicines_for_time: {
         Args: {
           at_ts: string
@@ -1386,6 +1488,16 @@ export type Database = {
           order_count: number
           total_quantity: number
           total_revenue: number
+        }[]
+      }
+      top_medicines_by_revenue_detailed: {
+        Args: { end_date: string; limit_count?: number; start_date: string }
+        Returns: {
+          avg_price: number
+          medicine_name: string
+          orders_count: number
+          total_revenue: number
+          units_sold: number
         }[]
       }
       trigger_cache_warming: {
