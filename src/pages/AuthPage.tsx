@@ -67,7 +67,7 @@ const AuthPage = () => {
             navigate('/lab');
             break;
           default:
-            navigate('/dashboard');
+            navigate('/');
         }
       }
     } catch (error) {
