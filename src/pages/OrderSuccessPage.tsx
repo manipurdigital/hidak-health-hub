@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { BackToHome } from '@/components/BackToHome';
+import { Link } from 'react-router-dom';
 
 export function OrderSuccessPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -149,12 +151,12 @@ export function OrderSuccessPage() {
 
           {/* Actions */}
           <div className="flex gap-4">
-            <Button variant="outline" onClick={() => navigate('/dashboard')} className="flex-1">
-              View All Orders
+            <Button asChild variant="outline" className="flex-1">
+              <Link to="/dashboard">
+                View All Orders
+              </Link>
             </Button>
-            <Button onClick={() => navigate('/')} className="flex-1">
-              Continue Shopping
-            </Button>
+            <BackToHome text="Continue Shopping" className="flex-1" />
           </div>
         </div>
       </div>

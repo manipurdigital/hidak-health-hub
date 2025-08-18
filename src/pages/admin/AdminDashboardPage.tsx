@@ -17,6 +17,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
+import { BackToHome } from '@/components/BackToHome';
 
 const AdminDashboardPage = () => {
   const { user, userRole, signOut } = useAuth();
@@ -96,6 +97,7 @@ const AdminDashboardPage = () => {
             </div>
             
             <div className="flex items-center gap-4">
+              <BackToHome variant="link" showIcon={false} text="Back to Site" className="text-primary-foreground hover:text-primary-foreground/80" />
               <Badge variant="secondary" className="capitalize bg-yellow-100 text-yellow-800">
                 {userRole}
               </Badge>

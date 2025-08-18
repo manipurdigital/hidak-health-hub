@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { BackToHome } from '@/components/BackToHome';
 import { AppSidebar } from '@/components/AppSidebar';
 import RecentOrders from '@/components/dashboard/RecentOrders';
 import UpcomingTests from '@/components/dashboard/UpcomingTests';
@@ -53,6 +54,7 @@ const DashboardPage = () => {
             </div>
             
             <div className="flex items-center gap-4">
+              <BackToHome variant="link" showIcon={false} text="Home" />
               <Badge variant="secondary" className="capitalize">
                 {userRole || 'user'}
               </Badge>
