@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTriggerNotification } from './notification-hooks';
 
 // Fetch bookings for center staff
 export const useCenterBookings = () => {
@@ -25,6 +26,7 @@ export const useCenterBookings = () => {
 export const useUpdateLabBooking = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const triggerNotification = useTriggerNotification();
 
   return useMutation({
     mutationFn: async (updates: {
@@ -48,9 +50,22 @@ export const useUpdateLabBooking = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['center-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['lab-bookings'] });
+      
+      // Trigger notifications based on status change
+      if (variables.status) {
+        const notificationData = getNotificationData(variables.status, data);
+        if (notificationData) {
+          triggerNotification.mutate({
+            eventType: notificationData.eventType,
+            bookingId: variables.id,
+            title: notificationData.title,
+            message: notificationData.message,
+          });
+        }
+      }
     },
     onError: (error) => {
       console.error('Update booking error:', error);
@@ -61,4 +76,36 @@ export const useUpdateLabBooking = () => {
       });
     },
   });
+};
+
+// Helper function to get notification data based on status
+const getNotificationData = (status: string, booking: any) => {
+  switch (status) {
+    case 'assigned':
+      return {
+        eventType: 'booking_assigned',
+        title: 'Lab Test Assigned',
+        message: `Lab test ${booking.test?.name || 'booking'} has been assigned to a collection center.`,
+      };
+    case 'en_route':
+      return {
+        eventType: 'status_en_route',
+        title: 'Collector En Route',
+        message: `Sample collector is on the way for ${booking.test?.name || 'lab test'}.`,
+      };
+    case 'collected':
+      return {
+        eventType: 'status_collected',
+        title: 'Sample Collected',
+        message: `Sample has been collected for ${booking.test?.name || 'lab test'}.`,
+      };
+    case 'reschedule_requested':
+      return {
+        eventType: 'reschedule_requested',
+        title: 'Reschedule Requested',
+        message: `Reschedule has been requested for ${booking.test?.name || 'lab test'}.`,
+      };
+    default:
+      return null;
+  }
 };

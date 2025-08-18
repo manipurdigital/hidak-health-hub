@@ -10,6 +10,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SearchBar } from "./SearchBar";
+import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
 
 const Header = () => {
@@ -103,6 +104,7 @@ const Header = () => {
           
           {/* Right actions */}
           <div className="flex items-center gap-4">
+            {user && <NotificationBell />}
             {/* <Button 
               variant="ghost" 
               size="sm" 

@@ -637,6 +637,96 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          booking_assigned_email: boolean
+          booking_assigned_sms: boolean
+          booking_created_email: boolean
+          booking_created_sms: boolean
+          created_at: string
+          email_notifications: boolean
+          id: string
+          reschedule_requests_email: boolean
+          reschedule_requests_sms: boolean
+          sms_notifications: boolean
+          status_updates_email: boolean
+          status_updates_sms: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_assigned_email?: boolean
+          booking_assigned_sms?: boolean
+          booking_created_email?: boolean
+          booking_created_sms?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          reschedule_requests_email?: boolean
+          reschedule_requests_sms?: boolean
+          sms_notifications?: boolean
+          status_updates_email?: boolean
+          status_updates_sms?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_assigned_email?: boolean
+          booking_assigned_sms?: boolean
+          booking_created_email?: boolean
+          booking_created_sms?: boolean
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          reschedule_requests_email?: boolean
+          reschedule_requests_sms?: boolean
+          sms_notifications?: boolean
+          status_updates_email?: boolean
+          status_updates_sms?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          is_read: boolean
+          message: string
+          related_id: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          is_read?: boolean
+          message: string
+          related_id?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          related_id?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -1124,6 +1214,15 @@ export type Database = {
       clean_expired_cache: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      create_booking_notification: {
+        Args: {
+          booking_id: string
+          event_type: string
+          message: string
+          title: string
+        }
+        Returns: undefined
       }
       generate_order_number: {
         Args: Record<PropertyKey, never>
