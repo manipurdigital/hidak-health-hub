@@ -8,6 +8,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
 import { AdminLayout } from "@/components/AdminLayout";
+import { CenterLayout } from "@/components/CenterLayout";
+import { CenterGuard } from "@/components/CenterGuard";
 import { AdminAnalyticsDashboard } from "./pages/admin/AdminAnalyticsDashboard";
 import Index from "./pages/Index";
 import MedicinesPage from "./pages/MedicinesPage";
@@ -37,6 +39,8 @@ import { LabBookingSuccessPage } from "./pages/LabBookingSuccessPage";
 import { DoctorProfilePage } from "./pages/DoctorProfilePage";
 import { ConsultationSuccessPage } from "./pages/ConsultationSuccessPage";
 import { ConsultationRoomPage } from "./pages/ConsultationRoomPage";
+import { CenterDashboardPage } from "./pages/center/CenterDashboardPage";
+import { CenterJobsPage } from "./pages/center/CenterJobsPage";
 import AccountPage from "./pages/AccountPage";
 
 const queryClient = new QueryClient();
@@ -97,6 +101,13 @@ const App = () => (
               
               {/* Doctor Routes - Doctor role required */}
               <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
+              
+              {/* Center Routes - Center role required */}
+              <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
+                <Route index element={<Navigate to="/center/dashboard" replace />} />
+                <Route path="dashboard" element={<CenterDashboardPage />} />
+                <Route path="jobs" element={<CenterJobsPage />} />
+              </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

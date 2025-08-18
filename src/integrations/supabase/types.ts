@@ -380,7 +380,10 @@ export type Database = {
       lab_bookings: {
         Row: {
           booking_date: string
+          collected_at: string | null
+          collector_name: string | null
           created_at: string
+          eta: string | null
           id: string
           patient_email: string | null
           patient_name: string
@@ -390,6 +393,7 @@ export type Database = {
           pickup_window_start: string | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
+          reschedule_reason: string | null
           special_instructions: string | null
           status: string | null
           test_id: string
@@ -400,7 +404,10 @@ export type Database = {
         }
         Insert: {
           booking_date: string
+          collected_at?: string | null
+          collector_name?: string | null
           created_at?: string
+          eta?: string | null
           id?: string
           patient_email?: string | null
           patient_name: string
@@ -410,6 +417,7 @@ export type Database = {
           pickup_window_start?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          reschedule_reason?: string | null
           special_instructions?: string | null
           status?: string | null
           test_id: string
@@ -420,7 +428,10 @@ export type Database = {
         }
         Update: {
           booking_date?: string
+          collected_at?: string | null
+          collector_name?: string | null
           created_at?: string
+          eta?: string | null
           id?: string
           patient_email?: string | null
           patient_name?: string
@@ -430,6 +441,7 @@ export type Database = {
           pickup_window_start?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          reschedule_reason?: string | null
           special_instructions?: string | null
           status?: string | null
           test_id?: string
