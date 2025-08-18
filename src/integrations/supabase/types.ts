@@ -140,6 +140,44 @@ export type Database = {
           },
         ]
       }
+      center_staff: {
+        Row: {
+          center_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          center_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          center_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "center_staff_center_id_fkey"
+            columns: ["center_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultation_messages: {
         Row: {
           consultation_id: string
@@ -276,6 +314,42 @@ export type Database = {
         }
         Relationships: []
       }
+      diagnostic_centers: {
+        Row: {
+          address: string | null
+          contact_phone: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          service_areas: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_phone: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          service_areas?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_phone?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          service_areas?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       doctor_availability: {
         Row: {
           created_at: string
@@ -379,7 +453,11 @@ export type Database = {
       }
       lab_bookings: {
         Row: {
+          assigned_at: string | null
           booking_date: string
+          center_id: string | null
+          center_payout_amount: number | null
+          center_payout_rate: number | null
           collected_at: string | null
           collector_name: string | null
           created_at: string
@@ -403,7 +481,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_at?: string | null
           booking_date: string
+          center_id?: string | null
+          center_payout_amount?: number | null
+          center_payout_rate?: number | null
           collected_at?: string | null
           collector_name?: string | null
           created_at?: string
@@ -427,7 +509,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_at?: string | null
           booking_date?: string
+          center_id?: string | null
+          center_payout_amount?: number | null
+          center_payout_rate?: number | null
           collected_at?: string | null
           collector_name?: string | null
           created_at?: string
@@ -450,7 +536,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lab_bookings_center_id_fkey"
+            columns: ["center_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lab_reports: {
         Row: {
