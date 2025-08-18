@@ -3962,6 +3962,20 @@ export type Database = {
       universal_search: {
         Args: { max_per_group?: number; q: string }
         Returns: {
+          group_key: string
+          href: string
+          id: string
+          price: number
+          subtitle: string
+          thumbnail_url: string
+          title: string
+          type: string
+        }[]
+      }
+      universal_search_v2: {
+        Args: { max_per_group?: number; q: string }
+        Returns: {
+          group_key: string
           href: string
           id: string
           price: number
