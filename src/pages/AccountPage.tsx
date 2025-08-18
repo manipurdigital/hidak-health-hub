@@ -1,0 +1,551 @@
+import React, { useState } from 'react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Package, 
+  TestTube, 
+  MessageSquare, 
+  FileText, 
+  MapPin, 
+  Crown,
+  Download,
+  Calendar,
+  Phone,
+  DollarSign,
+  User,
+  Mail
+} from 'lucide-react';
+import { format } from 'date-fns';
+
+const ITEMS_PER_PAGE = 10;
+
+interface OrderItem {
+  id: string;
+  order_number: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  payment_status: string;
+}
+
+interface LabBooking {
+  id: string;
+  booking_date: string;
+  status: string;
+  total_amount: number;
+  patient_name: string;
+  test_id: string;
+}
+
+interface Consultation {
+  id: string;
+  consultation_date: string;
+  status: string;
+  total_amount: number;
+  doctors: { full_name: string; specialization: string };
+}
+
+interface Prescription {
+  id: string;
+  prescription_number: string;
+  created_at: string;
+  status: string;
+  doctor_id: string;
+}
+
+interface Address {
+  id: string;
+  name: string;
+  address_line_1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  phone: string;
+  is_default: boolean;
+}
+
+export default function AccountPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('orders');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Orders query
+  const { data: orders, isLoading: ordersLoading } = useQuery({
+    queryKey: ['user-orders', user?.id, currentPage],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number, status, total_amount, created_at, payment_status')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
+      
+      if (error) throw error;
+      return data as OrderItem[];
+    },
+    enabled: !!user?.id && activeTab === 'orders'
+  });
+
+  // Lab bookings query
+  const { data: labBookings, isLoading: labBookingsLoading } = useQuery({
+    queryKey: ['user-lab-bookings', user?.id, currentPage],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lab_bookings')
+        .select('id, booking_date, status, total_amount, patient_name, test_id')
+        .eq('user_id', user?.id)
+        .order('booking_date', { ascending: false })
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
+      
+      if (error) throw error;
+      return data as LabBooking[];
+    },
+    enabled: !!user?.id && activeTab === 'lab-tests'
+  });
+
+  // Consultations query
+  const { data: consultations, isLoading: consultationsLoading } = useQuery({
+    queryKey: ['user-consultations', user?.id, currentPage],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consultations')
+        .select(`
+          id, consultation_date, status, total_amount,
+          doctors (full_name, specialization)
+        `)
+        .eq('patient_id', user?.id)
+        .order('consultation_date', { ascending: false })
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
+      
+      if (error) throw error;
+      return data as Consultation[];
+    },
+    enabled: !!user?.id && activeTab === 'consultations'
+  });
+
+  // Prescriptions query
+  const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery({
+    queryKey: ['user-prescriptions', user?.id, currentPage],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .select('id, prescription_number, created_at, status, doctor_id')
+        .eq('patient_id', user?.id)
+        .order('created_at', { ascending: false })
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
+      
+      if (error) throw error;
+      return data as Prescription[];
+    },
+    enabled: !!user?.id && activeTab === 'prescriptions'
+  });
+
+  // Addresses query
+  const { data: addresses, isLoading: addressesLoading } = useQuery({
+    queryKey: ['user-addresses', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('is_default', { ascending: false });
+      
+      if (error) throw error;
+      return data as Address[];
+    },
+    enabled: !!user?.id && activeTab === 'addresses'
+  });
+
+  const handleDownloadPrescription = async (prescriptionId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-signed-url', {
+        body: {
+          bucket: 'prescriptions',
+          path: `${prescriptionId}.pdf`
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        toast({
+          title: "File not found",
+          description: "The prescription file is not available for download.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: "Unable to download the prescription file.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      'pending': 'outline',
+      'confirmed': 'default',
+      'completed': 'default',
+      'cancelled': 'destructive',
+      'paid': 'default',
+      'unpaid': 'outline'
+    };
+    
+    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
+  };
+
+  const resetPagination = () => setCurrentPage(1);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">My Account</h1>
+            <p className="text-muted-foreground">Manage your orders, appointments, and account settings</p>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); resetPagination(); }}>
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="orders" className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Orders
+              </TabsTrigger>
+              <TabsTrigger value="lab-tests" className="flex items-center gap-2">
+                <TestTube className="w-4 h-4" />
+                Lab Tests
+              </TabsTrigger>
+              <TabsTrigger value="consultations" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Consultations
+              </TabsTrigger>
+              <TabsTrigger value="prescriptions" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Prescriptions
+              </TabsTrigger>
+              <TabsTrigger value="addresses" className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Addresses
+              </TabsTrigger>
+              <TabsTrigger value="care-plus" className="flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                Care+
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="orders">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    My Orders
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {ordersLoading ? (
+                    <div className="text-center py-8">Loading orders...</div>
+                  ) : orders && orders.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Order Number</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Payment</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-medium">{order.order_number}</TableCell>
+                            <TableCell>{format(new Date(order.created_at), 'MMM dd, yyyy')}</TableCell>
+                            <TableCell>{getStatusBadge(order.status)}</TableCell>
+                            <TableCell>{getStatusBadge(order.payment_status)}</TableCell>
+                            <TableCell className="text-right">₹{order.total_amount}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No orders found
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="lab-tests">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TestTube className="w-5 h-5" />
+                    Lab Test Bookings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {labBookingsLoading ? (
+                    <div className="text-center py-8">Loading lab bookings...</div>
+                  ) : labBookings && labBookings.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Test Name</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Patient</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {labBookings.map((booking) => (
+                          <TableRow key={booking.id}>
+                            <TableCell className="font-medium">Lab Test</TableCell>
+                            <TableCell>{format(new Date(booking.booking_date), 'MMM dd, yyyy')}</TableCell>
+                            <TableCell>{booking.patient_name}</TableCell>
+                            <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                            <TableCell className="text-right">₹{booking.total_amount}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No lab test bookings found
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="consultations">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    My Consultations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {consultationsLoading ? (
+                    <div className="text-center py-8">Loading consultations...</div>
+                  ) : consultations && consultations.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Doctor</TableHead>
+                          <TableHead>Specialization</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {consultations.map((consultation) => (
+                          <TableRow key={consultation.id}>
+                            <TableCell className="font-medium">{consultation.doctors?.full_name}</TableCell>
+                            <TableCell>{consultation.doctors?.specialization}</TableCell>
+                            <TableCell>{format(new Date(consultation.consultation_date), 'MMM dd, yyyy')}</TableCell>
+                            <TableCell>{getStatusBadge(consultation.status)}</TableCell>
+                            <TableCell className="text-right">₹{consultation.total_amount}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No consultations found
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="prescriptions">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    My Prescriptions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {prescriptionsLoading ? (
+                    <div className="text-center py-8">Loading prescriptions...</div>
+                  ) : prescriptions && prescriptions.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Prescription #</TableHead>
+                          <TableHead>Doctor</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {prescriptions.map((prescription) => (
+                          <TableRow key={prescription.id}>
+                            <TableCell className="font-medium">{prescription.prescription_number}</TableCell>
+                            <TableCell>Doctor</TableCell>
+                            <TableCell>{format(new Date(prescription.created_at), 'MMM dd, yyyy')}</TableCell>
+                            <TableCell>{getStatusBadge(prescription.status)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownloadPrescription(prescription.id)}
+                                className="flex items-center gap-1"
+                              >
+                                <Download className="w-4 h-4" />
+                                Download
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No prescriptions found
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="addresses">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5" />
+                    Saved Addresses
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {addressesLoading ? (
+                    <div className="text-center py-8">Loading addresses...</div>
+                  ) : addresses && addresses.length > 0 ? (
+                    <div className="grid gap-4">
+                      {addresses.map((address) => (
+                        <Card key={address.id} className={address.is_default ? 'border-primary' : ''}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="font-medium">{address.name}</h3>
+                                  {address.is_default && (
+                                    <Badge variant="default" className="text-xs">Default</Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-1">
+                                  {address.address_line_1}
+                                </p>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {address.city}, {address.state} {address.postal_code}
+                                </p>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Phone className="w-4 h-4" />
+                                  {address.phone}
+                                </div>
+                              </div>
+                              <Button variant="outline" size="sm">
+                                Edit
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No saved addresses found
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="care-plus">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Crown className="w-5 h-5" />
+                    Care+ Subscription
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Crown className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">No Active Subscription</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Subscribe to Care+ for unlimited consultations and exclusive benefits
+                    </p>
+                    <Button className="bg-gradient-to-r from-primary to-primary-glow">
+                      Explore Care+ Plans
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {/* Pagination */}
+          {(activeTab === 'orders' || activeTab === 'lab-tests' || activeTab === 'consultations' || activeTab === 'prescriptions') && (
+            <div className="mt-6 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) setCurrentPage(currentPage - 1);
+                      }}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink href="#" isActive>
+                      {currentPage}
+                    </PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(currentPage + 1);
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

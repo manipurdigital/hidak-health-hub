@@ -35,6 +35,7 @@ import { LabBookingSuccessPage } from "./pages/LabBookingSuccessPage";
 import { DoctorProfilePage } from "./pages/DoctorProfilePage";
 import { ConsultationSuccessPage } from "./pages/ConsultationSuccessPage";
 import { ConsultationRoomPage } from "./pages/ConsultationRoomPage";
+import AccountPage from "./pages/AccountPage";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const App = () => (
               
               {/* Protected Routes - Authentication required */}
               <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
+              <Route path="/account" element={<AuthGuard><AccountPage /></AuthGuard>} />
               <Route path="/checkout" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
               <Route path="/reports" element={<AuthGuard><ReportsPage /></AuthGuard>} />
               <Route path="/prescriptions" element={<AuthGuard><PrescriptionsPage /></AuthGuard>} />
