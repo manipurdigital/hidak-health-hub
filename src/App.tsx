@@ -48,43 +48,48 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
-              <Route path="/medicines" element={<PublicRoute><MedicinesPage /></PublicRoute>} />
-              <Route path="/lab-tests" element={<PublicRoute><LabTestsPage /></PublicRoute>} />
-              <Route path="/doctors" element={<PublicRoute><DoctorsPage /></PublicRoute>} />
-              <Route path="/wellness" element={<PublicRoute><WellnessPage /></PublicRoute>} />
-              <Route path="/care-plan" element={<PublicRoute><CarePlanPage /></PublicRoute>} />
+              {/* Public Routes - No authentication required */}
+              <Route path="/" element={<Index />} />
+              <Route path="/medicines" element={<MedicinesPage />} />
+              <Route path="/medicines/:id" element={<MedicineDetailPage />} />
+              <Route path="/lab-tests" element={<LabTestsPage />} />
+              <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
+              <Route path="/doctors" element={<DoctorsPage />} />
+              <Route path="/doctors/:id" element={<DoctorProfilePage />} />
+              <Route path="/wellness" element={<WellnessPage />} />
+              <Route path="/care-plan" element={<CarePlanPage />} />
+              
+              {/* Guest Only Routes - Redirect authenticated users */}
               <Route path="/auth" element={<GuestRoute><AuthPage /></GuestRoute>} />
               
-              {/* Protected Routes */}
+              {/* Protected Routes - Authentication required */}
               <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
               <Route path="/checkout" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
               <Route path="/reports" element={<AuthGuard><ReportsPage /></AuthGuard>} />
-              <Route path="/consultation/:consultationId" element={<AuthGuard><ConsultationChatPage /></AuthGuard>} />
               <Route path="/prescriptions" element={<AuthGuard><PrescriptionsPage /></AuthGuard>} />
               <Route path="/care-plus" element={<AuthGuard><CareSubscriptionPage /></AuthGuard>} />
               
-              {/* Admin Routes */}
+              {/* Consultation Routes - Authentication required */}
+              <Route path="/consultation/:consultationId" element={<AuthGuard><ConsultationChatPage /></AuthGuard>} />
+              <Route path="/consult/:consultId" element={<AuthGuard><ConsultationRoomPage /></AuthGuard>} />
+              <Route path="/consult-success/:consultId" element={<AuthGuard><ConsultationSuccessPage /></AuthGuard>} />
+              
+              {/* Success Pages - Authentication required */}
+              <Route path="/order-success/:orderId" element={<AuthGuard><OrderSuccessPage /></AuthGuard>} />
+              <Route path="/lab-booking-success/:bookingId" element={<AuthGuard><LabBookingSuccessPage /></AuthGuard>} />
+              
+              {/* Admin Routes - Admin role required */}
               <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboardPage /></AuthGuard>} />
               <Route path="/admin/medicines" element={<AuthGuard requiredRole="admin"><AdminMedicinesPage /></AuthGuard>} />
               <Route path="/admin/lab-tests" element={<AuthGuard requiredRole="admin"><AdminLabTestsPage /></AuthGuard>} />
               <Route path="/admin/users" element={<AuthGuard requiredRole="admin"><AdminUsersPage /></AuthGuard>} />
               <Route path="/admin/doctors" element={<AuthGuard requiredRole="admin"><AdminDoctorsPage /></AuthGuard>} />
               
-              {/* Lab Routes */}
+              {/* Lab Routes - Lab role required */}
               <Route path="/lab" element={<AuthGuard requiredRole="lab"><LabDashboardPage /></AuthGuard>} />
               
-              {/* Doctor Routes */}
+              {/* Doctor Routes - Doctor role required */}
               <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
-              
-              {/* Search Result Routes */}
-              <Route path="/medicines/:id" element={<MedicineDetailPage />} />
-              <Route path="/doctors/:id" element={<DoctorProfilePage />} />
-              <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
-              <Route path="/order-success/:orderId" element={<AuthGuard><OrderSuccessPage /></AuthGuard>} />
-              <Route path="/lab-booking-success/:bookingId" element={<AuthGuard><LabBookingSuccessPage /></AuthGuard>} />
-              <Route path="/consult-success/:consultId" element={<AuthGuard><ConsultationSuccessPage /></AuthGuard>} />
-              <Route path="/consult/:consultId" element={<AuthGuard><ConsultationRoomPage /></AuthGuard>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
