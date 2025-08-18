@@ -35,7 +35,7 @@ export function AdminLayout() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen w-full bg-background">
         {/* Top Bar */}
         <header className="fixed top-0 left-0 right-0 h-14 bg-background border-b border-border z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -63,17 +63,18 @@ export function AdminLayout() {
           </div>
         </header>
 
-        {/* Sidebar */}
-        <div className="pt-14">
+        {/* Main Layout with Sidebar */}
+        <div className="flex pt-14">
+          {/* Sidebar */}
           <AdminSidebar />
-        </div>
 
-        {/* Main Content */}
-        <main className="flex-1 pt-14">
-          <div className="p-6">
-            <Outlet />
-          </div>
-        </main>
+          {/* Main Content */}
+          <main className="flex-1">
+            <div className="p-6">
+              <Outlet />
+            </div>
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
