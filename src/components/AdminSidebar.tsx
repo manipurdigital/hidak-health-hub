@@ -30,6 +30,8 @@ const adminSidebarItems = [
   { title: "Lab Tests", url: "/admin/lab-tests", icon: ClipboardList },
   { title: "Doctors", url: "/admin/doctors", icon: Stethoscope },
   { title: "Users", url: "/admin/users", icon: Users },
+  { title: "Lab Assignments", url: "/admin/lab-assignments", icon: ClipboardList },
+  { title: "Delivery Assignments", url: "/admin/delivery-assignments", icon: MapPin },
   { title: "Tracking", url: "/admin/tracking", icon: MapPin },
   { title: "Geofencing", url: "/admin/geofencing", icon: Map },
   { title: "Locations", url: "/admin/locations", icon: Building2 },
