@@ -46,6 +46,7 @@ import { CenterDashboardPage } from "./pages/center/CenterDashboardPage";
 import { CenterJobsPage } from "./pages/center/CenterJobsPage";
 import CenterJobTrackingPage from "./pages/center/CenterJobTrackingPage";
 import PublicTrackingPage from "./pages/track/PublicTrackingPage";
+import AdminGeofencingPage from "./pages/admin/AdminGeofencingPage";
 import AccountPage from "./pages/AccountPage";
 
 const queryClient = new QueryClient();
@@ -98,6 +99,7 @@ const App = () => (
                 <Route path="dashboard" element={<AdminAnalyticsDashboard />} />
                 <Route path="reports" element={<AdminReportsPage />} />
                 <Route path="tracking" element={<AdminTrackingPage />} />
+                <Route path="geofencing" element={<AdminGeofencingPage />} />
                 <Route path="medicines" element={<AdminMedicinesPage />} />
                 <Route path="lab-tests" element={<AdminLabTestsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useJsApiLoader } from '@react-google-maps/api';
 
-const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
+const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry", "drawing"];
 
 interface GoogleMapsContextType {
   isLoaded: boolean;
@@ -17,7 +17,7 @@ interface GoogleMapsProviderProps {
 export const GoogleMapsProvider = ({ children }: GoogleMapsProviderProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: 'AIzaSyCoS3UexTT-0nRhoyFEoXml7KQtUaCFPMk',
     libraries,
   });
 
