@@ -11,6 +11,10 @@ export interface SearchResult {
   group_key?: string;
   is_alternative?: boolean;
   composition_match_type?: string;
+  // Medicine-specific fields
+  composition_key?: string;
+  composition_family_key?: string;
+  rank_score?: number;
 }
 
 export async function universalSearch(

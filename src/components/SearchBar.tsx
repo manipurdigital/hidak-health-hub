@@ -148,6 +148,17 @@ export function SearchBar({
     }
   };
 
+  const getCompositionInfo = (result: SearchResult) => {
+    if (result.type === 'medicine' && result.composition_family_key) {
+      const normalizedKey = result.composition_family_key
+        .split('+')
+        .map(key => key.charAt(0).toUpperCase() + key.slice(1))
+        .join(' + ');
+      return `Same actives: ${normalizedKey}`;
+    }
+    return null;
+  };
+
   const getMatchTypeBadge = (matchType?: string) => {
     if (!matchType) return null;
     
@@ -213,6 +224,11 @@ export function SearchBar({
                 {result.subtitle && (
                   <div className="text-xs text-muted-foreground truncate">
                     {result.subtitle}
+                  </div>
+                )}
+                {result.type === 'medicine' && getCompositionInfo(result) && (
+                  <div className="text-xs text-muted-foreground truncate italic">
+                    {getCompositionInfo(result)}
                   </div>
                 )}
               </div>

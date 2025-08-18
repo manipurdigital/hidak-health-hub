@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMedicine } from '@/hooks/medicine-hooks';
 import { useCart } from '@/contexts/CartContext';
 import { PrescriptionUpload } from '@/components/PrescriptionUpload';
+import { MedicineAlternatives } from '@/components/MedicineAlternatives';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
 import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
@@ -257,6 +258,14 @@ export function MedicineDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Medicine Alternatives Section */}
+        <div className="mt-8">
+          <MedicineAlternatives 
+            medicineId={medicine.id} 
+            medicineName={medicine.name}
+          />
         </div>
       </div>
     </div>
