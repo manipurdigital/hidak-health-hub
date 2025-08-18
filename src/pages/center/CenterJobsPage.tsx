@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,8 @@ import {
   CheckCircle,
   Truck,
   AlertCircle,
-  FileText
+  FileText,
+  Navigation
 } from 'lucide-react';
 import { useCenterBookings, useUpdateLabBooking } from '@/hooks/center-hooks';
 import { useToast } from '@/hooks/use-toast';
@@ -258,6 +260,16 @@ export function CenterJobsPage() {
               >
                 <AlertCircle className="w-4 h-4" />
                 Cannot Collect
+              </Button>
+              <Button 
+                variant="outline"
+                asChild
+                className="flex items-center gap-2"
+              >
+                <Link to={`/center/tracking/lab/${booking.id}`}>
+                  <Navigation className="w-4 h-4" />
+                  Track
+                </Link>
               </Button>
             </>
           )}

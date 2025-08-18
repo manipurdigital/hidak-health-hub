@@ -10,12 +10,16 @@ import { useCenterJobs } from '@/hooks/tracking-hooks';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 
 export default function CenterJobTrackingPage() {
-  const { type, id } = useParams<{ type: 'lab' | 'delivery'; id: string }>();
+  const { jobType, jobId } = useParams<{ jobType: string; jobId: string }>();
   
   const { data: labJobs } = useCenterJobs('lab');
   const { data: deliveryJobs } = useCenterJobs('delivery');
 
-  if (!type || !id) {
+  // Map jobType to valid types
+  const type = jobType === 'lab' ? 'lab' : 'delivery';
+  const id = jobId;
+
+  if (!jobType || !jobId || (jobType !== 'lab' && jobType !== 'delivery')) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center py-8">

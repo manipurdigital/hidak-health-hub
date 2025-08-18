@@ -8,19 +8,23 @@ import { usePublicTracking } from '@/hooks/tracking-hooks';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 
 export default function PublicTrackingPage() {
-  const { type, id, token } = useParams<{ 
-    type: 'lab' | 'order'; 
-    id: string; 
+  const { jobType, jobId, token } = useParams<{ 
+    jobType: string; 
+    jobId: string; 
     token: string; 
   }>();
 
+  // Map jobType to tracking type
+  const type = jobType === 'lab' ? 'lab' : 'order';
+  const id = jobId;
+
   const { data: trackingData, isLoading, error } = usePublicTracking(
-    type || 'lab',
+    type,
     id || '',
     token || ''
   );
 
-  if (!type || !id || !token) {
+  if (!jobType || !jobId || !token || (jobType !== 'lab' && jobType !== 'order')) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
