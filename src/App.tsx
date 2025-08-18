@@ -6,12 +6,14 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
 import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
 import { AdminLayout } from "@/components/AdminLayout";
 import { CenterLayout } from "@/components/CenterLayout";
 import { CenterGuard } from "@/components/CenterGuard";
 import { AdminAnalyticsDashboard } from "./pages/admin/AdminAnalyticsDashboard";
 import AdminReportsPage from "./pages/admin/AdminReportsPage";
+import AdminTrackingPage from "./pages/admin/AdminTrackingPage";
 import Index from "./pages/Index";
 import MedicinesPage from "./pages/MedicinesPage";
 import LabTestsPage from "./pages/LabTestsPage";
@@ -42,6 +44,8 @@ import { ConsultationSuccessPage } from "./pages/ConsultationSuccessPage";
 import { ConsultationRoomPage } from "./pages/ConsultationRoomPage";
 import { CenterDashboardPage } from "./pages/center/CenterDashboardPage";
 import { CenterJobsPage } from "./pages/center/CenterJobsPage";
+import CenterJobTrackingPage from "./pages/center/CenterJobTrackingPage";
+import PublicTrackingPage from "./pages/track/PublicTrackingPage";
 import AccountPage from "./pages/AccountPage";
 
 const queryClient = new QueryClient();
@@ -52,9 +56,10 @@ const App = () => (
       <SubscriptionProvider>
         <CartProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+          <GoogleMapsProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               {/* Public Routes - No authentication required */}
               <Route path="/" element={<Index />} />
@@ -92,6 +97,7 @@ const App = () => (
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminAnalyticsDashboard />} />
                 <Route path="reports" element={<AdminReportsPage />} />
+                <Route path="tracking" element={<AdminTrackingPage />} />
                 <Route path="medicines" element={<AdminMedicinesPage />} />
                 <Route path="lab-tests" element={<AdminLabTestsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
@@ -109,12 +115,17 @@ const App = () => (
                 <Route index element={<Navigate to="/center/dashboard" replace />} />
                 <Route path="dashboard" element={<CenterDashboardPage />} />
                 <Route path="jobs" element={<CenterJobsPage />} />
+                <Route path="tracking/:jobType/:jobId" element={<CenterJobTrackingPage />} />
               </Route>
+              
+              {/* Public Tracking Routes - No authentication required */}
+              <Route path="/track/:jobType/:jobId/:token" element={<PublicTrackingPage />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </GoogleMapsProvider>
         </TooltipProvider>
         </CartProvider>
       </SubscriptionProvider>
