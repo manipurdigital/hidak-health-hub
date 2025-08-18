@@ -1,0 +1,604 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface ImportOptions {
+  downloadImages?: boolean;
+  userId?: string;
+  respectRobots?: boolean;
+}
+
+interface ImportResult {
+  success: boolean;
+  medicineId?: string;
+  mode: 'created' | 'updated' | 'failed';
+  dedupeReason?: string;
+  warnings: string[];
+  error?: string;
+}
+
+interface MedicineData {
+  name: string;
+  generic_name?: string;
+  brand?: string;
+  manufacturer?: string;
+  price: number;
+  original_price?: number;
+  description?: string;
+  dosage?: string;
+  pack_size?: string;
+  requires_prescription: boolean;
+  image_url?: string;
+  composition_text?: string;
+  composition_key?: string;
+  composition_family_key?: string;
+  external_source_url: string;
+  external_source_domain: string;
+  source_attribution: string;
+  original_image_url?: string;
+  thumbnail_url?: string;
+  image_hash?: string;
+}
+
+const DOMAIN_ALLOWLIST = [
+  '1mg.com',
+  'apollopharmacy.in', 
+  'netmeds.com',
+  'pharmeasy.in',
+  'medplus.in'
+];
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { url, options = {} }: { url: string; options: ImportOptions } = await req.json();
+
+    if (!url || typeof url !== 'string') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Valid URL is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Importing medicine from URL: ${url}`);
+
+    const result = await importMedicineFromUrl(url, options);
+
+    return new Response(
+      JSON.stringify(result),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Import medicine error:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        mode: 'failed' as const,
+        warnings: [],
+        error: error.message || 'Failed to import medicine' 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
+
+async function importMedicineFromUrl(url: string, options: ImportOptions): Promise<ImportResult> {
+  const warnings: string[] = [];
+  const urlObj = new URL(url);
+  const domain = urlObj.hostname.toLowerCase();
+
+  // Domain allowlist check
+  if (!DOMAIN_ALLOWLIST.some(allowed => domain.includes(allowed))) {
+    warnings.push(`Domain ${domain} not in allowlist - proceeding with generic parser`);
+  }
+
+  // Robots.txt check
+  if (options.respectRobots !== false) {
+    const robotsAllowed = await checkRobotsPermission(url);
+    if (!robotsAllowed) {
+      return {
+        success: false,
+        mode: 'failed',
+        warnings,
+        error: 'disallowed_by_robots'
+      };
+    }
+  }
+
+  // Fetch and parse HTML
+  const medicineData = await parseProductPage(url);
+  
+  // Normalize and build composition keys
+  await normalizeComposition(medicineData);
+
+  // Check for duplicates
+  const dedupeResult = await checkForDuplicates(medicineData);
+  if (dedupeResult.isDuplicate) {
+    return {
+      success: true,
+      medicineId: dedupeResult.existingId,
+      mode: 'updated',
+      dedupeReason: dedupeResult.reason,
+      warnings
+    };
+  }
+
+  // Handle image processing
+  if (options.downloadImages && medicineData.image_url) {
+    try {
+      const imageResult = await processImage(medicineData.image_url);
+      if (imageResult.success) {
+        medicineData.original_image_url = medicineData.image_url;
+        medicineData.thumbnail_url = imageResult.publicUrl;
+        medicineData.image_hash = imageResult.imageHash;
+        medicineData.image_url = imageResult.publicUrl;
+      }
+    } catch (error) {
+      warnings.push(`Failed to download image: ${error.message}`);
+    }
+  }
+
+  // Add source metadata
+  medicineData.external_source_url = url;
+  medicineData.external_source_domain = domain;
+  medicineData.source_attribution = `Imported from ${domain} (public page) - please verify`;
+  
+  // Generate source checksum
+  const sourceData = {
+    name: medicineData.name,
+    composition: medicineData.composition_text,
+    manufacturer: medicineData.manufacturer,
+    price: medicineData.price
+  };
+  const sourceChecksum = await generateChecksum(JSON.stringify(sourceData));
+
+  // Save to database
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const { data, error } = await supabase
+    .from('medicines')
+    .insert({
+      ...medicineData,
+      source_checksum: sourceChecksum,
+      source_last_fetched: new Date().toISOString(),
+      stock_quantity: 10,
+      is_active: true
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    throw new Error(`Database insert failed: ${error.message}`);
+  }
+
+  return {
+    success: true,
+    medicineId: data.id,
+    mode: 'created',
+    warnings
+  };
+}
+
+async function checkRobotsPermission(url: string): Promise<boolean> {
+  try {
+    const urlObj = new URL(url);
+    const robotsUrl = `${urlObj.protocol}//${urlObj.host}/robots.txt`;
+    
+    const response = await fetch(robotsUrl, { 
+      headers: { 'User-Agent': 'Hidak Medicine Importer/1.0' } 
+    });
+    
+    if (!response.ok) {
+      return true; // No robots.txt found, assume allowed
+    }
+
+    const robotsTxt = await response.text();
+    
+    // Simple robots.txt parser
+    const lines = robotsTxt.split('\n');
+    let currentUserAgent = false;
+    
+    for (const line of lines) {
+      const trimmed = line.trim().toLowerCase();
+      
+      if (trimmed.startsWith('user-agent:')) {
+        const agent = trimmed.split(':')[1].trim();
+        currentUserAgent = agent === '*' || agent.includes('hidak');
+      }
+      
+      if (currentUserAgent && trimmed.startsWith('disallow:')) {
+        const path = trimmed.split(':')[1].trim();
+        if (path === '/' || urlObj.pathname.startsWith(path)) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.warn('Failed to check robots.txt:', error);
+    return true; // Assume allowed on error
+  }
+}
+
+async function parseProductPage(url: string): Promise<MedicineData> {
+  const urlObj = new URL(url);
+  const domain = urlObj.hostname.toLowerCase();
+
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch page: ${response.status}`);
+  }
+
+  const html = await response.text();
+
+  // Try structured data first (Schema.org JSON-LD)
+  let medicineData = await tryParseStructuredData(html);
+  
+  if (!medicineData) {
+    // Try OpenGraph
+    medicineData = await tryParseOpenGraph(html);
+  }
+
+  if (!medicineData) {
+    // Use domain-specific parsers
+    if (domain.includes('1mg.com')) {
+      medicineData = await parse1mgProduct(html, url);
+    } else if (domain.includes('apollopharmacy.in')) {
+      medicineData = await parseApolloProduct(html, url);
+    } else {
+      medicineData = await parseGenericProduct(html, url);
+    }
+  }
+
+  return medicineData;
+}
+
+async function tryParseStructuredData(html: string): Promise<MedicineData | null> {
+  try {
+    const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gis);
+    
+    if (!jsonLdMatch) return null;
+
+    for (const match of jsonLdMatch) {
+      const jsonContent = match.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
+      const data = JSON.parse(jsonContent);
+      
+      if (data['@type'] === 'Product' || data['@type'] === 'Drug') {
+        return {
+          name: data.name || '',
+          brand: data.brand?.name || '',
+          manufacturer: data.manufacturer?.name || '',
+          price: parseFloat(data.offers?.price || '0'),
+          original_price: parseFloat(data.offers?.price || '0'),
+          description: data.description || '',
+          image_url: data.image || data.image?.[0],
+          requires_prescription: false,
+          external_source_url: '',
+          external_source_domain: '',
+          source_attribution: ''
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to parse structured data:', error);
+  }
+  
+  return null;
+}
+
+async function tryParseOpenGraph(html: string): Promise<MedicineData | null> {
+  try {
+    const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i)?.[1];
+    const ogImage = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)?.[1];
+    const ogDescription = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i)?.[1];
+    
+    if (ogTitle) {
+      return {
+        name: ogTitle,
+        brand: extractBrandFromName(ogTitle),
+        manufacturer: '',
+        price: 0,
+        description: ogDescription || '',
+        image_url: ogImage,
+        requires_prescription: false,
+        external_source_url: '',
+        external_source_domain: '',
+        source_attribution: ''
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to parse OpenGraph:', error);
+  }
+  
+  return null;
+}
+
+async function parse1mgProduct(html: string, url: string): Promise<MedicineData> {
+  const urlObj = new URL(url);
+  
+  const nameMatch = html.match(/<h1[^>]*class="[^"]*ProductTitle[^"]*"[^>]*>([^<]+)</i);
+  const priceMatch = html.match(/₹\s*([0-9,]+(?:\.[0-9]{2})?)/);
+  const mrpMatch = html.match(/M\.R\.P\..*?₹\s*([0-9,]+(?:\.[0-9]{2})?)/i);
+  const manufacturerMatch = html.match(/Manufacturer[^>]*>.*?<[^>]*>([^<]+)/i);
+  const imageMatch = html.match(/<img[^>]*src="([^"]*product[^"]*\.(?:jpg|jpeg|png|webp)[^"]*)"[^>]*>/i);
+  
+  const name = nameMatch ? nameMatch[1].trim() : extractFromTitle(html);
+  const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
+
+  return {
+    name,
+    brand,
+    manufacturer: manufacturerMatch ? manufacturerMatch[1].trim() : '',
+    price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
+    original_price: mrpMatch ? parseFloat(mrpMatch[1].replace(/,/g, '')) : 0,
+    description: '',
+    dosage,
+    pack_size: packSize,
+    composition_text: composition,
+    requires_prescription: html.toLowerCase().includes('prescription'),
+    image_url: imageMatch ? imageMatch[1] : undefined,
+    external_source_url: url,
+    external_source_domain: urlObj.hostname,
+    source_attribution: ''
+  };
+}
+
+async function parseApolloProduct(html: string, url: string): Promise<MedicineData> {
+  const urlObj = new URL(url);
+  
+  const nameMatch = html.match(/<h1[^>]*>([^<]+)</i) || html.match(/<title>([^<]+)</i);
+  const priceMatch = html.match(/₹\s*([0-9,]+(?:\.[0-9]{2})?)/);
+  
+  const name = nameMatch ? nameMatch[1].trim().replace(' - Apollo Pharmacy', '') : '';
+  const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
+
+  return {
+    name,
+    brand,
+    manufacturer: '',
+    price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
+    original_price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
+    description: '',
+    dosage,
+    pack_size: packSize,
+    composition_text: composition,
+    requires_prescription: html.toLowerCase().includes('prescription'),
+    external_source_url: url,
+    external_source_domain: urlObj.hostname,
+    source_attribution: ''
+  };
+}
+
+async function parseGenericProduct(html: string, url: string): Promise<MedicineData> {
+  const urlObj = new URL(url);
+  const name = extractFromTitle(html);
+  const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
+
+  return {
+    name,
+    brand,
+    manufacturer: '',
+    price: 0,
+    original_price: 0,
+    description: '',
+    dosage,
+    pack_size: packSize,
+    composition_text: composition,
+    requires_prescription: false,
+    external_source_url: url,
+    external_source_domain: urlObj.hostname,
+    source_attribution: ''
+  };
+}
+
+function extractFromTitle(html: string): string {
+  const titleMatch = html.match(/<title>([^<]+)</i);
+  if (titleMatch) {
+    return titleMatch[1].trim()
+      .replace(/\s*\|\s*.*$/, '')
+      .replace(/\s*-\s*.*$/, '');
+  }
+  return '';
+}
+
+function extractBrandFromName(name: string): string {
+  return name.split(/\s+/)[0] || '';
+}
+
+function extractMedicineDetails(name: string): { 
+  brand: string; 
+  dosage: string; 
+  packSize: string; 
+  composition: string;
+} {
+  const dosageMatch = name.match(/(\d+(?:\.\d+)?\s*(?:mg|ml|g|mcg|iu)\b)/i);
+  const packMatch = name.match(/(\d+\s*(?:tablets?|capsules?|strips?|ml|pieces?)\b)/i);
+  
+  const words = name.split(/\s+/);
+  const brand = words.length > 0 ? words[0] : '';
+  
+  // Extract composition (simplified)
+  const compositionMatch = name.match(/\(([^)]+)\)|([a-z]+(?:\s+[a-z]+)*)\s*\d+\s*mg/i);
+  const composition = compositionMatch ? (compositionMatch[1] || compositionMatch[2]) : '';
+  
+  return { 
+    brand, 
+    dosage: dosageMatch ? dosageMatch[1] : '',
+    packSize: packMatch ? packMatch[1] : '',
+    composition: composition.trim()
+  };
+}
+
+async function normalizeComposition(medicineData: MedicineData): Promise<void> {
+  if (!medicineData.composition_text) return;
+
+  // Normalize composition text
+  let normalized = medicineData.composition_text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Standardize units
+  normalized = normalized
+    .replace(/mcg/g, 'μg')
+    .replace(/\bmg\b/g, 'mg')
+    .replace(/\bml\b/g, 'ml');
+
+  // Generate composition key (exact composition)
+  medicineData.composition_key = generateCompositionKey(normalized);
+  
+  // Generate family key (same active ingredients, ignoring strength)
+  medicineData.composition_family_key = generateCompositionFamilyKey(normalized);
+}
+
+function generateCompositionKey(composition: string): string {
+  // Sort ingredients alphabetically for consistent key
+  const ingredients = composition
+    .split(/[+&,]/)
+    .map(ing => ing.trim())
+    .filter(ing => ing.length > 0)
+    .sort();
+  
+  return ingredients.join('+');
+}
+
+function generateCompositionFamilyKey(composition: string): string {
+  // Remove dosage/strength info to group by active ingredients only
+  const withoutDosage = composition
+    .replace(/\d+(?:\.\d+)?\s*(?:mg|μg|ml|g|iu)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return generateCompositionKey(withoutDosage);
+}
+
+async function checkForDuplicates(medicineData: MedicineData): Promise<{
+  isDuplicate: boolean;
+  existingId?: string;
+  reason?: string;
+}> {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Check exact match on composition + manufacturer + pack size
+  if (medicineData.composition_key && medicineData.manufacturer && medicineData.pack_size) {
+    const { data: exactMatch } = await supabase
+      .from('medicines')
+      .select('id')
+      .eq('composition_key', medicineData.composition_key)
+      .eq('manufacturer', medicineData.manufacturer)
+      .eq('pack_size', medicineData.pack_size)
+      .limit(1)
+      .single();
+
+    if (exactMatch) {
+      return {
+        isDuplicate: true,
+        existingId: exactMatch.id,
+        reason: 'Exact match on composition, manufacturer, and pack size'
+      };
+    }
+  }
+
+  // Check name similarity with same composition family
+  if (medicineData.composition_family_key) {
+    const { data: similarMeds } = await supabase
+      .from('medicines')
+      .select('id, name')
+      .eq('composition_family_key', medicineData.composition_family_key);
+
+    if (similarMeds) {
+      for (const med of similarMeds) {
+        const similarity = calculateStringSimilarity(medicineData.name, med.name);
+        if (similarity > 0.8) { // 80% similarity threshold
+          return {
+            isDuplicate: true,
+            existingId: med.id,
+            reason: `High name similarity (${Math.round(similarity * 100)}%) with same composition family`
+          };
+        }
+      }
+    }
+  }
+
+  return { isDuplicate: false };
+}
+
+function calculateStringSimilarity(str1: string, str2: string): number {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 1.0;
+  
+  const editDistance = getEditDistance(longer, shorter);
+  return (longer.length - editDistance) / longer.length;
+}
+
+function getEditDistance(str1: string, str2: string): number {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
+async function processImage(imageUrl: string): Promise<any> {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const { data, error } = await supabase.functions.invoke('fetch-and-store-image', {
+    body: { imageUrl }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+async function generateChecksum(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}

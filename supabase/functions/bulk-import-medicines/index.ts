@@ -14,10 +14,12 @@ interface ImportResult {
   failed: number;
   duplicates: number;
   items: ImportItem[];
+  jobId?: string;
 }
 
 interface ImportItem {
   name?: string;
+  url?: string;
   status: 'success' | 'failed' | 'duplicate';
   error?: string;
   medicine_id?: string;
@@ -35,12 +37,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const contentType = req.headers.get('content-type') || '';
+    let inputData: any = {};
+    let file: File | null = null;
+    let urls: string[] = [];
+    let downloadImages = false;
+    let userId: string | undefined;
 
-    if (!file) {
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      file = formData.get('file') as File;
+      downloadImages = formData.get('downloadImages') === 'true';
+      userId = formData.get('userId') as string;
+    } else {
+      inputData = await req.json();
+      urls = inputData.urls || [];
+      downloadImages = inputData.downloadImages || false;
+      userId = inputData.userId;
+    }
+
+    if (!file && (!urls || urls.length === 0)) {
       return new Response(
-        JSON.stringify({ success: false, error: 'No file provided' }),
+        JSON.stringify({ success: false, error: 'No file or URLs provided' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -48,30 +66,73 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing file: ${file.name}, size: ${file.size}`);
+    // Create import job
+    const jobKind = file ? 'medicine_csv' : 'medicine_url';
+    const { data: jobData, error: jobError } = await supabase
+      .from('import_jobs')
+      .insert({
+        kind: jobKind,
+        status: 'pending',
+        created_by: userId,
+        summary: {
+          total_items: file ? 0 : urls.length,
+          download_images: downloadImages
+        }
+      })
+      .select('id')
+      .single();
 
-    // Read and parse the file
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+    if (jobError) {
+      throw new Error(`Failed to create import job: ${jobError.message}`);
+    }
 
-    console.log(`Parsed ${jsonData.length} rows from file`);
+    const jobId = jobData.id;
 
     const result: ImportResult = {
-      total: jsonData.length,
+      total: 0,
       processed: 0,
       successful: 0,
       failed: 0,
       duplicates: 0,
-      items: []
+      items: [],
+      jobId
     };
 
-    // Process medicines in batches
-    const batchSize = 50;
-    for (let i = 0; i < jsonData.length; i += batchSize) {
-      const batch = jsonData.slice(i, i + batchSize);
-      await processBatch(batch, supabase, result);
+    if (file) {
+      console.log(`Processing file: ${file.name}, size: ${file.size}`);
+
+      // Read and parse the file
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      console.log(`Parsed ${jsonData.length} rows from file`);
+      result.total = jsonData.length;
+
+      // Update job with total count
+      await supabase
+        .from('import_jobs')
+        .update({ 
+          summary: { 
+            ...jobData.summary, 
+            total_items: jsonData.length 
+          } 
+        })
+        .eq('id', jobId);
+
+      // Process CSV rows
+      for (const row of jsonData) {
+        await processRow(row, supabase, result, jobId, downloadImages);
+      }
+    } else if (urls.length > 0) {
+      console.log(`Processing ${urls.length} URLs`);
+      result.total = urls.length;
+
+      // Process URLs
+      for (const url of urls) {
+        await processUrl(url, supabase, result, jobId, downloadImages);
+      }
     }
 
     console.log(`Import completed: ${result.successful} successful, ${result.failed} failed, ${result.duplicates} duplicates`);
@@ -99,88 +160,247 @@ serve(async (req) => {
   }
 });
 
-async function processBatch(batch: any[], supabase: any, result: ImportResult) {
-  for (const row of batch) {
-    try {
-      // Validate required fields
-      if (!row.name || !row.price) {
-        result.failed++;
-        result.items.push({
-          name: row.name || 'Unknown',
-          status: 'failed',
-          error: 'Missing required fields (name, price)'
-        });
-        continue;
+async function processRow(row: any, supabase: any, result: ImportResult, jobId: string, downloadImages: boolean) {
+  const itemPayload = { ...row };
+  let jobItemId: string;
+
+  try {
+    // Create job item
+    const { data: itemData, error: itemError } = await supabase
+      .from('import_job_items')
+      .insert({
+        job_id: jobId,
+        source_url: row.source_url,
+        payload: itemPayload,
+        status: 'pending'
+      })
+      .select('id')
+      .single();
+
+    if (itemError) throw itemError;
+    jobItemId = itemData.id;
+
+    if (row.source_url) {
+      // Use URL importer for rows with source URLs
+      const importResult = await supabase.functions.invoke('import-medicine-from-url', {
+        body: { 
+          url: row.source_url, 
+          options: { downloadImages } 
+        }
+      });
+
+      if (importResult.error) {
+        throw new Error(`URL import failed: ${importResult.error.message}`);
       }
 
-      // Check for duplicates
-      const { data: existing } = await supabase
-        .from('medicines')
-        .select('id')
-        .eq('name', row.name)
-        .eq('brand', row.brand || '')
-        .limit(1);
+      const { success, medicineId, mode, error } = importResult.data;
+      
+      if (success) {
+        await supabase
+          .from('import_job_items')
+          .update({
+            status: 'success',
+            created_medicine_id: medicineId
+          })
+          .eq('id', jobItemId);
 
-      if (existing && existing.length > 0) {
-        result.duplicates++;
+        if (mode === 'created') {
+          result.successful++;
+        } else {
+          result.duplicates++;
+        }
+
         result.items.push({
           name: row.name,
-          status: 'duplicate',
-          medicine_id: existing[0].id
-        });
-        continue;
-      }
-
-      // Prepare medicine data
-      const medicineData = {
-        name: row.name,
-        brand: row.brand || '',
-        manufacturer: row.manufacturer || '',
-        price: parseFloat(row.price) || 0,
-        original_price: parseFloat(row.original_price) || parseFloat(row.price) || 0,
-        description: row.description || '',
-        dosage: row.dosage || '',
-        pack_size: row.pack_size || '',
-        requires_prescription: row.requires_prescription === 'true' || row.requires_prescription === true,
-        image_url: row.image_url || null,
-        stock_quantity: parseInt(row.stock_quantity) || 10,
-        is_active: row.is_active !== 'false'
-      };
-
-      // Insert medicine
-      const { data, error } = await supabase
-        .from('medicines')
-        .insert(medicineData)
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Insert error:', error);
-        result.failed++;
-        result.items.push({
-          name: row.name,
-          status: 'failed',
-          error: error.message
+          url: row.source_url,
+          status: mode === 'created' ? 'success' : 'duplicate',
+          medicine_id: medicineId
         });
       } else {
-        result.successful++;
-        result.items.push({
-          name: row.name,
+        throw new Error(error || 'URL import failed');
+      }
+    } else {
+      // Direct CSV mapping
+      await processDirectRow(row, supabase, result, jobItemId);
+    }
+
+  } catch (error) {
+    console.error('Row processing error:', error);
+    result.failed++;
+    
+    if (jobItemId!) {
+      await supabase
+        .from('import_job_items')
+        .update({
+          status: 'failed',
+          error: error.message
+        })
+        .eq('id', jobItemId);
+    }
+
+    result.items.push({
+      name: row.name || 'Unknown',
+      url: row.source_url,
+      status: 'failed',
+      error: error.message
+    });
+  }
+  
+  result.processed++;
+}
+
+async function processDirectRow(row: any, supabase: any, result: ImportResult, jobItemId: string) {
+  // Validate required fields
+  if (!row.name || !row.price) {
+    throw new Error('Missing required fields (name, price)');
+  }
+
+  // Check for duplicates
+  const { data: existing } = await supabase
+    .from('medicines')
+    .select('id')
+    .eq('name', row.name)
+    .eq('brand', row.brand || '')
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    await supabase
+      .from('import_job_items')
+      .update({
+        status: 'duplicate',
+        created_medicine_id: existing[0].id
+      })
+      .eq('id', jobItemId);
+
+    result.duplicates++;
+    result.items.push({
+      name: row.name,
+      status: 'duplicate',
+      medicine_id: existing[0].id
+    });
+    return;
+  }
+
+  // Prepare medicine data
+  const medicineData = {
+    name: row.name,
+    brand: row.brand || '',
+    manufacturer: row.manufacturer || '',
+    price: parseFloat(row.price) || 0,
+    original_price: parseFloat(row.original_price) || parseFloat(row.price) || 0,
+    description: row.description || '',
+    dosage: row.dosage || '',
+    pack_size: row.pack_size || '',
+    requires_prescription: row.requires_prescription === 'true' || row.requires_prescription === true,
+    image_url: row.image_url || null,
+    stock_quantity: parseInt(row.stock_quantity) || 10,
+    is_active: row.is_active !== 'false'
+  };
+
+  // Insert medicine
+  const { data, error } = await supabase
+    .from('medicines')
+    .insert(medicineData)
+    .select('id')
+    .single();
+
+  if (error) {
+    throw new Error(`Database insert failed: ${error.message}`);
+  }
+
+  await supabase
+    .from('import_job_items')
+    .update({
+      status: 'success',
+      created_medicine_id: data.id
+    })
+    .eq('id', jobItemId);
+
+  result.successful++;
+  result.items.push({
+    name: row.name,
+    status: 'success',
+    medicine_id: data.id
+  });
+}
+
+async function processUrl(url: string, supabase: any, result: ImportResult, jobId: string, downloadImages: boolean) {
+  let jobItemId: string;
+
+  try {
+    // Create job item
+    const { data: itemData, error: itemError } = await supabase
+      .from('import_job_items')
+      .insert({
+        job_id: jobId,
+        source_url: url,
+        payload: { url },
+        status: 'pending'
+      })
+      .select('id')
+      .single();
+
+    if (itemError) throw itemError;
+    jobItemId = itemData.id;
+
+    // Use URL importer
+    const importResult = await supabase.functions.invoke('import-medicine-from-url', {
+      body: { 
+        url, 
+        options: { downloadImages } 
+      }
+    });
+
+    if (importResult.error) {
+      throw new Error(`URL import failed: ${importResult.error.message}`);
+    }
+
+    const { success, medicineId, mode, error } = importResult.data;
+    
+    if (success) {
+      await supabase
+        .from('import_job_items')
+        .update({
           status: 'success',
-          medicine_id: data.id
-        });
+          created_medicine_id: medicineId
+        })
+        .eq('id', jobItemId);
+
+      if (mode === 'created') {
+        result.successful++;
+      } else {
+        result.duplicates++;
       }
 
-    } catch (error) {
-      console.error('Row processing error:', error);
-      result.failed++;
       result.items.push({
-        name: row.name || 'Unknown',
-        status: 'failed',
-        error: error.message
+        url,
+        status: mode === 'created' ? 'success' : 'duplicate',
+        medicine_id: medicineId
       });
+    } else {
+      throw new Error(error || 'URL import failed');
     }
+
+  } catch (error) {
+    console.error('URL processing error:', error);
+    result.failed++;
     
-    result.processed++;
+    if (jobItemId!) {
+      await supabase
+        .from('import_job_items')
+        .update({
+          status: 'failed',
+          error: error.message
+        })
+        .eq('id', jobItemId);
+    }
+
+    result.items.push({
+      url,
+      status: 'failed',
+      error: error.message
+    });
   }
+  
+  result.processed++;
 }
