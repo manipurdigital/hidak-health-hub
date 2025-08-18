@@ -6,7 +6,8 @@ import {
   Stethoscope,
   Users,
   Home,
-  BarChart3
+  BarChart3,
+  MapPin
 } from 'lucide-react';
 
 import {
@@ -27,6 +28,7 @@ const adminSidebarItems = [
   { title: "Lab Tests", url: "/admin/lab-tests", icon: ClipboardList },
   { title: "Doctors", url: "/admin/doctors", icon: Stethoscope },
   { title: "Users", url: "/admin/users", icon: Users },
+  { title: "Tracking", url: "/admin/tracking", icon: MapPin },
 ];
 
 export function AdminSidebar() {
