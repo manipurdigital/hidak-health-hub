@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { AreaSearchBar } from '../geofencing/AreaSearchBar';
 import { 
   MapPin, 
   Palette, 
@@ -112,6 +113,17 @@ export function LocationsGeofenceMap({
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
   }, []);
+
+  const handleLocationSelect = useCallback((location: { lat: number; lng: number; address: string }) => {
+    if (map) {
+      map.setCenter({ lat: location.lat, lng: location.lng });
+      map.setZoom(15);
+      toast({
+        title: "Location found",
+        description: `Zoomed to ${location.address}`,
+      });
+    }
+  }, [map, toast]);
 
   const onDrawingManagerLoad = useCallback((drawingManagerInstance: google.maps.drawing.DrawingManager) => {
     setDrawingManager(drawingManagerInstance);
@@ -325,6 +337,14 @@ export function LocationsGeofenceMap({
 
   return (
     <div className="relative h-full">
+      {/* Search Bar */}
+      <div className="absolute top-4 right-4 z-10 w-80">
+        <AreaSearchBar
+          onLocationSelect={handleLocationSelect}
+          placeholder="Search area to zoom map..."
+        />
+      </div>
+
       {/* Drawing Controls */}
       <div className="absolute top-4 left-4 z-10 flex gap-2">
         <Button

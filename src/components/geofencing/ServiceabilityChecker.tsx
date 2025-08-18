@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useCheckServiceability } from '@/hooks/geofencing-hooks';
 import { MapPin, CheckCircle, XCircle, Building, Store } from 'lucide-react';
+import { AreaSearchBar } from './AreaSearchBar';
 
 export function ServiceabilityChecker() {
   const [latitude, setLatitude] = useState('');
@@ -51,6 +52,11 @@ export function ServiceabilityChecker() {
     }
   };
 
+  const handleLocationSelect = (location: { lat: number; lng: number; address: string }) => {
+    setLatitude(location.lat.toString());
+    setLongitude(location.lng.toString());
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -60,6 +66,14 @@ export function ServiceabilityChecker() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="mb-4">
+          <Label>Quick Location Search</Label>
+          <AreaSearchBar
+            onLocationSelect={handleLocationSelect}
+            placeholder="Search for an area or address..."
+          />
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="latitude">Latitude</Label>

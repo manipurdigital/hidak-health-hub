@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCreateGeofence, useCentersAndStores } from '@/hooks/geofencing-hooks';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash2 } from 'lucide-react';
+import { AreaSearchBar } from './AreaSearchBar';
 
 const mapContainerStyle = {
   width: '100%',
@@ -58,6 +59,17 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
   const onMapLoad = useCallback((mapInstance: google.maps.Map) => {
     setMap(mapInstance);
   }, []);
+
+  const handleLocationSelect = useCallback((location: { lat: number; lng: number; address: string }) => {
+    if (map) {
+      map.setCenter({ lat: location.lat, lng: location.lng });
+      map.setZoom(15);
+      toast({
+        title: "Location found",
+        description: `Zoomed to ${location.address}`,
+      });
+    }
+  }, [map, toast]);
 
   const onDrawingManagerLoad = useCallback((drawingManagerInstance: google.maps.drawing.DrawingManager) => {
     setDrawingManager(drawingManagerInstance);
@@ -282,6 +294,17 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
 
       {/* Map */}
       <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Draw Geofence Area</CardTitle>
+            <div className="w-72">
+              <AreaSearchBar
+                onLocationSelect={handleLocationSelect}
+                placeholder="Search area to zoom map..."
+              />
+            </div>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
