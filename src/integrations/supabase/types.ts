@@ -1036,6 +1036,33 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: boolean
       }
+      kpi_overview: {
+        Args: { end_ts: string; start_ts: string }
+        Returns: {
+          active_subscriptions: number
+          avg_order_value: number
+          conversion_rate: number
+          new_users: number
+          prev_active_subs: number
+          prev_aov: number
+          prev_conversion_rate: number
+          prev_new_users: number
+          prev_orders: number
+          prev_refund_rate: number
+          prev_revenue: number
+          refund_rate: number
+          total_orders: number
+          total_revenue: number
+        }[]
+      }
+      revenue_breakdown: {
+        Args: { breakdown_by: string; end_ts: string; start_ts: string }
+        Returns: {
+          category: string
+          orders: number
+          revenue: number
+        }[]
+      }
       set_limit: {
         Args: { "": number }
         Returns: number
@@ -1047,6 +1074,27 @@ export type Database = {
       show_trgm: {
         Args: { "": string }
         Returns: string[]
+      }
+      timeseries_metric: {
+        Args: {
+          end_ts: string
+          granularity: string
+          metric_name: string
+          start_ts: string
+        }
+        Returns: {
+          time_bucket: string
+          value: number
+        }[]
+      }
+      top_medicines_by_revenue: {
+        Args: { end_ts: string; limit_count?: number; start_ts: string }
+        Returns: {
+          medicine_name: string
+          order_count: number
+          total_quantity: number
+          total_revenue: number
+        }[]
       }
       universal_search: {
         Args: { max_per_group?: number; q: string }

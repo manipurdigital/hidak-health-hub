@@ -2,11 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
+import { AdminLayout } from "@/components/AdminLayout";
+import { AdminAnalyticsDashboard } from "./pages/admin/AdminAnalyticsDashboard";
 import Index from "./pages/Index";
 import MedicinesPage from "./pages/MedicinesPage";
 import LabTestsPage from "./pages/LabTestsPage";
@@ -81,11 +83,14 @@ const App = () => (
               <Route path="/lab-booking-success/:bookingId" element={<AuthGuard><LabBookingSuccessPage /></AuthGuard>} />
               
               {/* Admin Routes - Admin role required */}
-              <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboardPage /></AuthGuard>} />
-              <Route path="/admin/medicines" element={<AuthGuard requiredRole="admin"><AdminMedicinesPage /></AuthGuard>} />
-              <Route path="/admin/lab-tests" element={<AuthGuard requiredRole="admin"><AdminLabTestsPage /></AuthGuard>} />
-              <Route path="/admin/users" element={<AuthGuard requiredRole="admin"><AdminUsersPage /></AuthGuard>} />
-              <Route path="/admin/doctors" element={<AuthGuard requiredRole="admin"><AdminDoctorsPage /></AuthGuard>} />
+              <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminLayout /></AuthGuard>}>
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminAnalyticsDashboard />} />
+                <Route path="medicines" element={<AdminMedicinesPage />} />
+                <Route path="lab-tests" element={<AdminLabTestsPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="doctors" element={<AdminDoctorsPage />} />
+              </Route>
               
               {/* Lab Routes - Lab role required */}
               <Route path="/lab" element={<AuthGuard requiredRole="lab"><LabDashboardPage /></AuthGuard>} />

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const adminSidebarItems = [
-  { title: "Dashboard", url: "/admin", icon: Home },
+  { title: "Dashboard", url: "/admin/dashboard", icon: Home },
   { title: "Medicines", url: "/admin/medicines", icon: Pill },
   { title: "Lab Tests", url: "/admin/lab-tests", icon: ClipboardList },
   { title: "Doctors", url: "/admin/doctors", icon: Stethoscope },
