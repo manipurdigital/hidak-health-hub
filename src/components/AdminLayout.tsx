@@ -64,7 +64,9 @@ export function AdminLayout() {
         </header>
 
         {/* Sidebar */}
-        <AdminSidebar />
+        <div className="pt-14">
+          <AdminSidebar />
+        </div>
 
         {/* Main Content */}
         <main className="flex-1 pt-14">
