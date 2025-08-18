@@ -108,8 +108,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      // Attempt to sign out; ignore "session not found" style errors
+      const { error } = await supabase.auth.signOut();
+
+      // Regardless of API response, clear local auth state to avoid stale sessions
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+
+      // Treat missing session as success to prevent noisy toasts
+      if (error && !(error.message || '').toLowerCase().includes('session')) {
+        return { error };
+      }
+      return { error: null };
+    } catch (e) {
+      // Ensure local cleanup even if API throws
+      setSession(null);
+      setUser(null);
+      setUserRole(null);
+      return { error: null };
+    }
   };
 
   const resetPassword = async (email: string) => {
