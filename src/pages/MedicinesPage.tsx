@@ -1,13 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Star, Truck, Upload, ShoppingCart } from 'lucide-react';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { FacetFilter } from '@/components/ui/facet-filter';
+import { SortSelect } from '@/components/ui/sort-select';
+import { ResultCount } from '@/components/ui/result-count';
+import { MedicineCardSkeleton } from '@/components/ui/loading-skeletons';
+import { EmptyState, LoadingError } from '@/components/ui/error-states';
+import { Search, Filter, Star, Truck, Upload, ShoppingCart, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUrlFilters } from '@/hooks/use-url-filters';
+import { useMedicines, useMedicineCategories } from '@/hooks/api-hooks';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -39,86 +48,110 @@ interface Category {
 }
 
 const MedicinesPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
   const [uploadingPrescription, setUploadingPrescription] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   
   const { toast } = useToast();
   const { addItem } = useCart();
   const { user } = useAuth();
+  const { filters, updateFilters, clearFilters } = useUrlFilters();
 
-  useEffect(() => {
-    fetchCategories();
-    fetchMedicines();
-  }, [selectedCategory, searchQuery]);
+  const page = filters.page || 1;
+  const pageSize = 12;
 
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('medicine_categories')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load medicine categories",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const fetchMedicines = async () => {
-    try {
-      setLoading(true);
+  // Fetch medicines with filters
+  const { data: medicinesData, isLoading: medicinesLoading, error: medicinesError } = useQuery({
+    queryKey: ['medicines', filters],
+    queryFn: async () => {
       let query = supabase
         .from('medicines')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+        .select('*', { count: 'exact' })
+        .eq('is_active', true);
 
-      if (selectedCategory) {
-        query = query.eq('category_id', selectedCategory);
+      // Apply filters
+      if (filters.q) {
+        query = query.or(`name.ilike.%${filters.q}%,brand.ilike.%${filters.q}%,manufacturer.ilike.%${filters.q}%`);
+      }
+      
+      if (filters.category) {
+        query = query.eq('category_id', filters.category);
+      }
+      
+      if (filters.brand) {
+        query = query.eq('brand', filters.brand);
+      }
+      
+      if (filters.rx_only !== undefined) {
+        query = query.eq('requires_prescription', filters.rx_only);
+      }
+      
+      if (filters.price_min) {
+        query = query.gte('price', filters.price_min);
+      }
+      
+      if (filters.price_max) {
+        query = query.lte('price', filters.price_max);
       }
 
-      if (searchQuery.trim()) {
-        query = query.ilike('name', `%${searchQuery}%`);
+      // Apply sorting
+      switch (filters.sort) {
+        case 'price_asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price_desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'rating':
+          query = query.order('rating', { ascending: false });
+          break;
+        case 'name':
+          query = query.order('name', { ascending: true });
+          break;
+        default:
+          query = query.order('name', { ascending: true });
       }
 
-      const { data, error } = await query;
+      // Apply pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
 
+      const { data, error, count } = await query;
       if (error) throw error;
-      setMedicines(data || []);
-    } catch (error) {
-      console.error('Error fetching medicines:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load medicines",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+      
+      return { medicines: data || [], total: count || 0 };
     }
-  };
+  });
+
+  // Fetch categories
+  const { data: categories } = useMedicineCategories();
+
+  const medicines = medicinesData?.medicines || [];
+  const totalMedicines = medicinesData?.total || 0;
+  const totalPages = Math.ceil(totalMedicines / pageSize);
+
+  // Get unique brands for filter
+  const brands = Array.from(new Set(medicines.map(m => m.brand).filter(Boolean)))
+    .map(brand => ({ value: brand, label: brand }));
+
+  const categoryOptions = (categories || []).map(cat => ({
+    value: cat.id,
+    label: cat.name
+  }));
+
+  const sortOptions = [
+    { value: 'name', label: 'Name A-Z' },
+    { value: 'price_asc', label: 'Price: Low to High' },
+    { value: 'price_desc', label: 'Price: High to Low' },
+    { value: 'rating', label: 'Rating' }
+  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams(searchParams);
-    if (searchQuery.trim()) {
-      params.set('q', searchQuery);
-    } else {
-      params.delete('q');
-    }
-    setSearchParams(params);
+    const searchValue = (e.target as HTMLFormElement).search.value;
+    updateFilters({ q: searchValue });
   };
 
   const handleAddToCart = (medicine: Medicine) => {
@@ -144,8 +177,9 @@ const MedicinesPage = () => {
     });
   };
 
-  const handleCategoryClick = (categoryId: string) => {
-    setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
+  const handlePageChange = (newPage: number) => {
+    updateFilters({ page: newPage });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleMedicineClick = (medicineId: string) => {
@@ -213,26 +247,31 @@ const MedicinesPage = () => {
 
           {/* Search and filters */}
           <div className="bg-card p-6 rounded-xl shadow-sm border mb-12">
-            <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4">
+            <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
+                  name="search"
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  defaultValue={filters.q || ''}
                   placeholder="Search for medicines, brands, or health conditions..."
                   className="pl-12"
                 />
               </div>
               <Button 
-                variant="outline" 
+                variant={showFilters ? "default" : "outline"}
                 size="lg" 
-                className="flex items-center gap-2 hover:bg-primary/10 transition-colors"
                 type="button"
-                onClick={() => toast({ title: "Filters", description: "Opening filter options..." })}
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
               >
                 <Filter className="w-4 h-4" />
                 Filters
+                {Object.keys(filters).length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {Object.keys(filters).length}
+                  </Badge>
+                )}
               </Button>
               
               {/* Prescription Upload */}
@@ -257,74 +296,130 @@ const MedicinesPage = () => {
                 </Button>
               </div>
             </form>
+
+            {/* Filter Panel */}
+            {showFilters && (
+              <div className="border-t pt-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                  <FacetFilter
+                    title="Category"
+                    options={categoryOptions}
+                    value={filters.category || ''}
+                    onChange={(value) => updateFilters({ category: value as string })}
+                  />
+                  
+                  <FacetFilter
+                    title="Brand"
+                    options={brands}
+                    value={filters.brand || ''}
+                    onChange={(value) => updateFilters({ brand: value as string })}
+                  />
+                  
+                  <FacetFilter
+                    title="Prescription"
+                    options={[
+                      { value: 'true', label: 'Prescription Required' },
+                      { value: 'false', label: 'No Prescription' }
+                    ]}
+                    value={filters.rx_only?.toString() || ''}
+                    onChange={(value) => updateFilters({ rx_only: value === 'true' ? true : value === 'false' ? false : undefined })}
+                  />
+                  
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-sm">Price Range</h3>
+                    <div className="space-y-2">
+                      <Input
+                        type="number"
+                        placeholder="Min price"
+                        value={filters.price_min || ''}
+                        onChange={(e) => updateFilters({ price_min: e.target.value ? Number(e.target.value) : undefined })}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Max price"
+                        value={filters.price_max || ''}
+                        onChange={(e) => updateFilters({ price_max: e.target.value ? Number(e.target.value) : undefined })}
+                      />
+                    </div>
+                  </div>
+                  
+                  <SortSelect
+                    options={sortOptions}
+                    value={filters.sort || 'name'}
+                    onChange={(value) => updateFilters({ sort: value })}
+                  />
+                </div>
+                
+                {Object.keys(filters).length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={clearFilters}>
+                      <X className="w-4 h-4 mr-1" />
+                      Clear All Filters
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Categories */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-6">Shop by Categories</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {categories.map((category) => (
-                <Card 
-                  key={category.id} 
-                  className={`group hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 ${
-                    selectedCategory === category.id ? 'border-primary bg-primary/5' : 'hover:border-primary/20'
-                  }`}
-                  onClick={() => handleCategoryClick(category.id)}
-                >
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-200">
-                      {category.icon}
-                    </div>
-                    <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">
-                      {category.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">{category.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Medicines Grid */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold">
-                {selectedCategory ? 'Filtered Medicines' : searchQuery ? `Search Results for "${searchQuery}"` : 'All Medicines'}
-              </h2>
-              {selectedCategory && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setSelectedCategory(null)}
-                  className="hover:text-primary transition-colors"
-                >
-                  Clear Filter
-                </Button>
-              )}
-            </div>
-            
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, index) => (
-                  <Card key={index} className="animate-pulse">
-                    <CardHeader className="pb-3">
-                      <div className="h-4 bg-muted rounded mb-2"></div>
-                      <div className="h-6 bg-muted rounded"></div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="h-4 bg-muted rounded"></div>
-                      <div className="h-4 bg-muted rounded w-2/3"></div>
-                      <div className="h-10 bg-muted rounded"></div>
+          {!filters.q && !filters.category && (
+            <div className="mb-12">
+              <h2 className="text-2xl font-semibold mb-6">Shop by Categories</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {(categories || []).map((category) => (
+                  <Card 
+                    key={category.id} 
+                    className="group hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:border-primary/20"
+                    onClick={() => updateFilters({ category: category.id })}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-200">
+                        {category.icon}
+                      </div>
+                      <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">
+                        {category.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">{category.description}</p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-            ) : medicines.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No medicines found</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Try adjusting your search or category filter
-                </p>
+            </div>
+          )}
+
+          {/* Medicines Grid */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-semibold">
+                  {filters.category ? 'Filtered Medicines' : filters.q ? `Search Results` : 'All Medicines'}
+                </h2>
+                <ResultCount 
+                  total={totalMedicines}
+                  showing={medicines.length}
+                  searchTerm={filters.q}
+                />
               </div>
+            </div>
+            
+            {medicinesError ? (
+              <LoadingError onRetry={() => window.location.reload()} />
+            ) : medicinesLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(pageSize)].map((_, index) => (
+                  <MedicineCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : medicines.length === 0 ? (
+              <EmptyState
+                title="No medicines found"
+                description={filters.q ? `No medicines found for "${filters.q}"` : 'Try adjusting your search or filters'}
+                action={{
+                  label: "Clear Filters",
+                  onClick: clearFilters
+                }}
+              />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {medicines.map((medicine) => (
@@ -403,6 +498,44 @@ const MedicinesPage = () => {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => page > 1 && handlePageChange(page - 1)}
+                        className={page <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={page === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => page < totalPages && handlePageChange(page + 1)}
+                        className={page >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </div>

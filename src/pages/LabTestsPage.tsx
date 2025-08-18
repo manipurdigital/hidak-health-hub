@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { CalendarIcon, Clock, TestTube, FileText, Filter, Star } from 'lucide-react';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { FacetFilter } from '@/components/ui/facet-filter';
+import { SortSelect } from '@/components/ui/sort-select';
+import { ResultCount } from '@/components/ui/result-count';
+import { LabTestCardSkeleton } from '@/components/ui/loading-skeletons';
+import { EmptyState, LoadingError } from '@/components/ui/error-states';
+import { CalendarIcon, Clock, TestTube, FileText, Filter, Star, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useUrlFilters } from '@/hooks/use-url-filters';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -24,64 +32,99 @@ interface LabTest {
 }
 
 const LabTestsPage = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [tests, setTests] = useState<LabTest[]>([]);
-  const [filteredTests, setFilteredTests] = useState<LabTest[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
-  const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const { filters, updateFilters, clearFilters } = useUrlFilters();
+
+  const page = filters.page || 1;
+  const pageSize = 12;
+
+  // Fetch lab tests with filters
+  const { data: testsData, isLoading: testsLoading, error: testsError } = useQuery({
+    queryKey: ['lab-tests', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('lab_tests')
+        .select('*', { count: 'exact' })
+        .eq('is_active', true);
+
+      // Apply filters
+      if (filters.q) {
+        query = query.or(`name.ilike.%${filters.q}%,description.ilike.%${filters.q}%,category.ilike.%${filters.q}%`);
+      }
+      
+      if (filters.category && filters.category !== 'All') {
+        query = query.eq('category', filters.category);
+      }
+      
+      if (filters.fasting !== undefined) {
+        query = query.eq('preparation_required', filters.fasting);
+      }
+      
+      if (filters.price_min) {
+        query = query.gte('price', filters.price_min);
+      }
+      
+      if (filters.price_max) {
+        query = query.lte('price', filters.price_max);
+      }
+
+      // Apply sorting
+      switch (filters.sort) {
+        case 'price_asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price_desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'name':
+          query = query.order('name', { ascending: true });
+          break;
+        default:
+          query = query.order('name', { ascending: true });
+      }
+
+      // Apply pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      
+      return { tests: data || [], total: count || 0 };
+    }
+  });
+
+  const tests = testsData?.tests || [];
+  const totalTests = testsData?.total || 0;
+  const totalPages = Math.ceil(totalTests / pageSize);
 
   const categories = ['All', 'Blood Tests', 'Hormone Tests', 'Diabetes', 'Vitamins', 'Urine Tests', 'Cardiac Tests', 'Radiology'];
 
-  useEffect(() => {
-    fetchTests();
-  }, []);
+  const categoryOptions = categories.map(cat => ({
+    value: cat,
+    label: cat
+  }));
 
-  useEffect(() => {
-    filterTests();
-  }, [tests, selectedCategory, searchTerm]);
+  const sortOptions = [
+    { value: 'name', label: 'Name A-Z' },
+    { value: 'price_asc', label: 'Price: Low to High' },
+    { value: 'price_desc', label: 'Price: High to Low' }
+  ];
 
-  const fetchTests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('lab_tests')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      setTests(data || []);
-    } catch (error) {
-      console.error('Error fetching tests:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load lab tests",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const searchValue = (e.target as HTMLFormElement).search.value;
+    updateFilters({ q: searchValue });
   };
 
-  const filterTests = () => {
-    let filtered = tests;
-
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(test => test.category === selectedCategory);
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(test =>
-        test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        test.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredTests(filtered);
+  const handlePageChange = (newPage: number) => {
+    updateFilters({ page: newPage });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleTestClick = (testId: string) => {
@@ -101,29 +144,6 @@ const LabTestsPage = () => {
     navigate(`/lab-tests/${test.id}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-1/2 mb-4"></div>
-                    <div className="h-8 bg-muted rounded"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -138,36 +158,126 @@ const LabTestsPage = () => {
           </div>
 
           {/* Search and Filters */}
-          <div className="mb-8 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
+          <div className="bg-card p-6 rounded-xl shadow-sm border mb-12">
+            <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4 mb-6">
               <div className="flex-1">
                 <Input
+                  name="search"
                   placeholder="Search tests..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  defaultValue={filters.q || ''}
                   className="w-full"
                 />
               </div>
-              <div className="flex gap-2 overflow-x-auto">
-                {categories.map((category) => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                    className="whitespace-nowrap"
-                  >
-                    <Filter className="w-4 h-4 mr-1" />
-                    {category}
-                  </Button>
-                ))}
+              <Button 
+                variant={showFilters ? "default" : "outline"}
+                size="lg" 
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+                {Object.keys(filters).length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {Object.keys(filters).length}
+                  </Badge>
+                )}
+              </Button>
+            </form>
+
+            {/* Filter Panel */}
+            {showFilters && (
+              <div className="border-t pt-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <FacetFilter
+                    title="Category"
+                    options={categoryOptions}
+                    value={filters.category || 'All'}
+                    onChange={(value) => updateFilters({ category: value as string })}
+                  />
+                  
+                  <FacetFilter
+                    title="Fasting Required"
+                    options={[
+                      { value: 'true', label: 'Fasting Required' },
+                      { value: 'false', label: 'No Fasting' }
+                    ]}
+                    value={filters.fasting?.toString() || ''}
+                    onChange={(value) => updateFilters({ fasting: value === 'true' ? true : value === 'false' ? false : undefined })}
+                  />
+                  
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-sm">Price Range</h3>
+                    <div className="space-y-2">
+                      <Input
+                        type="number"
+                        placeholder="Min price"
+                        value={filters.price_min || ''}
+                        onChange={(e) => updateFilters({ price_min: e.target.value ? Number(e.target.value) : undefined })}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Max price"
+                        value={filters.price_max || ''}
+                        onChange={(e) => updateFilters({ price_max: e.target.value ? Number(e.target.value) : undefined })}
+                      />
+                    </div>
+                  </div>
+                  
+                  <SortSelect
+                    options={sortOptions}
+                    value={filters.sort || 'name'}
+                    onChange={(value) => updateFilters({ sort: value })}
+                  />
+                </div>
+                
+                {Object.keys(filters).length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={clearFilters}>
+                      <X className="w-4 h-4 mr-1" />
+                      Clear All Filters
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Tests Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTests.map((test) => (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-semibold">
+                  {filters.category && filters.category !== 'All' ? 'Filtered Tests' : filters.q ? `Search Results` : 'All Tests'}
+                </h2>
+                <ResultCount 
+                  total={totalTests}
+                  showing={tests.length}
+                  searchTerm={filters.q}
+                />
+              </div>
+            </div>
+            
+            {testsError ? (
+              <LoadingError onRetry={() => window.location.reload()} />
+            ) : testsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(pageSize)].map((_, index) => (
+                  <LabTestCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : tests.length === 0 ? (
+              <EmptyState
+                title="No tests found"
+                description={filters.q ? `No tests found for "${filters.q}"` : 'Try adjusting your search or filters'}
+                action={{
+                  label: "Clear Filters",
+                  onClick: clearFilters
+                }}
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {tests.map((test) => (
               <Card 
                 key={test.id} 
                 className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -218,18 +328,49 @@ const LabTestsPage = () => {
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => page > 1 && handlePageChange(page - 1)}
+                        className={page <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={page === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => page < totalPages && handlePageChange(page + 1)}
+                        className={page >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
 
-          {filteredTests.length === 0 && (
-            <div className="text-center py-12">
-              <TestTube className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No tests found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? `No tests found for "${searchTerm}"` : 'Try adjusting your search or filters'}
-              </p>
-            </div>
-          )}
 
           {/* Benefits section */}
           <div className="mt-16 bg-muted/30 p-8 rounded-xl">
