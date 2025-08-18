@@ -43,87 +43,85 @@ export default function CenterJobTrackingPage() {
 
   return (
     <GoogleMapsProvider>
-      <CenterLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/center/jobs" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Jobs
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                {type === 'lab' ? (
-                  <TestTube className="h-8 w-8" />
-                ) : (
-                  <Package className="h-8 w-8" />
-                )}
-                Track {type === 'lab' ? 'Lab Collection' : 'Medicine Delivery'}
-              </h1>
-              <p className="text-muted-foreground">
-                Live tracking for {job.customer_name}
-              </p>
-            </div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/center/jobs" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Jobs
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              {type === 'lab' ? (
+                <TestTube className="h-8 w-8" />
+              ) : (
+                <Package className="h-8 w-8" />
+              )}
+              Track {type === 'lab' ? 'Lab Collection' : 'Medicine Delivery'}
+            </h1>
+            <p className="text-muted-foreground">
+              Live tracking for {job.customer_name}
+            </p>
           </div>
-
-          {/* Job Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Job Details
-                <Badge className={`${
-                  job.status === 'collected' || job.status === 'delivered' 
-                    ? 'bg-green-500' 
-                    : job.status === 'en_route' || job.status === 'out_for_delivery'
-                    ? 'bg-blue-500'
-                    : 'bg-yellow-500'
-                } text-white`}>
-                  {job.status.replace('_', ' ').toUpperCase()}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold">Customer</h4>
-                <p>{job.customer_name}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold">Destination</h4>
-                <p>{job.destination_address}</p>
-              </div>
-              {type === 'lab' && 'test_name' in job && (
-                <div>
-                  <h4 className="font-semibold">Test</h4>
-                  <p>{job.test_name}</p>
-                </div>
-              )}
-              {job.tracking_token && (
-                <div>
-                  <h4 className="font-semibold">Tracking Link</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {window.location.origin}/track/{type}/{job.id}/{job.tracking_token}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Tracking Map */}
-          <TrackingMap
-            jobType={type}
-            jobId={job.id}
-            centerId="center-123" // This should come from user context
-            centerType={type}
-            destinationAddress={job.destination_address}
-            customerName={job.customer_name}
-            etaMinutes={job.last_eta_mins}
-            distanceMeters={job.last_distance_meters}
-            isStaff={true}
-          />
         </div>
-      </CenterLayout>
+
+        {/* Job Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              Job Details
+              <Badge className={`${
+                job.status === 'collected' || job.status === 'delivered' 
+                  ? 'bg-green-500' 
+                  : job.status === 'en_route' || job.status === 'out_for_delivery'
+                  ? 'bg-blue-500'
+                  : 'bg-yellow-500'
+              } text-white`}>
+                {job.status.replace('_', ' ').toUpperCase()}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold">Customer</h4>
+              <p>{job.customer_name}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold">Destination</h4>
+              <p>{job.destination_address}</p>
+            </div>
+            {type === 'lab' && 'test_name' in job && (
+              <div>
+                <h4 className="font-semibold">Test</h4>
+                <p>{job.test_name}</p>
+              </div>
+            )}
+            {job.tracking_token && (
+              <div>
+                <h4 className="font-semibold">Tracking Link</h4>
+                <p className="text-sm text-muted-foreground">
+                  {window.location.origin}/track/{type}/{job.id}/{job.tracking_token}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Tracking Map */}
+        <TrackingMap
+          jobType={type}
+          jobId={job.id}
+          centerId="center-123" // This should come from user context
+          centerType={type}
+          destinationAddress={job.destination_address}
+          customerName={job.customer_name}
+          etaMinutes={job.last_eta_mins}
+          distanceMeters={job.last_distance_meters}
+          isStaff={true}
+        />
+      </div>
     </GoogleMapsProvider>
   );
 }
