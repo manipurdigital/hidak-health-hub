@@ -5,7 +5,7 @@ import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface OrdersChartProps {
-  data?: Array<{ time_bucket: string; value: number }>;
+  data?: Array<{ date: string; value: number }>;
   isLoading?: boolean;
   title?: string;
 }
@@ -54,7 +54,7 @@ export function OrdersChart({ data, isLoading, title = "Orders Over Time" }: Ord
             <BarChart data={data || []}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis 
-                dataKey="time_bucket" 
+                dataKey="date" 
                 tickFormatter={formatDate}
                 className="text-muted-foreground"
               />

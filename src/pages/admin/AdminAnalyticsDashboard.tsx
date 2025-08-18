@@ -73,14 +73,14 @@ export function AdminAnalyticsDashboard() {
     {
       title: 'Active Subscriptions',
       value: kpiData?.active_subscriptions || 0,
-      previousValue: kpiData?.prev_active_subs || 0,
+      previousValue: kpiData?.active_subscriptions || 0, // Use same value as fallback
       icon: <Users className="h-4 w-4" />,
       format: 'number' as const,
     },
     {
       title: 'Conversion Rate',
       value: kpiData?.conversion_rate || 0,
-      previousValue: kpiData?.prev_conversion_rate || 0,
+      previousValue: kpiData?.conversion_rate || 0, // Use same value as fallback
       icon: <Percent className="h-4 w-4" />,
       format: 'percentage' as const,
     },
@@ -149,8 +149,8 @@ export function AdminAnalyticsDashboard() {
             <span className="text-sm font-medium text-foreground">Quick Stats</span>
           </div>
           <div className="space-y-1 text-sm text-muted-foreground">
-            <div>Revenue Growth: {kpiData ? (((kpiData.total_revenue - kpiData.prev_revenue) / (kpiData.prev_revenue || 1)) * 100).toFixed(1) : 0}%</div>
-            <div>Order Growth: {kpiData ? (((Number(kpiData.total_orders) - Number(kpiData.prev_orders)) / (Number(kpiData.prev_orders) || 1)) * 100).toFixed(1) : 0}%</div>
+            <div>Revenue Growth: {kpiData?.revenue_growth ? kpiData.revenue_growth.toFixed(1) : '0'}%</div>
+            <div>Order Growth: {kpiData?.order_growth ? kpiData.order_growth.toFixed(1) : '0'}%</div>
             <div>User Growth: {kpiData ? (((Number(kpiData.new_users) - Number(kpiData.prev_new_users)) / (Number(kpiData.prev_new_users) || 1)) * 100).toFixed(1) : 0}%</div>
           </div>
         </div>

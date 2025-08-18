@@ -58,6 +58,7 @@ const AuthPage = () => {
         // Immediate redirection based on user role
         switch (userRole) {
           case 'admin':
+          case 'analyst':
             navigate('/admin/dashboard');
             break;
           case 'doctor':

@@ -9,18 +9,16 @@ export interface KPIData {
   new_users: number;
   conversion_rate: number;
   active_subscriptions: number;
-  refund_rate: number;
   prev_revenue: number;
   prev_orders: number;
   prev_aov: number;
   prev_new_users: number;
-  prev_conversion_rate: number;
-  prev_active_subs: number;
-  prev_refund_rate: number;
+  revenue_growth: number;
+  order_growth: number;
 }
 
 export interface TimeseriesData {
-  time_bucket: string;
+  date: string;
   value: number;
 }
 
@@ -35,6 +33,7 @@ export interface TopMedicineData {
   total_revenue: number;
   total_quantity: number;
   order_count: number;
+  unique_customers?: number;
 }
 
 export type DateRange = '7d' | '28d' | '90d' | 'custom';
@@ -66,9 +65,9 @@ export function useKPIData(dateRange: DateRange, customStart?: Date, customEnd?:
   return useQuery({
     queryKey: ['admin-kpi', start.toISOString(), end.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('kpi_overview', {
-        start_ts: start.toISOString(),
-        end_ts: end.toISOString()
+      const { data, error } = await supabase.rpc('admin_kpi_overview', {
+        start_date: start.toISOString().split('T')[0],
+        end_date: end.toISOString().split('T')[0]
       });
       
       if (error) throw error;
@@ -91,11 +90,10 @@ export function useTimeseriesData(
   return useQuery({
     queryKey: ['admin-timeseries', metric, granularity, start.toISOString(), end.toISOString()],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('timeseries_metric', {
-        metric_name: metric,
-        granularity,
-        start_ts: start.toISOString(),
-        end_ts: end.toISOString()
+      const { data, error } = await supabase.rpc('admin_timeseries_data', {
+        metric_type: metric,
+        start_date: start.toISOString().split('T')[0],
+        end_date: end.toISOString().split('T')[0]
       });
       
       if (error) throw error;
@@ -142,9 +140,9 @@ export function useTopMedicines(
   return useQuery({
     queryKey: ['admin-top-medicines', start.toISOString(), end.toISOString(), limit],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('top_medicines_by_revenue', {
-        start_ts: start.toISOString(),
-        end_ts: end.toISOString(),
+      const { data, error } = await supabase.rpc('admin_top_medicines', {
+        start_date: start.toISOString().split('T')[0],
+        end_date: end.toISOString().split('T')[0],
         limit_count: limit
       });
       

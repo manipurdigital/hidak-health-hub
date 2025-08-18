@@ -27,8 +27,8 @@ export function AdminGuard({ children }: AdminGuardProps) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Redirect to home if not admin
-  if (userRole !== 'admin') {
+  // Redirect to home if not admin or analyst
+  if (userRole !== 'admin' && userRole !== 'analyst') {
     return <Navigate to="/" replace />;
   }
 
