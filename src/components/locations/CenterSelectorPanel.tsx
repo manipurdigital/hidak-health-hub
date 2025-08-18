@@ -20,15 +20,15 @@ import {
 interface EnhancedGeofence {
   id: string;
   name: string;
-  color: string;
+  color?: string;
   service_type: 'delivery' | 'lab_collection';
-  shape_type: 'polygon' | 'circle';
-  area_km2: number | null;
-  radius_meters: number | null;
+  shape_type?: 'polygon' | 'circle';
+  area_km2?: number | null;
+  radius_meters?: number | null;
   is_active: boolean;
-  priority: number;
-  center_id: string | null;
-  store_id: string | null;
+  priority?: number;
+  center_id?: string | null;
+  store_id?: string | null;
   center_name?: string;
   store_name?: string;
 }
@@ -204,11 +204,11 @@ export function CenterSelectorPanel({
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span 
+                           <span 
                             className="text-lg"
-                            style={{ color: geofence.color }}
+                            style={{ color: geofence.color || '#4285F4' }}
                           >
-                            {getShapeIcon(geofence.shape_type)}
+                            {getShapeIcon(geofence.shape_type || 'polygon')}
                           </span>
                           <span className="font-medium text-sm truncate">
                             {geofence.name}
@@ -233,7 +233,7 @@ export function CenterSelectorPanel({
                           </Badge>
                           
                           <Badge variant="outline" className="text-xs">
-                            P{geofence.priority}
+                            P{geofence.priority || 1}
                           </Badge>
                           
                           {geofence.area_km2 && (
@@ -246,7 +246,7 @@ export function CenterSelectorPanel({
                       
                       <div 
                         className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                        style={{ backgroundColor: geofence.color }}
+                        style={{ backgroundColor: geofence.color || '#4285F4' }}
                       />
                     </div>
                   </div>

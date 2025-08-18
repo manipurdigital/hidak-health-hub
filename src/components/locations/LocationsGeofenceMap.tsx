@@ -40,20 +40,20 @@ const defaultCenter = {
 interface EnhancedGeofence {
   id: string;
   name: string;
-  color: string;
+  color?: string;
   service_type: 'delivery' | 'lab_collection';
-  shape_type: 'polygon' | 'circle';
-  polygon_coordinates: any;
-  area_km2: number | null;
-  radius_meters: number | null;
+  shape_type?: 'polygon' | 'circle';
+  polygon_coordinates?: any;
+  area_km2?: number | null;
+  radius_meters?: number | null;
   is_active: boolean;
-  priority: number;
-  capacity_per_day: number | null;
-  min_order_value: number | null;
-  working_hours: any;
-  notes: string | null;
-  center_id: string | null;
-  store_id: string | null;
+  priority?: number;
+  capacity_per_day?: number | null;
+  min_order_value?: number | null;
+  working_hours?: any;
+  notes?: string | null;
+  center_id?: string | null;
+  store_id?: string | null;
   center_name?: string;
   store_name?: string;
 }
@@ -223,9 +223,9 @@ export function LocationsGeofenceMap({
 
         const polygon = new google.maps.Polygon({
           paths: coordinates,
-          fillColor: geofence.color,
+          fillColor: geofence.color || '#4285F4',
           fillOpacity: geofence.is_active ? 0.3 : 0.1,
-          strokeColor: geofence.color,
+          strokeColor: geofence.color || '#4285F4',
           strokeOpacity: geofence.is_active ? 0.8 : 0.4,
           strokeWeight: selectedGeofence?.id === geofence.id ? 3 : 2,
           clickable: true,
@@ -246,9 +246,9 @@ export function LocationsGeofenceMap({
         const circle = new google.maps.Circle({
           center,
           radius: geofence.radius_meters || 0,
-          fillColor: geofence.color,
+          fillColor: geofence.color || '#4285F4',
           fillOpacity: geofence.is_active ? 0.3 : 0.1,
-          strokeColor: geofence.color,
+          strokeColor: geofence.color || '#4285F4',
           strokeOpacity: geofence.is_active ? 0.8 : 0.4,
           strokeWeight: selectedGeofence?.id === geofence.id ? 3 : 2,
           clickable: true,

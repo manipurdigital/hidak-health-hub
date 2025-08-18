@@ -26,20 +26,20 @@ interface WorkingHours {
 interface EnhancedGeofence {
   id: string;
   name: string;
-  color: string;
+  color?: string;
   service_type: 'delivery' | 'lab_collection';
-  shape_type: 'polygon' | 'circle';
-  polygon_coordinates: any;
-  area_km2: number | null;
-  radius_meters: number | null;
+  shape_type?: 'polygon' | 'circle';
+  polygon_coordinates?: any;
+  area_km2?: number | null;
+  radius_meters?: number | null;
   is_active: boolean;
-  priority: number;
-  capacity_per_day: number | null;
-  min_order_value: number | null;
-  working_hours: any;
-  notes: string | null;
-  center_id: string | null;
-  store_id: string | null;
+  priority?: number;
+  capacity_per_day?: number | null;
+  min_order_value?: number | null;
+  working_hours?: any;
+  notes?: string | null;
+  center_id?: string | null;
+  store_id?: string | null;
 }
 
 interface GeofenceFormPanelProps {
