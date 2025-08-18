@@ -147,6 +147,21 @@ export const useTopMedicinesByRevenue = (startDate: string, endDate: string, lim
   });
 };
 
+export const useMedicineSalesByStore = (startDate: string, endDate: string) => {
+  return useQuery({
+    queryKey: ['medicine-sales-by-store', startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('medicine_sales_by_store', {
+        start_date: startDate,
+        end_date: endDate,
+      });
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+};
+
 // Consultation Analytics Hooks
 export const useConsultationKPIs = (startDate: string, endDate: string) => {
   return useQuery({

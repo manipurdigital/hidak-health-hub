@@ -10,7 +10,8 @@ import { ExportButton } from '@/components/reports/ExportButton';
 import { 
   useMedicineSalesKPIs, 
   useMedicineSalesByDay, 
-  useTopMedicinesByRevenue 
+  useTopMedicinesByRevenue,
+  useMedicineSalesByStore 
 } from '@/hooks/analytics-hooks';
 import { useState } from 'react';
 
@@ -23,7 +24,7 @@ interface MedicineSalesReportProps {
 }
 
 export function MedicineSalesReport({ dateRange, onDateRangeChange }: MedicineSalesReportProps) {
-  const [activeView, setActiveView] = useState<'day' | 'medicines'>('day');
+  const [activeView, setActiveView] = useState<'day' | 'medicines' | 'store'>('day');
 
   const { data: kpiData, isLoading: kpiLoading } = useMedicineSalesKPIs(
     dateRange.startDate,
@@ -39,6 +40,11 @@ export function MedicineSalesReport({ dateRange, onDateRangeChange }: MedicineSa
     dateRange.startDate,
     dateRange.endDate,
     20
+  );
+
+  const { data: storeData, isLoading: storeLoading } = useMedicineSalesByStore(
+    dateRange.startDate,
+    dateRange.endDate
   );
 
   const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
@@ -58,6 +64,14 @@ export function MedicineSalesReport({ dateRange, onDateRangeChange }: MedicineSa
     { header: 'Units Sold', accessor: 'units_sold' as const },
     { header: 'Orders', accessor: 'orders_count' as const },
     { header: 'Avg Price', accessor: 'avg_price' as const, format: 'currency' as const },
+  ];
+
+  const storeColumns = [
+    { header: 'Store', accessor: 'store_name' as const },
+    { header: 'Orders', accessor: 'orders' as const },
+    { header: 'Revenue', accessor: 'revenue' as const, format: 'currency' as const },
+    { header: 'AOV', accessor: 'aov' as const, format: 'currency' as const },
+    { header: 'Top Medicine', accessor: 'top_medicine' as const },
   ];
 
   return (
@@ -156,11 +170,18 @@ export function MedicineSalesReport({ dateRange, onDateRangeChange }: MedicineSa
                 >
                   Top Medicines
                 </Button>
+                <Button
+                  variant={activeView === 'store' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveView('store')}
+                >
+                  By Store
+                </Button>
               </div>
               <ExportButton
-                data={activeView === 'day' ? dayData : topMedicines}
+                data={activeView === 'day' ? dayData : activeView === 'medicines' ? topMedicines : storeData}
                 filename={`medicine-sales-${activeView}-${dateRange.startDate}-to-${dateRange.endDate}`}
-                columns={activeView === 'day' ? dayColumns : medicineColumns}
+                columns={activeView === 'day' ? dayColumns : activeView === 'medicines' ? medicineColumns : storeColumns}
               />
             </div>
           </div>
@@ -172,11 +193,17 @@ export function MedicineSalesReport({ dateRange, onDateRangeChange }: MedicineSa
               columns={dayColumns}
               isLoading={dayLoading}
             />
-          ) : (
+          ) : activeView === 'medicines' ? (
             <DataTable
               data={topMedicines || []}
               columns={medicineColumns}
               isLoading={medicinesLoading}
+            />
+          ) : (
+            <DataTable
+              data={storeData || []}
+              columns={storeColumns}
+              isLoading={storeLoading}
             />
           )}
         </CardContent>

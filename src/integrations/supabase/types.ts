@@ -1568,6 +1568,16 @@ export type Database = {
           sale_date: string
         }[]
       }
+      medicine_sales_by_store: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          aov: number
+          orders: number
+          revenue: number
+          store_name: string
+          top_medicine: string
+        }[]
+      }
       medicine_sales_kpis: {
         Args: { end_date: string; start_date: string }
         Returns: {
