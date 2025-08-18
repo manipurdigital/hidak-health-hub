@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { TrendingMedicinesCarousel } from '@/components/TrendingMedicinesCarousel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +62,6 @@ const MedicinesPage = () => {
   const page = filters.page || 1;
   const pageSize = 12;
 
-  // Fetch medicines with filters
   const { data: medicinesData, isLoading: medicinesLoading, error: medicinesError } = useQuery({
     queryKey: ['medicines', filters],
     queryFn: async () => {
@@ -70,7 +70,6 @@ const MedicinesPage = () => {
         .select('*', { count: 'exact' })
         .eq('is_active', true);
 
-      // Apply filters
       if (filters.q) {
         query = query.or(`name.ilike.%${filters.q}%,brand.ilike.%${filters.q}%,manufacturer.ilike.%${filters.q}%`);
       }
@@ -95,7 +94,6 @@ const MedicinesPage = () => {
         query = query.lte('price', filters.price_max);
       }
 
-      // Apply sorting
       switch (filters.sort) {
         case 'price_asc':
           query = query.order('price', { ascending: true });
@@ -113,7 +111,6 @@ const MedicinesPage = () => {
           query = query.order('name', { ascending: true });
       }
 
-      // Apply pagination
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
       query = query.range(from, to);
@@ -125,14 +122,12 @@ const MedicinesPage = () => {
     }
   });
 
-  // Fetch categories
   const { data: categories } = useMedicineCategories();
 
   const medicines = medicinesData?.medicines || [];
   const totalMedicines = medicinesData?.total || 0;
   const totalPages = Math.ceil(totalMedicines / pageSize);
 
-  // Get unique brands for filter
   const brands = Array.from(new Set(medicines.map(m => m.brand).filter(Boolean)))
     .map(brand => ({ value: brand, label: brand }));
 
@@ -245,6 +240,9 @@ const MedicinesPage = () => {
             </p>
           </div>
 
+          {/* Trending medicines carousel */}
+          <TrendingMedicinesCarousel className="mb-12" />
+
           {/* Search and filters */}
           <div className="bg-card p-6 rounded-xl shadow-sm border mb-12">
             <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -274,7 +272,6 @@ const MedicinesPage = () => {
                 )}
               </Button>
               
-              {/* Prescription Upload */}
               <div className="relative">
                 <input
                   type="file"
@@ -297,7 +294,6 @@ const MedicinesPage = () => {
               </div>
             </form>
 
-            {/* Filter Panel */}
             {showFilters && (
               <div className="border-t pt-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
@@ -362,7 +358,6 @@ const MedicinesPage = () => {
             )}
           </div>
 
-          {/* Categories */}
           {!filters.q && !filters.category && (
             <div className="mb-12">
               <h2 className="text-2xl font-semibold mb-6">Shop by Categories</h2>
@@ -388,7 +383,6 @@ const MedicinesPage = () => {
             </div>
           )}
 
-          {/* Medicines Grid */}
           <div>
             <div className="flex items-center justify-between mb-6">
               <div className="space-y-1">
@@ -448,7 +442,6 @@ const MedicinesPage = () => {
                     </CardHeader>
                     
                     <CardContent className="space-y-4">
-                      {/* Rating */}
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -457,7 +450,6 @@ const MedicinesPage = () => {
                         <span className="text-xs text-muted-foreground">({medicine.review_count} reviews)</span>
                       </div>
 
-                      {/* Price */}
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold text-foreground">
@@ -476,14 +468,12 @@ const MedicinesPage = () => {
                         )}
                       </div>
 
-                      {/* Stock status */}
                       {medicine.stock_quantity <= 0 && (
                         <Badge variant="destructive" className="text-xs">
                           Out of Stock
                         </Badge>
                       )}
 
-                      {/* Add to cart */}
                       <Button 
                         className="w-full group-hover:scale-105 transition-transform duration-200"
                         onClick={(e) => {
@@ -501,7 +491,6 @@ const MedicinesPage = () => {
               </div>
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-8 flex justify-center">
                 <Pagination>
@@ -540,7 +529,6 @@ const MedicinesPage = () => {
             )}
           </div>
 
-          {/* Trust indicators */}
           <div className="mt-16 bg-muted/30 p-8 rounded-xl">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
               <div>

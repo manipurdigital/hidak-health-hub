@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, Clock, MapPin, ShoppingCart } from 'lucide-react';
 import { useTrendingMedicines, TrendingMedicine } from '@/hooks/use-demand-recommendations';
+import { useTimeBasedRecommendations } from '@/hooks/useTimeBasedRecommendations';
 
 interface TrendingMedicinesCarouselProps {
   city?: string;
@@ -20,7 +21,24 @@ export function TrendingMedicinesCarousel({
   limit = 8,
   className = ''
 }: TrendingMedicinesCarouselProps) {
-  const { data: medicines, isLoading, error } = useTrendingMedicines(city, pincode, limit);
+  const currentTime = new Date();
+  const { data: timeBasedMedicines, isLoading: isLoadingTimeBased } = useTimeBasedRecommendations({
+    at: currentTime,
+    city,
+    pincode,
+    limit
+  });
+  
+  // Fallback to best-sellers if less than 5 time-based recommendations
+  const { data: fallbackMedicines, isLoading: isLoadingFallback } = useTrendingMedicines(
+    city, 
+    pincode, 
+    limit
+  );
+
+  const medicines = (timeBasedMedicines?.length >= 5) ? timeBasedMedicines : fallbackMedicines;
+  const isLoading = isLoadingTimeBased || (timeBasedMedicines?.length < 5 && isLoadingFallback);
+  const isTimeBased = timeBasedMedicines?.length >= 5;
 
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString('en-IN')}`;
@@ -30,44 +48,36 @@ export function TrendingMedicinesCarousel({
     return Math.round(score * 100) / 100;
   };
 
-  const currentTime = new Date();
-  const timeDisplay = currentTime.toLocaleTimeString('en-IN', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: true 
-  });
+  const formatHour = (date: Date) => date.getHours().toString().padStart(2, '0') + ':00';
+  
+  const getCityDisplay = () => {
+    if (city) return city;
+    if (pincode) return pincode;
+    return 'Your Area';
+  };
 
-  if (error) {
-    return (
-      <Card className={className}>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">
-            <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Unable to load trending medicines</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getTitle = () => {
+    if (isTimeBased) {
+      return `Trending Now (for ${getCityDisplay()}, ${formatHour(currentTime)})`;
+    }
+    return `Popular Medicines${city ? ` in ${city}` : ''}`;
+  };
+
+  // Note: Error handling removed since we have fallback logic
 
   return (
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" />
-          Trending Now
-          <Badge variant="secondary" className="ml-auto flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {timeDisplay}
-          </Badge>
+          {getTitle()}
+          {isTimeBased && (
+            <Badge variant="secondary" className="ml-auto flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatHour(currentTime)}
+            </Badge>
+          )}
         </CardTitle>
-        {(city || pincode) && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="h-3 w-3" />
-            {city && <span>{city}</span>}
-            {pincode && <span>{pincode}</span>}
-          </div>
-        )}
       </CardHeader>
       
       <CardContent>
@@ -85,7 +95,12 @@ export function TrendingMedicinesCarousel({
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {medicines.map((medicine) => (
-                <TrendingMedicineCard key={medicine.medicine_id} medicine={medicine} />
+                <TrendingMedicineCard 
+                  key={medicine.medicine_id} 
+                  medicine={medicine}
+                  isTimeBased={isTimeBased}
+                  currentTime={currentTime}
+                />
               ))}
             </div>
             
@@ -113,9 +128,11 @@ export function TrendingMedicinesCarousel({
 
 interface TrendingMedicineCardProps {
   medicine: TrendingMedicine;
+  isTimeBased?: boolean;
+  currentTime?: Date;
 }
 
-function TrendingMedicineCard({ medicine }: TrendingMedicineCardProps) {
+function TrendingMedicineCard({ medicine, isTimeBased, currentTime }: TrendingMedicineCardProps) {
   const formatPrice = (price: number) => {
     return `₹${price.toLocaleString('en-IN')}`;
   };
@@ -123,6 +140,8 @@ function TrendingMedicineCard({ medicine }: TrendingMedicineCardProps) {
   const formatScore = (score: number) => {
     return Math.round(score * 100) / 100;
   };
+
+  const formatHour = (date: Date) => date.getHours().toString().padStart(2, '0') + ':00';
 
   const getDemandLevel = (score: number) => {
     if (score >= 10) return { label: 'High', color: 'destructive' };
@@ -162,12 +181,21 @@ function TrendingMedicineCard({ medicine }: TrendingMedicineCardProps) {
                 <span className="font-semibold text-primary">
                   {formatPrice(medicine.price)}
                 </span>
-                <Badge 
-                  variant={demandLevel.color as any}
-                  className="text-xs"
-                >
-                  {demandLevel.label}
-                </Badge>
+                {isTimeBased && currentTime ? (
+                  <Badge 
+                    variant="destructive"
+                    className="text-xs bg-orange-500 hover:bg-orange-600"
+                  >
+                    🔥 Hot at {formatHour(currentTime)}
+                  </Badge>
+                ) : (
+                  <Badge 
+                    variant={demandLevel.color as any}
+                    className="text-xs"
+                  >
+                    {demandLevel.label}
+                  </Badge>
+                )}
               </div>
               
               <div className="flex items-center justify-between text-xs text-muted-foreground">
