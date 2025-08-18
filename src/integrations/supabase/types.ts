@@ -2293,6 +2293,13 @@ export type Database = {
           working_hours: Json
         }[]
       }
+      get_user_center_access: {
+        Args: { user_id_param: string }
+        Returns: {
+          center_id: string
+          role: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -3931,6 +3938,10 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      validate_polygon_vertices: {
+        Args: { polygon_coords: Json }
+        Returns: boolean
       }
     }
     Enums: {
