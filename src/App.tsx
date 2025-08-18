@@ -48,6 +48,8 @@ import CenterJobTrackingPage from "./pages/center/CenterJobTrackingPage";
 import PublicTrackingPage from "./pages/track/PublicTrackingPage";
 import AdminGeofencingPage from "./pages/admin/AdminGeofencingPage";
 import AdminLocationsPage from "./pages/admin/AdminLocationsPage";
+import AdminLabAssignmentsPage from "./pages/admin/AdminLabAssignmentsPage";
+import AdminDeliveryAssignmentsPage from "./pages/admin/AdminDeliveryAssignmentsPage";
 import AccountPage from "./pages/AccountPage";
 
 const queryClient = new QueryClient();
@@ -104,6 +106,8 @@ const App = () => (
                 <Route path="locations" element={<AdminLocationsPage />} />
                 <Route path="medicines" element={<AdminMedicinesPage />} />
                 <Route path="lab-tests" element={<AdminLabTestsPage />} />
+                <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
+                <Route path="delivery-assignments" element={<AdminDeliveryAssignmentsPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="doctors" element={<AdminDoctorsPage />} />
               </Route>
