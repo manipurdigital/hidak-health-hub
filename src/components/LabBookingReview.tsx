@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface LabBookingReviewProps {
   labTest: any;
-  slot: { date: string; time: string; datetime: string };
+  slot: { date: string; time: string; datetime: string; notes?: string };
   selectedAddress: string;
   addresses: any[];
   onBack: () => void;
@@ -47,7 +47,11 @@ export function LabBookingReview({
     const [hour] = timeString.split(':');
     const hourNum = parseInt(hour);
     const endHour = hourNum + 2;
-    return `${timeString} - ${endHour.toString().padStart(2, '0')}:00`;
+    return {
+      start: timeString,
+      end: `${endHour.toString().padStart(2, '0')}:00`,
+      display: `${timeString} - ${endHour.toString().padStart(2, '0')}:00`
+    };
   };
 
   const handleConfirmBooking = async () => {
@@ -63,18 +67,23 @@ export function LabBookingReview({
     setIsBooking(true);
 
     try {
+      const timeWindow = formatTime(slot.time);
+      
       const bookingData = {
         test_id: labTest.id,
         booking_date: slot.date,
         time_slot: slot.time,
+        pickup_window_start: timeWindow.start,
+        pickup_window_end: timeWindow.end,
         patient_name: selectedAddr.name,
         patient_phone: selectedAddr.phone,
         patient_email: '', // Will be filled from user profile
         total_amount: labTest.price,
         payment_status: paymentMethod === 'cod' ? 'pending' : 'paid', // Simulate payment for MVP
-        special_instructions: labTest.preparation_required 
+        status: 'pending',
+        special_instructions: slot.notes || (labTest.preparation_required 
           ? 'Patient requires fasting as per test requirements.' 
-          : undefined,
+          : undefined),
       };
 
       const result = await createLabBooking.mutateAsync(bookingData);
@@ -131,8 +140,8 @@ export function LabBookingReview({
             <div className="flex items-center gap-3">
               <Clock className="w-4 h-4 text-muted-foreground" />
               <div>
-                <p className="font-medium">{formatTime(slot.time)}</p>
-                <p className="text-sm text-muted-foreground">Collection Time</p>
+                <p className="font-medium">{formatTime(slot.time).display}</p>
+                <p className="text-sm text-muted-foreground">Sample Collection Window</p>
               </div>
             </div>
 

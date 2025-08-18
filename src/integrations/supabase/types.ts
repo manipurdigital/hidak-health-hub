@@ -386,6 +386,8 @@ export type Database = {
           patient_name: string
           patient_phone: string
           payment_status: string | null
+          pickup_window_end: string | null
+          pickup_window_start: string | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
           special_instructions: string | null
@@ -404,6 +406,8 @@ export type Database = {
           patient_name: string
           patient_phone: string
           payment_status?: string | null
+          pickup_window_end?: string | null
+          pickup_window_start?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           special_instructions?: string | null
@@ -422,6 +426,8 @@ export type Database = {
           patient_name?: string
           patient_phone?: string
           payment_status?: string | null
+          pickup_window_end?: string | null
+          pickup_window_start?: string | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           special_instructions?: string | null

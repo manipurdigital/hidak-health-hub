@@ -24,6 +24,7 @@ export function LabTestDetailPage() {
     date: string;
     time: string;
     datetime: string;
+    notes?: string;
   } | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<string>('');
 
@@ -53,7 +54,7 @@ export function LabTestDetailPage() {
     setCurrentStep('slot');
   };
 
-  const handleSlotSelected = (slot: { date: string; time: string; datetime: string }) => {
+  const handleSlotSelected = (slot: { date: string; time: string; datetime: string; notes?: string }) => {
     setSelectedSlot(slot);
     setCurrentStep('review');
   };
@@ -178,14 +179,19 @@ function LabTestDetails({ labTest, onBookNow }: {
         {/* Test Features */}
         <Card>
           <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="flex flex-col items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" />
-                <span className="text-xs">Home Collection</span>
+            <div className="text-center">
+              <div className="flex flex-col items-center gap-2 mb-3">
+                <MapPin className="w-6 h-6 text-primary" />
+                <span className="font-medium">Home Sample Collection</span>
               </div>
-              <div className="flex flex-col items-center gap-2">
-                <Clock className="w-5 h-5 text-green-600" />
-                <span className="text-xs">{labTest.reporting_time || '24 hrs'}</span>
+              <p className="text-sm text-muted-foreground mb-3">
+                Our certified phlebotomist will visit your home for safe sample collection
+              </p>
+              <div className="flex justify-center items-center gap-4 text-sm">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4 text-green-600" />
+                  <span>{labTest.reporting_time || '24 hrs'}</span>
+                </div>
               </div>
             </div>
           </CardContent>

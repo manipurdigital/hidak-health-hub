@@ -151,9 +151,9 @@ const LabTestsPage = () => {
       <main className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-foreground mb-4">Diagnostic Tests</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">Lab Tests - Home Collection</h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Book lab tests and health packages with home sample collection and accurate reports
+              Book lab tests with convenient home sample collection. Our certified phlebotomists will visit your home to collect samples safely.
             </p>
           </div>
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { AddressDialog } from '@/components/AddressDialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,7 +14,7 @@ interface SlotPickerProps {
   addresses: any[];
   selectedAddress: string;
   onAddressChange: (addressId: string) => void;
-  onSlotSelected: (slot: { date: string; time: string; datetime: string }) => void;
+  onSlotSelected: (slot: { date: string; time: string; datetime: string; notes?: string }) => void;
   onBack: () => void;
 }
 
@@ -27,6 +28,7 @@ export function SlotPicker({
 }: SlotPickerProps) {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const { toast } = useToast();
 
@@ -102,7 +104,8 @@ export function SlotPicker({
     onSlotSelected({
       date: selectedDate,
       time: selectedTime,
-      datetime: datetime
+      datetime: datetime,
+      notes: notes.trim() || undefined
     });
   };
 
@@ -216,6 +219,24 @@ export function SlotPicker({
           </div>
           <p className="text-sm text-muted-foreground mt-4">
             Sample collection available between 6:00 AM to 6:00 PM
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Special Instructions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Special Instructions (Optional)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Any special instructions for our phlebotomist (e.g., gate access, landmark, specific floor, etc.)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+          />
+          <p className="text-sm text-muted-foreground mt-2">
+            Help our team locate your address easily and prepare for the visit
           </p>
         </CardContent>
       </Card>

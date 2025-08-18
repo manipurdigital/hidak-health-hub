@@ -74,7 +74,7 @@ export function LabBookingSuccessPage() {
               </div>
               <h1 className="text-2xl font-bold text-green-600 mb-2">Booking Confirmed!</h1>
               <p className="text-muted-foreground mb-4">
-                Your lab test has been scheduled successfully. Our technician will visit your location.
+                Your lab test has been scheduled successfully. We'll come to your address between {formatTime(mockBookingData.time_slot)}.
               </p>
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Booking ID</p>
@@ -150,7 +150,7 @@ export function LabBookingSuccessPage() {
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <div>
                     <p className="font-medium">{formatTime(mockBookingData.time_slot)}</p>
-                    <p className="text-sm text-muted-foreground">Collection Time</p>
+                    <p className="text-sm text-muted-foreground">Sample Collection Window</p>
                   </div>
                 </div>
               </div>
@@ -196,7 +196,8 @@ export function LabBookingSuccessPage() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Our technician will call you 30 minutes before the scheduled time</li>
+                <li>• Our certified phlebotomist will visit your address during the scheduled window</li>
+                <li>• You'll receive a call 30 minutes before arrival</li>
                 <li>• Please ensure someone is available at the collection address</li>
                 <li>• Reports will be available in your dashboard once ready</li>
                 <li>• For any queries, contact our support team</li>
