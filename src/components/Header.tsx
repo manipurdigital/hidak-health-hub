@@ -103,7 +103,7 @@ const Header = () => {
           
           {/* Right actions */}
           <div className="flex items-center gap-4">
-            <Button 
+            {/* <Button 
               variant="ghost" 
               size="sm" 
               className="flex items-center gap-2 hover:bg-yellow-500/10 hover:text-yellow-600 transition-colors"
@@ -111,7 +111,7 @@ const Header = () => {
             >
               <Crown className="w-4 h-4" />
               Care+
-            </Button>
+            </Button> */}
             <Button
               variant="ghost" 
               size="sm" 
@@ -285,13 +285,13 @@ const Header = () => {
             >
               Wellness
             </Button>
-            <Button 
+            {/* <Button 
               variant="ghost" 
               className={getNavButtonClass('/care-plan')}
               onClick={() => navigate('/care-plan')}
             >
               Care Plan
-            </Button>
+            </Button> */}
           </nav>
           
           <div className="flex items-center gap-2">

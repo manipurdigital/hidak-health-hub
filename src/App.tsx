@@ -60,7 +60,7 @@ const App = () => (
               <Route path="/doctors" element={<DoctorsPage />} />
               <Route path="/doctors/:id" element={<DoctorProfilePage />} />
               <Route path="/wellness" element={<WellnessPage />} />
-              <Route path="/care-plan" element={<CarePlanPage />} />
+              {/* <Route path="/care-plan" element={<CarePlanPage />} /> */}
               
               {/* Guest Only Routes - Redirect authenticated users */}
               <Route path="/auth" element={<GuestRoute><AuthPage /></GuestRoute>} />
@@ -71,7 +71,7 @@ const App = () => (
               <Route path="/checkout" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
               <Route path="/reports" element={<AuthGuard><ReportsPage /></AuthGuard>} />
               <Route path="/prescriptions" element={<AuthGuard><PrescriptionsPage /></AuthGuard>} />
-              <Route path="/care-plus" element={<AuthGuard><CareSubscriptionPage /></AuthGuard>} />
+              {/* <Route path="/care-plus" element={<AuthGuard><CareSubscriptionPage /></AuthGuard>} /> */}
               
               {/* Consultation Routes - Authentication required */}
               <Route path="/consultation/:consultationId" element={<AuthGuard><ConsultationChatPage /></AuthGuard>} />
