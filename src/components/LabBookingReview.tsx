@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, CreditCard } from 'lucide-react';
+import { Calendar, Clock, MapPin, CreditCard, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCreateLabBooking } from '@/hooks/api-hooks';
 import { useToast } from '@/hooks/use-toast';
+import { checkServiceability, ServiceabilityResult } from '@/services/serviceability';
 
 interface LabBookingReviewProps {
   labTest: any;
@@ -28,11 +30,39 @@ export function LabBookingReview({
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [isBooking, setIsBooking] = useState(false);
+  const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null);
+  const [checkingServiceability, setCheckingServiceability] = useState(false);
   const createLabBooking = useCreateLabBooking();
   const { toast } = useToast();
 
   const selectedAddr = addresses.find(addr => addr.id === selectedAddress);
   
+  
+  // Check serviceability when address is available
+  useEffect(() => {
+    const checkAddressServiceability = async () => {
+      if (selectedAddr?.latitude && selectedAddr?.longitude) {
+        setCheckingServiceability(true);
+        try {
+          const result = await checkServiceability(
+            'lab',
+            selectedAddr.latitude,
+            selectedAddr.longitude
+          );
+          setServiceability(result);
+        } catch (error) {
+          console.error('Error checking serviceability:', error);
+        } finally {
+          setCheckingServiceability(false);
+        }
+      } else {
+        setServiceability(null);
+      }
+    };
+
+    checkAddressServiceability();
+  }, [selectedAddr]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -64,12 +94,22 @@ export function LabBookingReview({
       return;
     }
 
+    // Check serviceability before booking
+    if (serviceability && !serviceability.isServiceable) {
+      toast({
+        title: "Service Not Available",
+        description: serviceability.error || "Lab collection not available in your area",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsBooking(true);
 
     try {
       const timeWindow = formatTime(slot.time);
       
-      const bookingData = {
+      const bookingData: any = {
         test_id: labTest.id,
         booking_date: slot.date,
         time_slot: slot.time,
@@ -85,6 +125,11 @@ export function LabBookingReview({
           ? 'Patient requires fasting as per test requirements.' 
           : undefined),
       };
+
+      // Add assigned center if available
+      if (serviceability?.center) {
+        bookingData.center_id = serviceability.center.id;
+      }
 
       const result = await createLabBooking.mutateAsync(bookingData);
       
@@ -159,6 +204,44 @@ export function LabBookingReview({
               </div>
             </div>
           </div>
+
+          {/* Serviceability Status */}
+          {checkingServiceability && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Checking sample collection availability for your area...
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {serviceability && (
+            <Alert className={`mt-4 ${serviceability.isServiceable ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`}>
+              {serviceability.isServiceable ? (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              )}
+              <AlertDescription>
+                {serviceability.isServiceable ? (
+                  <div>
+                    <span className="text-green-800 font-medium">✓ Collection Available</span>
+                    {serviceability.center && (
+                      <div className="mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          Serviceable by: {serviceability.center.name}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-red-800 font-medium">
+                    {serviceability.error || "Sample collection not available in your area"}
+                  </span>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

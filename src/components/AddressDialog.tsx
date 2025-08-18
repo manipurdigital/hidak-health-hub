@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCreateAddress } from '@/hooks/medicine-hooks';
+import { Autocomplete } from '@react-google-maps/api';
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 interface AddressDialogProps {
   isOpen: boolean;
@@ -24,10 +26,47 @@ export function AddressDialog({ isOpen, onClose }: AddressDialogProps) {
     state: '',
     postal_code: '',
     landmark: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
     is_default: false,
   });
 
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const createAddress = useCreateAddress();
+  const { isLoaded } = useGoogleMaps();
+
+  const onAutocompleteLoad = (autocompleteInstance: google.maps.places.Autocomplete) => {
+    setAutocomplete(autocompleteInstance);
+  };
+
+  const onPlaceChanged = () => {
+    if (autocomplete) {
+      const place = autocomplete.getPlace();
+      if (place && place.geometry?.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        
+        // Extract address components
+        let city = '', state = '', postal_code = '';
+        place.address_components?.forEach(component => {
+          const types = component.types;
+          if (types.includes('locality')) city = component.long_name;
+          if (types.includes('administrative_area_level_1')) state = component.long_name;
+          if (types.includes('postal_code')) postal_code = component.long_name;
+        });
+
+        setFormData(prev => ({
+          ...prev,
+          address_line_1: place.formatted_address || '',
+          city: city || prev.city,
+          state: state || prev.state,
+          postal_code: postal_code || prev.postal_code,
+          latitude: lat,
+          longitude: lng,
+        }));
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +85,8 @@ export function AddressDialog({ isOpen, onClose }: AddressDialogProps) {
         state: '',
         postal_code: '',
         landmark: '',
+        latitude: null,
+        longitude: null,
         is_default: false,
       });
       
@@ -105,14 +146,33 @@ export function AddressDialog({ isOpen, onClose }: AddressDialogProps) {
           </div>
 
           <div>
-            <Label htmlFor="address_line_1">Address Line 1 *</Label>
-            <Input
-              id="address_line_1"
-              value={formData.address_line_1}
-              onChange={(e) => handleInputChange('address_line_1', e.target.value)}
-              placeholder="House/Flat/Building Number, Street"
-              required
-            />
+            <Label htmlFor="address_line_1">Address *</Label>
+            {isLoaded ? (
+              <Autocomplete
+                onLoad={onAutocompleteLoad}
+                onPlaceChanged={onPlaceChanged}
+                options={{
+                  componentRestrictions: { country: 'in' },
+                  fields: ['formatted_address', 'geometry', 'address_components'],
+                }}
+              >
+                <Input
+                  id="address_line_1"
+                  value={formData.address_line_1}
+                  onChange={(e) => handleInputChange('address_line_1', e.target.value)}
+                  placeholder="Search for address or enter manually"
+                  required
+                />
+              </Autocomplete>
+            ) : (
+              <Input
+                id="address_line_1"
+                value={formData.address_line_1}
+                onChange={(e) => handleInputChange('address_line_1', e.target.value)}
+                placeholder="House/Flat/Building Number, Street"
+                required
+              />
+            )}
           </div>
 
           <div>
