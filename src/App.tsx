@@ -71,6 +71,7 @@ const App = () => (
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/medicines" element={<MedicinesPage />} />
               <Route path="/medicines/:id" element={<MedicineDetailPage />} />
+              <Route path="/medicine/:id" element={<MedicineDetailPage />} /> {/* Handle singular route for search results */}
               <Route path="/lab-tests" element={<LabTestsPage />} />
               <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
               <Route path="/doctors" element={<DoctorsPage />} />
