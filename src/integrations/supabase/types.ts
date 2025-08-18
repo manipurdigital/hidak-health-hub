@@ -1943,6 +1943,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_service_area_with_geom: {
+        Args: { area_data: Json; geom_sql: string }
+        Returns: string
+      }
       disablelongtransactions: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3759,6 +3763,17 @@ export type Database = {
         Args: { "": unknown }
         Returns: number
       }
+      test_point_serviceability: {
+        Args: { lat: number; lng: number; service_center_type: string }
+        Returns: {
+          capacity_per_day: number
+          center_id: string
+          is_within: boolean
+          name: string
+          priority: number
+          service_area_id: string
+        }[]
+      }
       text: {
         Args: { "": unknown }
         Returns: string
@@ -3813,6 +3828,10 @@ export type Database = {
       unlockrows: {
         Args: { "": string }
         Returns: number
+      }
+      update_service_area_geom: {
+        Args: { area_data: Json; area_id: string; new_geom: string }
+        Returns: string
       }
       updategeometrysrid: {
         Args: {
