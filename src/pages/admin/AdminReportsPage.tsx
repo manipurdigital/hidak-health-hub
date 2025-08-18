@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { subDays, format } from 'date-fns';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LabCollectionsReport } from '@/components/reports/LabCollectionsReport';
@@ -7,10 +8,19 @@ import { MedicineSalesReport } from '@/components/reports/MedicineSalesReport';
 import { ConsultationReport } from '@/components/reports/ConsultationReport';
 
 export default function AdminReportsPage() {
-  const [dateRange, setDateRange] = useState({
-    startDate: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-    endDate: format(new Date(), 'yyyy-MM-dd'),
-  });
+  const location = useLocation();
+  const navigationState = location.state as { 
+    activeTab?: string; 
+    dateRange?: { startDate: string; endDate: string } 
+  } | null;
+
+  const [activeTab, setActiveTab] = useState(navigationState?.activeTab || 'lab-collections');
+  const [dateRange, setDateRange] = useState(
+    navigationState?.dateRange || {
+      startDate: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+      endDate: format(new Date(), 'yyyy-MM-dd'),
+    }
+  );
 
   return (
     <div className="space-y-6">
@@ -21,7 +31,7 @@ export default function AdminReportsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="lab-collections" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="lab-collections">Lab Collections</TabsTrigger>
           <TabsTrigger value="medicine-sales">Medicine Sales</TabsTrigger>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { BackToHome } from '@/components/BackToHome';
+import { CollectionsTodayWidget } from '@/components/dashboard/CollectionsTodayWidget';
 
 const AdminDashboardPage = () => {
   const { user, userRole, signOut } = useAuth();
@@ -135,6 +136,9 @@ const AdminDashboardPage = () => {
                 </Card>
               ))}
             </div>
+
+            {/* Collections Today Widget */}
+            <CollectionsTodayWidget />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Recent Activity */}
