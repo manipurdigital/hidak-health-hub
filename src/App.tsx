@@ -51,6 +51,7 @@ import AdminLocationsPage from "./pages/admin/AdminLocationsPage";
 import AdminLabAssignmentsPage from "./pages/admin/AdminLabAssignmentsPage";
 import AdminDeliveryAssignmentsPage from "./pages/admin/AdminDeliveryAssignmentsPage";
 import AccountPage from "./pages/AccountPage";
+import FeaturesPage from "./pages/FeaturesPage";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
             <Routes>
               {/* Public Routes - No authentication required */}
               <Route path="/" element={<Index />} />
+              <Route path="/features" element={<FeaturesPage />} />
               <Route path="/medicines" element={<MedicinesPage />} />
               <Route path="/medicines/:id" element={<MedicineDetailPage />} />
               <Route path="/lab-tests" element={<LabTestsPage />} />

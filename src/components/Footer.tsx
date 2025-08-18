@@ -37,11 +37,12 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">Services</h4>
             <ul className="space-y-3 text-background/80">
-              <li><a href="#" className="hover:text-primary transition-colors">Online Pharmacy</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Doctor Consultations</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Lab Tests</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Health Packages</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Wellness Plans</a></li>
+              <li><a href="/medicines" className="hover:text-primary transition-colors">Online Pharmacy</a></li>
+              <li><a href="/doctors" className="hover:text-primary transition-colors">Doctor Consultations</a></li>
+              <li><a href="/lab-tests" className="hover:text-primary transition-colors">Lab Tests</a></li>
+              <li><a href="/wellness" className="hover:text-primary transition-colors">Health Packages</a></li>
+              <li><a href="/wellness" className="hover:text-primary transition-colors">Wellness Plans</a></li>
+              <li><a href="/features" className="hover:text-primary transition-colors">All Features</a></li>
               {/* <li><a href="#" className="hover:text-primary transition-colors">Care+ Subscription</a></li> */}
             </ul>
           </div>

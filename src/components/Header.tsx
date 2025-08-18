@@ -287,6 +287,13 @@ const Header = () => {
             >
               Wellness
             </Button>
+            <Button 
+              variant="ghost" 
+              className={getNavButtonClass('/features')}
+              onClick={() => navigate('/features')}
+            >
+              Features
+            </Button>
             {/* <Button 
               variant="ghost" 
               className={getNavButtonClass('/care-plan')}
