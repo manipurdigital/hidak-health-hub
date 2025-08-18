@@ -1243,6 +1243,51 @@ export type Database = {
         }
         Relationships: []
       }
+      service_areas: {
+        Row: {
+          active: boolean | null
+          capacity_per_day: number | null
+          center_id: string
+          center_type: string
+          color: string | null
+          created_at: string | null
+          geom: unknown | null
+          id: string
+          name: string
+          priority: number | null
+          updated_at: string | null
+          working_hours: Json | null
+        }
+        Insert: {
+          active?: boolean | null
+          capacity_per_day?: number | null
+          center_id: string
+          center_type: string
+          color?: string | null
+          created_at?: string | null
+          geom?: unknown | null
+          id?: string
+          name: string
+          priority?: number | null
+          updated_at?: string | null
+          working_hours?: Json | null
+        }
+        Update: {
+          active?: boolean | null
+          capacity_per_day?: number | null
+          center_id?: string
+          center_type?: string
+          color?: string | null
+          created_at?: string | null
+          geom?: unknown | null
+          id?: string
+          name?: string
+          priority?: number | null
+          updated_at?: string | null
+          working_hours?: Json | null
+        }
+        Relationships: []
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -1828,6 +1873,16 @@ export type Database = {
           name: string
           priority: number
           store_id: string
+        }[]
+      }
+      check_point_serviceability_new: {
+        Args: { lat: number; lng: number; service_center_type: string }
+        Returns: {
+          capacity_per_day: number
+          center_id: string
+          name: string
+          priority: number
+          service_area_id: string
         }[]
       }
       clean_expired_cache: {
