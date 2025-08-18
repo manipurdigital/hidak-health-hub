@@ -516,43 +516,67 @@ export type Database = {
       }
       geofences: {
         Row: {
+          area_km2: number | null
+          capacity_per_day: number | null
           center_id: string | null
+          color: string | null
           created_at: string | null
           created_by: string | null
           id: string
           is_active: boolean | null
+          min_order_value: number | null
           name: string
+          notes: string | null
           polygon_coordinates: Json
           priority: number | null
+          radius_meters: number | null
           service_type: string
+          shape_type: string | null
           store_id: string | null
           updated_at: string | null
+          working_hours: Json | null
         }
         Insert: {
+          area_km2?: number | null
+          capacity_per_day?: number | null
           center_id?: string | null
+          color?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           is_active?: boolean | null
+          min_order_value?: number | null
           name: string
+          notes?: string | null
           polygon_coordinates: Json
           priority?: number | null
+          radius_meters?: number | null
           service_type: string
+          shape_type?: string | null
           store_id?: string | null
           updated_at?: string | null
+          working_hours?: Json | null
         }
         Update: {
+          area_km2?: number | null
+          capacity_per_day?: number | null
           center_id?: string | null
+          color?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           is_active?: boolean | null
+          min_order_value?: number | null
           name?: string
+          notes?: string | null
           polygon_coordinates?: Json
           priority?: number | null
+          radius_meters?: number | null
           service_type?: string
+          shape_type?: string | null
           store_id?: string | null
           updated_at?: string | null
+          working_hours?: Json | null
         }
         Relationships: [
           {
@@ -1769,9 +1793,32 @@ export type Database = {
         Args: { "": unknown } | { "": unknown }
         Returns: string
       }
+      calculate_polygon_area: {
+        Args: { coordinates: Json }
+        Returns: number
+      }
       can_book_consultation: {
         Args: { user_uuid: string }
         Returns: boolean
+      }
+      check_enhanced_serviceability: {
+        Args: {
+          lat: number
+          lng: number
+          order_value?: number
+          service_type: string
+        }
+        Returns: {
+          center_id: string
+          color: string
+          geofence_id: string
+          is_serviceable: boolean
+          min_order_value: number
+          name: string
+          priority: number
+          reason: string
+          store_id: string
+        }[]
       }
       check_point_serviceability: {
         Args: { lat: number; lng: number; service_type: string }

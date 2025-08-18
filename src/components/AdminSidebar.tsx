@@ -8,7 +8,8 @@ import {
   Home,
   BarChart3,
   MapPin,
-  Map
+  Map,
+  Building2
 } from 'lucide-react';
 
 import {
@@ -31,6 +32,7 @@ const adminSidebarItems = [
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Tracking", url: "/admin/tracking", icon: MapPin },
   { title: "Geofencing", url: "/admin/geofencing", icon: Map },
+  { title: "Locations", url: "/admin/locations", icon: Building2 },
 ];
 
 export function AdminSidebar() {
