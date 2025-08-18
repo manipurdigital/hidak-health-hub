@@ -27,7 +27,7 @@ const AuthPage = () => {
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      const { error, userRole } = await signIn(email, password);
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -54,7 +54,21 @@ const AuthPage = () => {
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        navigate('/');
+        
+        // Immediate redirection based on user role
+        switch (userRole) {
+          case 'admin':
+            navigate('/admin');
+            break;
+          case 'doctor':
+            navigate('/doctor');
+            break;
+          case 'lab':
+            navigate('/lab');
+            break;
+          default:
+            navigate('/dashboard');
+        }
       }
     } catch (error) {
       toast({

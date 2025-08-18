@@ -8,7 +8,7 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; userRole?: string | null }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
 }
@@ -83,11 +83,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    return { error };
+    
+    // Immediately fetch role for successful login to enable instant redirection
+    if (!error && data.user) {
+      try {
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        return { error, userRole: roles?.role || 'user' };
+      } catch (roleError) {
+        console.error('Error fetching user role during sign in:', roleError);
+        return { error, userRole: 'user' };
+      }
+    }
+    
+    return { error, userRole: null };
   };
 
   const signOut = async () => {
