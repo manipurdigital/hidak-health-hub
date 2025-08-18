@@ -887,6 +887,7 @@ export type Database = {
           razorpay_payment_id: string | null
           shipping_address: Json
           status: string | null
+          store_id: string | null
           stripe_session_id: string | null
           total_amount: number
           tracking_status: string | null
@@ -906,6 +907,7 @@ export type Database = {
           razorpay_payment_id?: string | null
           shipping_address: Json
           status?: string | null
+          store_id?: string | null
           stripe_session_id?: string | null
           total_amount: number
           tracking_status?: string | null
@@ -925,13 +927,22 @@ export type Database = {
           razorpay_payment_id?: string | null
           shipping_address?: Json
           status?: string | null
+          store_id?: string | null
           stripe_session_id?: string | null
           total_amount?: number
           tracking_status?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prescriptions: {
         Row: {
@@ -1052,6 +1063,51 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      stores: {
+        Row: {
+          address: string | null
+          city: string | null
+          code: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          pincode: string | null
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          code: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          pincode?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          code?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          pincode?: string | null
+          state?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
