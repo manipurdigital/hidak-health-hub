@@ -4,6 +4,7 @@ import ServicesSection from "@/components/ServicesSection";
 import PharmacySection from "@/components/PharmacySection";
 import DiagnosticsSection from "@/components/DiagnosticsSection";
 import ConsultationsSection from "@/components/ConsultationsSection";
+import { TrendingMedicinesCarousel } from "@/components/TrendingMedicinesCarousel";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -12,6 +13,9 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
+        <div className="container mx-auto px-4 py-8">
+          <TrendingMedicinesCarousel />
+        </div>
         <ServicesSection />
         <PharmacySection />
         <DiagnosticsSection />

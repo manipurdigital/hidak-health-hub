@@ -15,6 +15,7 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { OrdersChart } from '@/components/dashboard/OrdersChart';
 import { PaymentBreakdown } from '@/components/dashboard/PaymentBreakdown';
 import { TopMedicinesTable } from '@/components/dashboard/TopMedicinesTable';
+import { DemandPredictionPanel } from '@/components/DemandPredictionPanel';
 import { 
   useKPIData, 
   useTimeseriesData, 
@@ -128,6 +129,9 @@ export function AdminAnalyticsDashboard() {
           isLoading={ordersLoading}
         />
       </div>
+
+      {/* AI Demand Prediction Panel */}
+      <DemandPredictionPanel />
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1151,6 +1151,22 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      recommend_medicines_for_time: {
+        Args: {
+          at_ts: string
+          in_city?: string
+          in_pincode?: string
+          top_n?: number
+        }
+        Returns: {
+          expected_qty: number
+          image_url: string
+          medicine_id: string
+          name: string
+          price: number
+          score: number
+        }[]
+      }
       refresh_analytics_views: {
         Args: Record<PropertyKey, never>
         Returns: undefined
