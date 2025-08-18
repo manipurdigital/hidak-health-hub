@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useUniversalSearch } from "@/hooks/useUniversalSearch";
 import { SearchResult } from "@/integrations/supabase/search";
@@ -29,10 +30,14 @@ export function SearchBar({
   const debouncedQuery = useDebouncedValue(query, 250);
   const { data: results = [], isLoading, error } = useUniversalSearch(debouncedQuery);
 
-  // Group results by type
+  // Group results by type and alternatives
   const groupedResults = React.useMemo(() => {
+    const mainMedicines = results.filter(r => r.type === "medicine" && !r.is_alternative);
+    const alternatives = results.filter(r => r.type === "medicine" && r.is_alternative);
+    
     const groups = {
-      medicine: results.filter(r => r.type === "medicine"),
+      medicine: mainMedicines,
+      alternatives: alternatives,
       doctor: results.filter(r => r.type === "doctor"),
       lab_test: results.filter(r => r.type === "lab_test"),
     };
@@ -43,6 +48,7 @@ export function SearchBar({
   const flatResults = React.useMemo(() => {
     return [
       ...groupedResults.medicine,
+      ...groupedResults.alternatives,
       ...groupedResults.doctor,
       ...groupedResults.lab_test,
     ];
@@ -135,9 +141,30 @@ export function SearchBar({
   const getTypeLabel = (type: string) => {
     switch (type) {
       case "medicine": return "Medicines";
+      case "alternatives": return "Similar Alternatives";
       case "doctor": return "Doctors";
       case "lab_test": return "Lab Tests";
       default: return "";
+    }
+  };
+
+  const getMatchTypeBadge = (matchType?: string) => {
+    if (!matchType) return null;
+    
+    switch (matchType) {
+      case 'brand_name':
+      case 'brand':
+        return <Badge variant="secondary" className="text-xs ml-2">Brand</Badge>;
+      case 'generic':
+        return <Badge variant="outline" className="text-xs ml-2">Generic</Badge>;
+      case 'composition_text':
+        return <Badge variant="outline" className="text-xs ml-2">Composition</Badge>;
+      case 'exact_composition':
+        return <Badge variant="default" className="text-xs ml-2">Same Formula</Badge>;
+      case 'same_actives':
+        return <Badge variant="secondary" className="text-xs ml-2">Same Active</Badge>;
+      default:
+        return null;
     }
   };
 
@@ -145,7 +172,7 @@ export function SearchBar({
     if (items.length === 0) return null;
 
     return (
-      <div key={type} className="py-2">
+      <div key={type} className={cn("py-2", type === "alternatives" && "border-t border-dashed")}>
         <div className="px-3 py-2 text-xs font-medium text-muted-foreground border-b">
           {getTypeLabel(type)}
         </div>
@@ -179,8 +206,9 @@ export function SearchBar({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">
+                <div className="font-medium text-sm truncate flex items-center">
                   {result.title}
+                  {getMatchTypeBadge(result.composition_match_type)}
                 </div>
                 {result.subtitle && (
                   <div className="text-xs text-muted-foreground truncate">
@@ -240,6 +268,7 @@ export function SearchBar({
           ) : (
             <>
               {renderResultGroup("medicine", groupedResults.medicine)}
+              {renderResultGroup("alternatives", groupedResults.alternatives)}
               {renderResultGroup("doctor", groupedResults.doctor)}
               {renderResultGroup("lab_test", groupedResults.lab_test)}
             </>

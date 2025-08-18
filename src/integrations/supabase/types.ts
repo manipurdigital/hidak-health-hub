@@ -804,7 +804,11 @@ export type Database = {
       medicines: {
         Row: {
           brand: string | null
+          brand_synonyms: string[] | null
           category_id: string | null
+          composition_family_key: string | null
+          composition_key: string | null
+          composition_text: string | null
           created_at: string
           description: string | null
           discount_percentage: number | null
@@ -812,6 +816,7 @@ export type Database = {
           expiry_date: string | null
           fast_delivery: boolean | null
           form: string | null
+          generic_name: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -828,7 +833,11 @@ export type Database = {
         }
         Insert: {
           brand?: string | null
+          brand_synonyms?: string[] | null
           category_id?: string | null
+          composition_family_key?: string | null
+          composition_key?: string | null
+          composition_text?: string | null
           created_at?: string
           description?: string | null
           discount_percentage?: number | null
@@ -836,6 +845,7 @@ export type Database = {
           expiry_date?: string | null
           fast_delivery?: boolean | null
           form?: string | null
+          generic_name?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -852,7 +862,11 @@ export type Database = {
         }
         Update: {
           brand?: string | null
+          brand_synonyms?: string[] | null
           category_id?: string | null
+          composition_family_key?: string | null
+          composition_key?: string | null
+          composition_text?: string | null
           created_at?: string
           description?: string | null
           discount_percentage?: number | null
@@ -860,6 +874,7 @@ export type Database = {
           expiry_date?: string | null
           fast_delivery?: boolean | null
           form?: string | null
+          generic_name?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -1893,6 +1908,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      composition_family_key_from_text: {
+        Args: { txt: string }
+        Returns: string
+      }
+      composition_key_from_text: {
+        Args: { txt: string }
+        Returns: string
+      }
       consultation_kpis: {
         Args: { end_date: string; start_date: string }
         Returns: {
@@ -2489,6 +2512,10 @@ export type Database = {
           prepaid_orders: number
           total_orders: number
         }[]
+      }
+      normalize_token: {
+        Args: { s: string }
+        Returns: string
       }
       path: {
         Args: { "": unknown }
@@ -3914,6 +3941,20 @@ export type Database = {
         Returns: {
           href: string
           id: string
+          price: number
+          subtitle: string
+          thumbnail_url: string
+          title: string
+          type: string
+        }[]
+      }
+      universal_search_with_alternatives: {
+        Args: { max_per_group?: number; q: string }
+        Returns: {
+          composition_match_type: string
+          href: string
+          id: string
+          is_alternative: boolean
           price: number
           subtitle: string
           thumbnail_url: string

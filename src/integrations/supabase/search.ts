@@ -8,13 +8,15 @@ export interface SearchResult {
   thumbnail_url: string | null;
   price: number | null;
   href: string;
+  is_alternative?: boolean;
+  composition_match_type?: string;
 }
 
 export async function universalSearch(
   query: string,
   maxPerGroup: number = 5
 ): Promise<SearchResult[]> {
-  const { data, error } = await supabase.rpc("universal_search", {
+  const { data, error } = await supabase.rpc("universal_search_with_alternatives", {
     q: query,
     max_per_group: maxPerGroup,
   });

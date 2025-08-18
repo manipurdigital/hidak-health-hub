@@ -65,14 +65,81 @@ const MedicinesPage = () => {
   const { data: medicinesData, isLoading: medicinesLoading, error: medicinesError } = useQuery({
     queryKey: ['medicines', filters],
     queryFn: async () => {
+      // For search queries, use enhanced search function
+      if (filters.q && filters.q.trim()) {
+        const { data: searchResults, error: searchError } = await supabase.rpc('universal_search_with_alternatives', {
+          q: filters.q.trim(),
+          max_per_group: 50
+        });
+        
+        if (searchError) throw searchError;
+        
+        // Filter only medicine results and get their IDs
+        const medicineResults = searchResults?.filter((r: any) => r.type === 'medicine') || [];
+        const medicineIds = medicineResults.map((r: any) => r.id);
+        
+        if (medicineIds.length === 0) {
+          return { medicines: [], total: 0 };
+        }
+        
+        // Fetch full medicine data for the search results
+        let query = supabase
+          .from('medicines')
+          .select('*', { count: 'exact' })
+          .eq('is_active', true)
+          .in('id', medicineIds);
+        
+        // Apply additional filters
+        if (filters.category) {
+          query = query.eq('category_id', filters.category);
+        }
+        
+        if (filters.brand) {
+          query = query.eq('brand', filters.brand);
+        }
+        
+        if (filters.rx_only !== undefined) {
+          query = query.eq('requires_prescription', filters.rx_only);
+        }
+        
+        if (filters.price_min) {
+          query = query.gte('price', filters.price_min);
+        }
+        
+        if (filters.price_max) {
+          query = query.lte('price', filters.price_max);
+        }
+
+        // Apply sorting
+        switch (filters.sort) {
+          case 'price_asc':
+            query = query.order('price', { ascending: true });
+            break;
+          case 'price_desc':
+            query = query.order('price', { ascending: false });
+            break;
+          case 'rating':
+            query = query.order('rating', { ascending: false });
+            break;
+          case 'name':
+            query = query.order('name', { ascending: true });
+            break;
+          default:
+            // Keep search relevance order for search results
+            break;
+        }
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+        
+        return { medicines: data || [], total: count || 0 };
+      }
+      
+      // For non-search queries, use standard filtering
       let query = supabase
         .from('medicines')
         .select('*', { count: 'exact' })
         .eq('is_active', true);
-
-      if (filters.q) {
-        query = query.or(`name.ilike.%${filters.q}%,brand.ilike.%${filters.q}%,manufacturer.ilike.%${filters.q}%`);
-      }
       
       if (filters.category) {
         query = query.eq('category_id', filters.category);
