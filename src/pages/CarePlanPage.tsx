@@ -42,7 +42,7 @@ const CarePlanPage = () => {
         "Family health plans (up to 4 members)",
         "Advanced health tracking",
         "Lab test discounts up to 30%",
-Wellness program access
+        "Wellness program access"
       ],
       recommended: true,
       color: "border-primary"
