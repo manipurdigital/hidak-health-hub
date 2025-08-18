@@ -23,6 +23,8 @@ export type Database = {
           id: string
           is_default: boolean | null
           landmark: string | null
+          latitude: number | null
+          longitude: number | null
           name: string
           phone: string
           postal_code: string
@@ -39,6 +41,8 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name: string
           phone: string
           postal_code: string
@@ -55,6 +59,8 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           phone?: string
           postal_code?: string
@@ -278,6 +284,63 @@ export type Database = {
           },
         ]
       }
+      courier_locations: {
+        Row: {
+          booking_id: string | null
+          center_id: string | null
+          center_type: string
+          created_at: string
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          order_id: string | null
+          recorded_at: string
+          speed_mps: number | null
+        }
+        Insert: {
+          booking_id?: string | null
+          center_id?: string | null
+          center_type: string
+          created_at?: string
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          order_id?: string | null
+          recorded_at?: string
+          speed_mps?: number | null
+        }
+        Update: {
+          booking_id?: string | null
+          center_id?: string | null
+          center_type?: string
+          created_at?: string
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          order_id?: string | null
+          recorded_at?: string
+          speed_mps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_locations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "lab_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_locations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demand_cache: {
         Row: {
           cache_key: string
@@ -463,6 +526,8 @@ export type Database = {
           created_at: string
           eta: string | null
           id: string
+          last_distance_meters: number | null
+          last_eta_mins: number | null
           patient_email: string | null
           patient_name: string
           patient_phone: string
@@ -477,6 +542,7 @@ export type Database = {
           test_id: string
           time_slot: string
           total_amount: number
+          tracking_token: string | null
           updated_at: string
           user_id: string
         }
@@ -491,6 +557,8 @@ export type Database = {
           created_at?: string
           eta?: string | null
           id?: string
+          last_distance_meters?: number | null
+          last_eta_mins?: number | null
           patient_email?: string | null
           patient_name: string
           patient_phone: string
@@ -505,6 +573,7 @@ export type Database = {
           test_id: string
           time_slot: string
           total_amount: number
+          tracking_token?: string | null
           updated_at?: string
           user_id: string
         }
@@ -519,6 +588,8 @@ export type Database = {
           created_at?: string
           eta?: string | null
           id?: string
+          last_distance_meters?: number | null
+          last_eta_mins?: number | null
           patient_email?: string | null
           patient_name?: string
           patient_phone?: string
@@ -533,6 +604,7 @@ export type Database = {
           test_id?: string
           time_slot?: string
           total_amount?: number
+          tracking_token?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -875,10 +947,17 @@ export type Database = {
       }
       orders: {
         Row: {
+          courier_user_id: string | null
           created_at: string
+          delivered_at: string | null
+          delivery_center_id: string | null
           id: string
+          last_distance_meters: number | null
+          last_eta_mins: number | null
           notes: string | null
           order_number: string
+          out_for_delivery_at: string | null
+          packed_at: string | null
           payment_method: string | null
           payment_status: string | null
           prescription_required: boolean | null
@@ -891,14 +970,22 @@ export type Database = {
           stripe_session_id: string | null
           total_amount: number
           tracking_status: string | null
+          tracking_token: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          courier_user_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_center_id?: string | null
           id?: string
+          last_distance_meters?: number | null
+          last_eta_mins?: number | null
           notes?: string | null
           order_number: string
+          out_for_delivery_at?: string | null
+          packed_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
           prescription_required?: boolean | null
@@ -911,14 +998,22 @@ export type Database = {
           stripe_session_id?: string | null
           total_amount: number
           tracking_status?: string | null
+          tracking_token?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          courier_user_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_center_id?: string | null
           id?: string
+          last_distance_meters?: number | null
+          last_eta_mins?: number | null
           notes?: string | null
           order_number?: string
+          out_for_delivery_at?: string | null
+          packed_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
           prescription_required?: boolean | null
@@ -931,6 +1026,7 @@ export type Database = {
           stripe_session_id?: string | null
           total_amount?: number
           tracking_status?: string | null
+          tracking_token?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1365,6 +1461,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      cleanup_old_courier_locations: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       consultation_kpis: {
         Args: { end_date: string; start_date: string }
         Returns: {
@@ -1423,6 +1523,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generate_tracking_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_cached_recommendations: {
         Args: {
           at_ts: string
@@ -1431,6 +1535,40 @@ export type Database = {
           top_n?: number
         }
         Returns: Json
+      }
+      get_lab_booking_by_token: {
+        Args: { booking_id: string; token: string }
+        Returns: {
+          booking_date: string
+          id: string
+          last_distance_meters: number
+          last_eta_mins: number
+          patient_name: string
+          status: string
+          test_name: string
+          time_slot: string
+        }[]
+      }
+      get_latest_courier_location: {
+        Args: { job_id: string; job_type: string }
+        Returns: {
+          heading: number
+          lat: number
+          lng: number
+          recorded_at: string
+          speed_mps: number
+        }[]
+      }
+      get_order_by_token: {
+        Args: { order_id: string; token: string }
+        Returns: {
+          id: string
+          last_distance_meters: number
+          last_eta_mins: number
+          order_number: string
+          status: string
+          total_amount: number
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
