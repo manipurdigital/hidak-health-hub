@@ -34,28 +34,9 @@ export const checkServiceability = async (
   longitude: number
 ): Promise<ServiceabilityResult> => {
   try {
-    // First check if location is serviceable
-    const { data: isServiceable, error: serviceError } = await supabase.rpc(
-      'is_location_serviceable',
-      {
-        in_type: serviceType,
-        in_lat: latitude,
-        in_lng: longitude,
-      }
-    );
-
-    if (serviceError) throw serviceError;
-
-    if (!isServiceable) {
-      return {
-        isServiceable: false,
-        error: 'Service not available in your area'
-      };
-    }
-
-    // Get assigned center
+    // Check serviceability with working hours and capacity validation
     const { data: assignment, error: assignError } = await supabase.rpc(
-      'pick_center_with_load_balancing',
+      'pick_center_for_job' as any,
       {
         in_type: serviceType,
         in_lat: latitude,
@@ -71,7 +52,7 @@ export const checkServiceability = async (
     if (!assignmentRow || !assignmentRow.center_id) {
       return {
         isServiceable: false,
-        error: 'No service centers available'
+        error: assignmentRow?.warnings?.[0] || 'No service centers available'
       };
     }
 
@@ -83,22 +64,23 @@ export const checkServiceability = async (
       .eq('id', assignmentRow.center_id)
       .single();
 
-    if (centerError || !centerData) {
-      return {
-        isServiceable: true,
-        center: {
-          id: assignmentRow.center_id,
-          name: 'Service Center',
-          reason: assignmentRow.reason,
-        }
-      };
+    const centerName = centerData?.name || 'Service Center';
+    
+    // Add status information based on warnings
+    let statusInfo = '';
+    if (assignmentRow.warnings && assignmentRow.warnings.length > 0) {
+      statusInfo = ` (${assignmentRow.warnings.join(', ')})`;
+    } else if (!assignmentRow.is_open) {
+      statusInfo = ' (Currently closed)';
+    } else if (assignmentRow.current_load > 0) {
+      statusInfo = ` (Current load: ${assignmentRow.current_load})`;
     }
 
     return {
       isServiceable: true,
       center: {
         id: assignmentRow.center_id,
-        name: centerData.name,
+        name: centerName + statusInfo,
         reason: assignmentRow.reason,
       }
     };
@@ -113,7 +95,7 @@ export const checkServiceability = async (
 };
 
 /**
- * Get all serviceable centers for a location
+ * Get all serviceable centers for a location with validation
  */
 export const getServiceableCenters = async (
   serviceType: 'lab' | 'delivery',
@@ -121,14 +103,20 @@ export const getServiceableCenters = async (
   longitude: number
 ): Promise<ServiceCenter[]> => {
   try {
-    const { data, error } = await supabase.rpc('serviceable_centers', {
+    const { data, error } = await supabase.rpc('serviceable_centers' as any, {
       in_type: serviceType,
       in_lat: latitude,
       in_lng: longitude,
     });
 
     if (error) throw error;
-    return data || [];
+    return data?.map(center => ({
+      center_id: center.center_id,
+      center_type: center.center_type,
+      area_id: center.area_id,
+      priority: center.priority,
+      distance_m: center.distance_m
+    })) || [];
   } catch (error) {
     console.error('Get serviceable centers error:', error);
     return [];
@@ -136,30 +124,41 @@ export const getServiceableCenters = async (
 };
 
 /**
- * Pick the best center for a job
+ * Pick the best center for a job with enhanced validation
  */
 export const pickCenterForJob = async (
   serviceType: 'lab' | 'delivery',
   latitude: number,
   longitude: number,
-  useLoadBalancing = true
+  useLoadBalancing = true,
+  allowClosed = false
 ): Promise<CenterAssignment | null> => {
   try {
     const rpcFunction = useLoadBalancing 
       ? 'pick_center_with_load_balancing' 
       : 'pick_center_for_job';
 
-    const { data, error } = await supabase.rpc(rpcFunction, {
+    const { data, error } = await supabase.rpc(rpcFunction as any, {
       in_type: serviceType,
       in_lat: latitude,
       in_lng: longitude,
+      allow_closed: allowClosed
     });
 
     if (error) throw error;
     
     // The RPC returns a single row, not an array
     const result = Array.isArray(data) ? data[0] : data;
-    return result || null;
+    
+    if (!result || !result.center_id) {
+      return null;
+    }
+
+    return {
+      center_id: result.center_id,
+      reason: result.reason,
+      current_load: result.current_load
+    };
   } catch (error) {
     console.error('Pick center error:', error);
     return null;

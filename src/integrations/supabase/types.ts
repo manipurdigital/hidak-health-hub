@@ -2234,6 +2234,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_daily_job_count: {
+        Args: {
+          center_id_param: string
+          center_type_param: string
+          check_date?: string
+        }
+        Returns: number
+      }
       get_lab_booking_by_token: {
         Args: { booking_id: string; token: string }
         Returns: {
@@ -2356,6 +2364,10 @@ export type Database = {
       }
       is_location_serviceable: {
         Args: { in_lat: number; in_lng: number; in_type: string }
+        Returns: boolean
+      }
+      is_within_working_hours: {
+        Args: { check_time?: string; working_hours: Json }
         Returns: boolean
       }
       json: {
@@ -2532,6 +2544,22 @@ export type Database = {
           center_id: string
           current_load: number
           reason: string
+        }[]
+      }
+      pick_center_with_validation: {
+        Args: {
+          allow_closed?: boolean
+          check_time?: string
+          in_lat: number
+          in_lng: number
+          in_type: string
+        }
+        Returns: {
+          center_id: string
+          current_load: number
+          is_open: boolean
+          reason: string
+          warnings: string[]
         }[]
       }
       point: {
@@ -2712,6 +2740,25 @@ export type Database = {
           center_type: string
           distance_m: number
           priority: number
+        }[]
+      }
+      serviceable_centers_with_validation: {
+        Args: {
+          check_time?: string
+          in_lat: number
+          in_lng: number
+          in_type: string
+        }
+        Returns: {
+          area_id: string
+          capacity_available: boolean
+          center_id: string
+          center_type: string
+          current_load: number
+          distance_m: number
+          is_open: boolean
+          priority: number
+          rejection_reason: string
         }[]
       }
       set_cached_recommendations: {
