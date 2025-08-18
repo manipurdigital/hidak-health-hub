@@ -128,6 +128,13 @@ export type Database = {
             foreignKeyName: "carts_medicine_id_fkey"
             columns: ["medicine_id"]
             isOneToOne: false
+            referencedRelation: "medicine_performance"
+            referencedColumns: ["medicine_id"]
+          },
+          {
+            foreignKeyName: "carts_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
             referencedRelation: "medicines"
             referencedColumns: ["id"]
           },
@@ -609,6 +616,13 @@ export type Database = {
             foreignKeyName: "order_items_medicine_id_fkey"
             columns: ["medicine_id"]
             isOneToOne: false
+            referencedRelation: "medicine_performance"
+            referencedColumns: ["medicine_id"]
+          },
+          {
+            foreignKeyName: "order_items_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
             referencedRelation: "medicines"
             referencedColumns: ["id"]
           },
@@ -968,9 +982,87 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      daily_analytics: {
+        Row: {
+          avg_order_value: number | null
+          cod_orders: number | null
+          cod_revenue: number | null
+          date: string | null
+          prepaid_orders: number | null
+          prepaid_revenue: number | null
+          total_orders: number | null
+          total_revenue: number | null
+          unique_customers: number | null
+        }
+        Relationships: []
+      }
+      medicine_performance: {
+        Row: {
+          avg_unit_price: number | null
+          category_id: string | null
+          last_ordered: string | null
+          medicine_id: string | null
+          medicine_name: string | null
+          order_count: number | null
+          total_quantity: number | null
+          total_revenue: number | null
+          unique_customers: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicines_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_analytics: {
+        Row: {
+          date: string | null
+          new_users: number | null
+          users_with_orders: number | null
+          users_with_subscriptions: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      admin_kpi_overview: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          active_subscriptions: number
+          avg_order_value: number
+          conversion_rate: number
+          new_users: number
+          order_growth: number
+          prev_aov: number
+          prev_new_users: number
+          prev_orders: number
+          prev_revenue: number
+          revenue_growth: number
+          total_orders: number
+          total_revenue: number
+        }[]
+      }
+      admin_timeseries_data: {
+        Args: { end_date: string; metric_type: string; start_date: string }
+        Returns: {
+          date: string
+          value: number
+        }[]
+      }
+      admin_top_medicines: {
+        Args: { end_date: string; limit_count?: number; start_date: string }
+        Returns: {
+          medicine_name: string
+          order_count: number
+          total_quantity: number
+          total_revenue: number
+          unique_customers: number
+        }[]
+      }
       can_book_consultation: {
         Args: { user_uuid: string }
         Returns: boolean
@@ -1025,6 +1117,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      has_admin_access: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1054,6 +1150,10 @@ export type Database = {
           total_orders: number
           total_revenue: number
         }[]
+      }
+      refresh_analytics_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       revenue_breakdown: {
         Args: { breakdown_by: string; end_ts: string; start_ts: string }
