@@ -146,12 +146,12 @@ export function LabCollectionsReport({ dateRange, onDateRangeChange }: LabCollec
             </div>
             <div className="space-y-2">
               <Label htmlFor="test">Test</Label>
-              <Select value={filters.testId} onValueChange={(value) => handleFilterChange('testId', value)}>
+              <Select value={filters.testId} onValueChange={(value) => handleFilterChange('testId', value === 'all' ? '' : value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select test" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Tests</SelectItem>
+                  <SelectItem value="all">All Tests</SelectItem>
                   {labTests?.map((test) => (
                     <SelectItem key={test.id} value={test.id}>
                       {test.name}
