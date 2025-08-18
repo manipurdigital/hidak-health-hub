@@ -240,6 +240,42 @@ export type Database = {
           },
         ]
       }
+      demand_cache: {
+        Row: {
+          cache_key: string
+          city: string | null
+          created_at: string
+          day_of_week: number
+          expires_at: string
+          hour_of_day: number
+          id: string
+          pincode: string | null
+          recommendations: Json
+        }
+        Insert: {
+          cache_key: string
+          city?: string | null
+          created_at?: string
+          day_of_week: number
+          expires_at?: string
+          hour_of_day: number
+          id?: string
+          pincode?: string | null
+          recommendations: Json
+        }
+        Update: {
+          cache_key?: string
+          city?: string | null
+          created_at?: string
+          day_of_week?: number
+          expires_at?: string
+          hour_of_day?: number
+          id?: string
+          pincode?: string | null
+          recommendations?: Json
+        }
+        Relationships: []
+      }
       doctor_availability: {
         Row: {
           created_at: string
@@ -1067,6 +1103,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      clean_expired_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       generate_order_number: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1074,6 +1114,15 @@ export type Database = {
       generate_prescription_number: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_cached_recommendations: {
+        Args: {
+          at_ts: string
+          in_city?: string
+          in_pincode?: string
+          top_n?: number
+        }
+        Returns: Json
       }
       get_user_role: {
         Args: { _user_id: string }
@@ -1178,6 +1227,16 @@ export type Database = {
           orders: number
           revenue: number
         }[]
+      }
+      set_cached_recommendations: {
+        Args: {
+          at_ts: string
+          in_city?: string
+          in_pincode?: string
+          recommendations_data?: Json
+          top_n?: number
+        }
+        Returns: undefined
       }
       set_limit: {
         Args: { "": number }
