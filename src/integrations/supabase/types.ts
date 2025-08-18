@@ -595,6 +595,94 @@ export type Database = {
           },
         ]
       }
+      import_job_items: {
+        Row: {
+          created_at: string | null
+          created_medicine_id: string | null
+          error: string | null
+          id: string
+          job_id: string | null
+          payload: Json | null
+          source_url: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_medicine_id?: string | null
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          payload?: Json | null
+          source_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_medicine_id?: string | null
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          payload?: Json | null
+          source_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_job_items_created_medicine_id_fkey"
+            columns: ["created_medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_performance"
+            referencedColumns: ["medicine_id"]
+          },
+          {
+            foreignKeyName: "import_job_items_created_medicine_id_fkey"
+            columns: ["created_medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_job_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_jobs: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          kind: string | null
+          status: string | null
+          summary: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          kind?: string | null
+          status?: string | null
+          summary?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          kind?: string | null
+          status?: string | null
+          summary?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       lab_bookings: {
         Row: {
           assigned_at: string | null
@@ -814,21 +902,29 @@ export type Database = {
           discount_percentage: number | null
           dosage: string | null
           expiry_date: string | null
+          external_source_domain: string | null
+          external_source_url: string | null
           fast_delivery: boolean | null
           form: string | null
           generic_name: string | null
           id: string
+          image_hash: string | null
           image_url: string | null
           is_active: boolean | null
           manufacturer: string | null
           name: string
+          original_image_url: string | null
           original_price: number | null
           pack_size: string | null
           price: number
           rating: number | null
           requires_prescription: boolean | null
           review_count: number | null
+          source_attribution: string | null
+          source_checksum: string | null
+          source_last_fetched: string | null
           stock_quantity: number | null
+          thumbnail_url: string | null
           updated_at: string
         }
         Insert: {
@@ -843,21 +939,29 @@ export type Database = {
           discount_percentage?: number | null
           dosage?: string | null
           expiry_date?: string | null
+          external_source_domain?: string | null
+          external_source_url?: string | null
           fast_delivery?: boolean | null
           form?: string | null
           generic_name?: string | null
           id?: string
+          image_hash?: string | null
           image_url?: string | null
           is_active?: boolean | null
           manufacturer?: string | null
           name: string
+          original_image_url?: string | null
           original_price?: number | null
           pack_size?: string | null
           price: number
           rating?: number | null
           requires_prescription?: boolean | null
           review_count?: number | null
+          source_attribution?: string | null
+          source_checksum?: string | null
+          source_last_fetched?: string | null
           stock_quantity?: number | null
+          thumbnail_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -872,21 +976,29 @@ export type Database = {
           discount_percentage?: number | null
           dosage?: string | null
           expiry_date?: string | null
+          external_source_domain?: string | null
+          external_source_url?: string | null
           fast_delivery?: boolean | null
           form?: string | null
           generic_name?: string | null
           id?: string
+          image_hash?: string | null
           image_url?: string | null
           is_active?: boolean | null
           manufacturer?: string | null
           name?: string
+          original_image_url?: string | null
           original_price?: number | null
           pack_size?: string | null
           price?: number
           rating?: number | null
           requires_prescription?: boolean | null
           review_count?: number | null
+          source_attribution?: string | null
+          source_checksum?: string | null
+          source_last_fetched?: string | null
           stock_quantity?: number | null
+          thumbnail_url?: string | null
           updated_at?: string
         }
         Relationships: [
