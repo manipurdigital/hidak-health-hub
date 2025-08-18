@@ -301,10 +301,33 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     }
   }
 
+  // Generate composition keys if composition_text is provided
+  let compositionData = {};
+  if (row.composition_text) {
+    const normalized = normalizeComposition(row.composition_text);
+    compositionData = {
+      composition_text: row.composition_text,
+      composition_key: generateCompositionKey(normalized),
+      composition_family_key: generateCompositionFamilyKey(normalized)
+    };
+  } else if (row.name && !row.brand) {
+    // Try to extract composition from name if no explicit composition provided
+    const { composition } = extractMedicineDetails(row.name);
+    if (composition) {
+      const normalized = normalizeComposition(composition);
+      compositionData = {
+        composition_text: composition,
+        composition_key: generateCompositionKey(normalized),
+        composition_family_key: generateCompositionFamilyKey(normalized)
+      };
+    }
+  }
+
   // Prepare medicine data
   const medicineData = {
     name: row.name,
     brand: row.brand || '',
+    generic_name: row.generic_name || '',
     manufacturer: row.manufacturer || '',
     price: parseFloat(row.price) || 0,
     original_price: parseFloat(row.original_price) || parseFloat(row.price) || 0,
@@ -314,7 +337,8 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     requires_prescription: row.requires_prescription === 'true' || row.requires_prescription === true,
     image_url: processedImageUrl,
     stock_quantity: parseInt(row.stock_quantity) || 10,
-    is_active: row.is_active !== 'false'
+    is_active: row.is_active !== 'false',
+    ...compositionData
   };
 
   // Insert medicine
@@ -423,4 +447,82 @@ async function processUrl(url: string, supabase: any, result: ImportResult, jobI
   }
   
   result.processed++;
+}
+
+// Composition key generation functions (copied from import-medicine-from-url)
+function normalizeComposition(composition: string): string {
+  let normalized = composition
+    .toLowerCase()
+    .replace(/\s*\(\s*[^)]*\)\s*/g, '') // Remove parenthetical content
+    .replace(/[^\w\s+&,.-]/g, '') // Keep only word chars, spaces, and separators
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Standardize units
+  normalized = normalized
+    .replace(/mcg/g, 'μg')
+    .replace(/\bmg\b/g, 'mg')
+    .replace(/\bml\b/g, 'ml');
+  
+  return normalized;
+}
+
+function generateCompositionKey(composition: string): string {
+  // Sort ingredients alphabetically for consistent key
+  const ingredients = composition
+    .split(/[+&,]/)
+    .map(ing => ing.trim())
+    .filter(ing => ing.length > 0)
+    .sort();
+  
+  return ingredients.join('+');
+}
+
+function generateCompositionFamilyKey(composition: string): string {
+  // Remove dosage/strength info to group by active ingredients only
+  const withoutDosage = composition
+    .replace(/\d+(?:\.\d+)?\s*(?:mg|μg|ml|g|iu)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return generateCompositionKey(withoutDosage);
+}
+
+function extractMedicineDetails(name: string): { 
+  brand: string; 
+  dosage: string; 
+  packSize: string; 
+  composition: string; 
+} {
+  let brand = '';
+  let dosage = '';
+  let packSize = '';
+  let composition = '';
+  
+  // Extract dosage patterns like "500mg", "10ml", "250mcg"
+  const dosageMatch = name.match(/(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|iu)\b/i);
+  if (dosageMatch) {
+    dosage = dosageMatch[0];
+  }
+  
+  // Extract pack size patterns like "10 tablets", "30 capsules", "100ml bottle"
+  const packMatch = name.match(/(\d+)\s*(tablets?|capsules?|ml|strips?|bottles?)/i);
+  if (packMatch) {
+    packSize = packMatch[0];
+  }
+  
+  // Try to extract active ingredient from common patterns
+  const activeMatch = name.match(/^([A-Za-z][A-Za-z\s]+?)(?:\s+\d+|\s+\(|$)/);
+  if (activeMatch) {
+    const potential = activeMatch[1].trim();
+    // Only use if it's likely an active ingredient (not a brand)
+    if (potential.length > 3 && !potential.match(/^(tab|cap|syr|inj|dr\.?)/i)) {
+      composition = potential;
+      if (dosage) {
+        composition += ' ' + dosage;
+      }
+    }
+  }
+  
+  return { brand, dosage, packSize, composition };
 }
