@@ -1271,6 +1271,10 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      trigger_cache_warming: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       universal_search: {
         Args: { max_per_group?: number; q: string }
         Returns: {
