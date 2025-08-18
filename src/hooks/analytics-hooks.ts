@@ -200,6 +200,21 @@ export const useConsultationsBySpecialty = (startDate: string, endDate: string) 
   });
 };
 
+export const useConsultationsByDoctor = (startDate: string, endDate: string) => {
+  return useQuery({
+    queryKey: ['consultations-by-doctor', startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('consultations_by_doctor', {
+        start_date: startDate,
+        end_date: endDate,
+      });
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+};
+
 // Utility function to get all lab tests for filtering
 export const useLabTests = () => {
   return useQuery({

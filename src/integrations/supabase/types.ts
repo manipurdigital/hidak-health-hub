@@ -1329,6 +1329,17 @@ export type Database = {
           revenue: number
         }[]
       }
+      consultations_by_doctor: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          avg_fee: number
+          completed: number
+          consultations: number
+          doctor_name: string
+          revenue: number
+          specialization: string
+        }[]
+      }
       consultations_by_specialty: {
         Args: { end_date: string; start_date: string }
         Returns: {

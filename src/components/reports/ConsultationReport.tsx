@@ -10,7 +10,8 @@ import { ExportButton } from '@/components/reports/ExportButton';
 import { 
   useConsultationKPIs, 
   useConsultationsByDay, 
-  useConsultationsBySpecialty 
+  useConsultationsBySpecialty,
+  useConsultationsByDoctor 
 } from '@/hooks/analytics-hooks';
 import { useState } from 'react';
 
@@ -23,7 +24,7 @@ interface ConsultationReportProps {
 }
 
 export function ConsultationReport({ dateRange, onDateRangeChange }: ConsultationReportProps) {
-  const [activeView, setActiveView] = useState<'day' | 'specialty'>('day');
+  const [activeView, setActiveView] = useState<'day' | 'specialty' | 'doctor'>('day');
 
   const { data: kpiData, isLoading: kpiLoading } = useConsultationKPIs(
     dateRange.startDate,
@@ -40,6 +41,11 @@ export function ConsultationReport({ dateRange, onDateRangeChange }: Consultatio
     dateRange.endDate
   );
 
+  const { data: doctorData, isLoading: doctorLoading } = useConsultationsByDoctor(
+    dateRange.startDate,
+    dateRange.endDate
+  );
+
   const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
     onDateRangeChange({ ...dateRange, [field]: value });
   };
@@ -52,6 +58,15 @@ export function ConsultationReport({ dateRange, onDateRangeChange }: Consultatio
   ];
 
   const specialtyColumns = [
+    { header: 'Specialty', accessor: 'specialization' as const },
+    { header: 'Consultations', accessor: 'consultations' as const },
+    { header: 'Completed', accessor: 'completed' as const },
+    { header: 'Revenue', accessor: 'revenue' as const, format: 'currency' as const },
+    { header: 'Avg Fee', accessor: 'avg_fee' as const, format: 'currency' as const },
+  ];
+
+  const doctorColumns = [
+    { header: 'Doctor', accessor: 'doctor_name' as const },
     { header: 'Specialty', accessor: 'specialization' as const },
     { header: 'Consultations', accessor: 'consultations' as const },
     { header: 'Completed', accessor: 'completed' as const },
@@ -150,11 +165,18 @@ export function ConsultationReport({ dateRange, onDateRangeChange }: Consultatio
                 >
                   By Specialty
                 </Button>
+                <Button
+                  variant={activeView === 'doctor' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveView('doctor')}
+                >
+                  By Doctor
+                </Button>
               </div>
               <ExportButton
-                data={activeView === 'day' ? dayData : specialtyData}
+                data={activeView === 'day' ? dayData : activeView === 'specialty' ? specialtyData : doctorData}
                 filename={`consultations-${activeView}-${dateRange.startDate}-to-${dateRange.endDate}`}
-                columns={activeView === 'day' ? dayColumns : specialtyColumns}
+                columns={activeView === 'day' ? dayColumns : activeView === 'specialty' ? specialtyColumns : doctorColumns}
               />
             </div>
           </div>
@@ -166,11 +188,17 @@ export function ConsultationReport({ dateRange, onDateRangeChange }: Consultatio
               columns={dayColumns}
               isLoading={dayLoading}
             />
-          ) : (
+          ) : activeView === 'specialty' ? (
             <DataTable
               data={specialtyData || []}
               columns={specialtyColumns}
               isLoading={specialtyLoading}
+            />
+          ) : (
+            <DataTable
+              data={doctorData || []}
+              columns={doctorColumns}
+              isLoading={doctorLoading}
             />
           )}
         </CardContent>
