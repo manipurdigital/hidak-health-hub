@@ -490,9 +490,9 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
 
   const getConsultationIcon = () => {
     switch (consultationType) {
-      case 'audio': return <Phone className="w-4 h-4" />;
-      case 'video': return <Video className="w-4 h-4" />;
-      default: return <MessageSquare className="w-4 h-4" />;
+      case 'audio': return <Phone className="w-5 h-5 text-primary" />;
+      case 'video': return <Video className="w-5 h-5 text-primary" />;
+      default: return <MessageSquare className="w-5 h-5 text-primary" />;
     }
   };
 
@@ -504,14 +504,16 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
     }
   };
 
+  const consultationFee = hasActiveSubscription ? 0 : doctor.consultation_fee;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Consultation Summary</CardTitle>
+          <CardTitle>Review Your Consultation</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Doctor Info */}
+        <CardContent className="space-y-6">
+          {/* Doctor Summary */}
           <div className="flex items-center gap-4">
             <Avatar className="w-16 h-16">
               <AvatarImage src={doctor.profile_image_url} alt={doctor.full_name} />
@@ -520,20 +522,37 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold">{doctor.full_name}</h3>
-              <p className="text-sm text-muted-foreground">{doctor.specialization}</p>
+              <h3 className="font-semibold text-lg">{doctor.full_name}</h3>
+              <p className="text-muted-foreground">{doctor.specialization}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span className="text-sm font-medium">{doctor.rating}</span>
+                <span className="text-sm text-muted-foreground">({doctor.review_count} reviews)</span>
+              </div>
             </div>
           </div>
 
           <Separator />
 
           {/* Appointment Details */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="font-medium">{formatDate(slot.date)}</p>
-                <p className="text-sm text-muted-foreground">at {slot.time}</p>
+          <div className="space-y-4">
+            <h4 className="font-semibold">Appointment Details</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">{formatDate(slot.date)}</p>
+                  <p className="text-sm text-muted-foreground">Consultation Date</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">{slot.time}</p>
+                  <p className="text-sm text-muted-foreground">Consultation Time</p>
+                </div>
               </div>
             </div>
 
@@ -548,28 +567,77 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
 
           <Separator />
 
-          {/* Pricing */}
-          <div className="flex justify-between items-center text-lg font-semibold">
-            <span>Total Amount</span>
-            <span>
-              {hasActiveSubscription ? (
-                <span className="text-green-600">Free with Care+</span>
-              ) : (
-                `₹${doctor.consultation_fee}`
+          {/* Payment Summary */}
+          <div className="space-y-4">
+            <h4 className="font-semibold">Payment Summary</h4>
+            
+            <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+              <div className="flex justify-between items-center">
+                <span>Consultation Fee</span>
+                <span className={consultationFee === 0 ? "line-through text-muted-foreground" : ""}>
+                  ₹{doctor.consultation_fee}
+                </span>
+              </div>
+              
+              {hasActiveSubscription && (
+                <div className="flex justify-between items-center text-green-600">
+                  <span>Care+ Discount</span>
+                  <span>-₹{doctor.consultation_fee}</span>
+                </div>
               )}
-            </span>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-center font-semibold text-lg">
+                <span>Total</span>
+                <span className={consultationFee === 0 ? "text-green-600" : "text-primary"}>
+                  {consultationFee === 0 ? "FREE" : `₹${consultationFee}`}
+                </span>
+              </div>
+            </div>
+
+            {hasActiveSubscription && (
+              <div className="flex items-center gap-2 text-green-600 text-sm">
+                <Badge variant="secondary" className="text-green-600 border-green-200">
+                  Care+ Member
+                </Badge>
+                <span>Your consultation is FREE!</span>
+              </div>
+            )}
           </div>
+
+          {/* Important Notes */}
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+            <h5 className="font-medium text-blue-900 mb-2">Important Notes</h5>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• You'll receive a reminder 15 minutes before your consultation</li>
+              <li>• Join the consultation room 5 minutes early</li>
+              <li>• Have your medical history ready</li>
+              <li>• You can reschedule up to 2 hours before the appointment</li>
+            </ul>
+          </div>
+
+          {/* Confirm Button */}
+          <Button 
+            onClick={onConfirm} 
+            size="lg" 
+            className="w-full"
+            disabled={isBooking}
+          >
+            {isBooking ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Booking Consultation...
+              </>
+            ) : (
+              <>
+                <Calendar className="w-4 h-4 mr-2" />
+                {consultationFee === 0 ? "Confirm Booking" : `Pay ₹${consultationFee} & Book`}
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
-
-      <Button 
-        onClick={onConfirm}
-        disabled={isBooking}
-        className="w-full"
-        size="lg"
-      >
-        {isBooking ? 'Booking...' : 'Confirm Consultation'}
-      </Button>
     </div>
   );
 }
@@ -609,3 +677,5 @@ function DoctorProfileSkeleton() {
     </div>
   );
 }
+
+export default DoctorProfilePage;

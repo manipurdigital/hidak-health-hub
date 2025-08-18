@@ -1,32 +1,40 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { CheckCircle, Calendar, Clock, Video, MessageSquare, Phone, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/ui/error-states';
+import { useConsultation } from '@/hooks/doctor-hooks';
 
 export function ConsultationSuccessPage() {
   const { consultId } = useParams<{ consultId: string }>();
   const navigate = useNavigate();
 
-  // Mock consultation data - in real app, fetch from API
-  const consultationData = {
-    id: consultId,
-    consultationNumber: `CON-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`,
-    status: 'confirmed',
-    doctor: {
-      name: 'Dr. Sarah Johnson',
-      specialization: 'Cardiologist',
-      profile_image_url: null,
-    },
-    consultation_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    time_slot: '10:00',
-    consultation_type: 'video',
-    total_amount: 500,
-    payment_status: 'paid',
-  };
+  const { data: consultation, isLoading, error } = useConsultation(consultId!);
+
+  if (isLoading) {
+    return <ConsultationSuccessSkeleton />;
+  }
+
+  if (error || !consultation) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <ErrorState
+          title="Consultation Not Found"
+          description="The consultation you're looking for doesn't exist."
+          action={{
+            label: "Back to Dashboard",
+            onClick: () => navigate('/dashboard')
+          }}
+        />
+      </div>
+    );
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -39,7 +47,7 @@ export function ConsultationSuccessPage() {
   };
 
   const getConsultationIcon = () => {
-    switch (consultationData.consultation_type) {
+    switch (consultation.consultation_type) {
       case 'audio': return <Phone className="w-5 h-5 text-primary" />;
       case 'video': return <Video className="w-5 h-5 text-primary" />;
       default: return <MessageSquare className="w-5 h-5 text-primary" />;
@@ -47,7 +55,7 @@ export function ConsultationSuccessPage() {
   };
 
   const getConsultationLabel = () => {
-    switch (consultationData.consultation_type) {
+    switch (consultation.consultation_type) {
       case 'audio': return 'Audio Call';
       case 'video': return 'Video Call';
       default: return 'Text Chat';
@@ -77,7 +85,7 @@ export function ConsultationSuccessPage() {
               </p>
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Consultation ID</p>
-                <p className="text-lg font-mono font-semibold">{consultationData.consultationNumber}</p>
+                <p className="text-lg font-mono font-semibold">{consultation.id}</p>
               </div>
             </CardContent>
           </Card>
@@ -126,14 +134,14 @@ export function ConsultationSuccessPage() {
               {/* Doctor Info */}
               <div className="flex items-center gap-4">
                 <Avatar className="w-16 h-16">
-                  <AvatarImage src={consultationData.doctor.profile_image_url} alt={consultationData.doctor.name} />
+                  <AvatarImage src={consultation.doctor?.profile_image_url} alt={consultation.doctor?.full_name} />
                   <AvatarFallback>
-                    {consultationData.doctor.name.split(' ').map((n: string) => n[0]).join('')}
+                    {consultation.doctor?.full_name.split(' ').map((n: string) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">{consultationData.doctor.name}</h3>
-                  <p className="text-sm text-muted-foreground">{consultationData.doctor.specialization}</p>
+                  <h3 className="font-semibold">{consultation.doctor?.full_name}</h3>
+                  <p className="text-sm text-muted-foreground">{consultation.doctor?.specialization}</p>
                 </div>
               </div>
 
@@ -144,7 +152,7 @@ export function ConsultationSuccessPage() {
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{formatDate(consultationData.consultation_date)}</p>
+                    <p className="font-medium">{formatDate(consultation.consultation_date)}</p>
                     <p className="text-sm text-muted-foreground">Consultation Date</p>
                   </div>
                 </div>
@@ -152,7 +160,7 @@ export function ConsultationSuccessPage() {
                 <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{consultationData.time_slot}</p>
+                    <p className="font-medium">{consultation.time_slot}</p>
                     <p className="text-sm text-muted-foreground">Consultation Time</p>
                   </div>
                 </div>
@@ -166,11 +174,11 @@ export function ConsultationSuccessPage() {
                 </div>
               </div>
 
-              {consultationData.payment_status === 'paid' && (
+              {consultation.payment_status === 'paid' && (
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Amount Paid</span>
                   <Badge variant="secondary" className="text-green-600">
-                    ₹{consultationData.total_amount}
+                    ₹{consultation.total_amount}
                   </Badge>
                 </div>
               )}
@@ -209,6 +217,43 @@ export function ConsultationSuccessPage() {
               Join Consultation Room
             </Button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConsultationSuccessSkeleton() {
+  return (
+    <div className="min-h-screen bg-muted/30">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <Card className="text-center">
+            <CardContent className="p-8">
+              <Skeleton className="w-16 h-16 rounded-full mx-auto mb-4" />
+              <Skeleton className="h-6 w-48 mx-auto mb-2" />
+              <Skeleton className="h-4 w-64 mx-auto mb-4" />
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-32 w-full" />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-24 w-full" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
