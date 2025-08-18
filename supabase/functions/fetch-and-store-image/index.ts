@@ -89,6 +89,7 @@ serve(async (req) => {
     const fileExt = getFileExtension(contentType, imageUrl);
     const fileName = destKey || `${imageHash}.${fileExt}`;
     const storagePath = `product-images/medicines/${fileName}`;
+    const thumbPath = `product-images/medicines/${imageHash}/thumb.jpg`;
 
     // Upload to Supabase Storage
     const supabase = createClient(
@@ -96,6 +97,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Upload original image
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('products')
       .upload(storagePath, imageBuffer, {
@@ -107,15 +109,31 @@ serve(async (req) => {
       throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
+    // Create and upload thumbnail (square crop/center fit)
+    const thumbnailBuffer = await createThumbnail(imageBuffer, contentType);
+    if (thumbnailBuffer) {
+      await supabase.storage
+        .from('products')
+        .upload(thumbPath, thumbnailBuffer, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+    }
+
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('products')
       .getPublicUrl(storagePath);
 
+    // Get public URL for thumbnail if available, otherwise original
+    const { data: thumbUrlData } = supabase.storage
+      .from('products')
+      .getPublicUrl(thumbPath);
+
     const result: ImageResult = {
       success: true,
-      publicUrl: urlData.publicUrl,
-      storagePath,
+      publicUrl: thumbnailBuffer ? thumbUrlData.publicUrl : urlData.publicUrl,
+      storagePath: thumbnailBuffer ? thumbPath : storagePath,
       imageHash
     };
 
@@ -157,4 +175,19 @@ function getFileExtension(contentType: string, url: string): string {
   }
 
   return 'jpg'; // Default
+}
+
+async function createThumbnail(imageBuffer: ArrayBuffer, contentType: string): Promise<ArrayBuffer | null> {
+  try {
+    // For now, we'll return null to skip thumbnail creation
+    // In a real implementation, you'd use an image processing library
+    // like ImageMagick, Sharp, or a similar tool to create a square thumbnail
+    
+    // Since Deno edge functions have limited image processing capabilities,
+    // we'll rely on the client-side validation for now
+    return null;
+  } catch (error) {
+    console.error('Thumbnail creation failed:', error);
+    return null;
+  }
 }

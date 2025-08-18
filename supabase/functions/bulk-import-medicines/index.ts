@@ -221,7 +221,7 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
       }
     } else {
       // Direct CSV mapping
-      await processDirectRow(row, supabase, result, jobItemId);
+      await processDirectRow(row, supabase, result, jobItemId, downloadImages);
     }
 
   } catch (error) {
@@ -249,7 +249,7 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
   result.processed++;
 }
 
-async function processDirectRow(row: any, supabase: any, result: ImportResult, jobItemId: string) {
+async function processDirectRow(row: any, supabase: any, result: ImportResult, jobItemId: string, downloadImages: boolean) {
   // Validate required fields
   if (!row.name || !row.price) {
     throw new Error('Missing required fields (name, price)');
@@ -281,6 +281,26 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     return;
   }
 
+  // Process thumbnail if image_url is present
+  let processedImageUrl = row.image_url || null;
+  if (row.image_url && downloadImages) {
+    try {
+      const { data: imageData, error: imageError } = await supabase.functions.invoke('fetch-and-store-image', {
+        body: {
+          imageUrl: row.image_url,
+          destKey: `${row.name?.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`,
+          maxSizeBytes: 2097152 // 2MB limit
+        }
+      });
+
+      if (!imageError && imageData?.success) {
+        processedImageUrl = imageData.publicUrl;
+      }
+    } catch (imageError) {
+      console.warn('Image processing failed:', imageError);
+    }
+  }
+
   // Prepare medicine data
   const medicineData = {
     name: row.name,
@@ -292,7 +312,7 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     dosage: row.dosage || '',
     pack_size: row.pack_size || '',
     requires_prescription: row.requires_prescription === 'true' || row.requires_prescription === true,
-    image_url: row.image_url || null,
+    image_url: processedImageUrl,
     stock_quantity: parseInt(row.stock_quantity) || 10,
     is_active: row.is_active !== 'false'
   };

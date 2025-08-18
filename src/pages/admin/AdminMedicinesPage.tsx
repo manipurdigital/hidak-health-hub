@@ -26,6 +26,7 @@ import {
   Upload
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
+import { ThumbnailUrlProcessor } from '@/components/ThumbnailUrlProcessor';
 
 interface Medicine {
   id: string;
@@ -336,8 +337,16 @@ const AdminMedicinesPage = () => {
                       <Input id="pack_size" name="pack_size" />
                     </div>
                     <div>
-                      <Label htmlFor="image_url">Thumbnail URL (optional)</Label>
-                      <Input id="image_url" name="image_url" type="url" placeholder="https://..." />
+                      <Label htmlFor="image_url">Thumbnail URL</Label>
+                      <div className="space-y-2">
+                        <Input id="image_url" name="image_url" type="url" placeholder="Paste image URL here..." />
+                        <ThumbnailUrlProcessor 
+                          onProcessed={(url) => {
+                            const input = document.getElementById('image_url') as HTMLInputElement;
+                            if (input) input.value = url;
+                          }}
+                        />
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="description">Description</Label>
@@ -505,10 +514,18 @@ const AdminMedicinesPage = () => {
                 <Label htmlFor="edit_pack_size">Pack Size</Label>
                 <Input id="edit_pack_size" name="pack_size" defaultValue={editingMedicine.pack_size || ''} />
               </div>
-              <div>
-                <Label htmlFor="edit_image_url">Thumbnail URL</Label>
-                <Input id="edit_image_url" name="image_url" type="url" defaultValue={editingMedicine.image_url || ''} />
-              </div>
+                <div>
+                  <Label htmlFor="edit_image_url">Thumbnail URL</Label>
+                  <div className="space-y-2">
+                    <Input id="edit_image_url" name="image_url" type="url" defaultValue={editingMedicine.image_url || ''} />
+                    <ThumbnailUrlProcessor 
+                      onProcessed={(url) => {
+                        const input = document.getElementById('edit_image_url') as HTMLInputElement;
+                        if (input) input.value = url;
+                      }}
+                    />
+                  </div>
+                </div>
               <div>
                 <Label htmlFor="edit_description">Description</Label>
                 <Textarea id="edit_description" name="description" rows={3} defaultValue={editingMedicine.description || ''} />

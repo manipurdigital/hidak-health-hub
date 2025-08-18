@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { ThumbnailUrlProcessor } from '@/components/ThumbnailUrlProcessor';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Upload, 
@@ -629,9 +630,22 @@ Aspirin 75mg,Disprin,Reckitt,12.00,15.00,"Blood thinner and pain relief",75mg,10
                               <div>
                                 <strong>Price:</strong> ₹{item.parsedData.price || 0}
                               </div>
-                              <div>
+                               <div>
                                 <strong>Pack Size:</strong> {item.parsedData.pack_size || 'N/A'}
                               </div>
+                              {item.parsedData.image_url && (
+                                <div className="col-span-2">
+                                  <strong>Image:</strong> 
+                                  <img 
+                                    src={item.parsedData.image_url} 
+                                    alt={item.parsedData.name}
+                                    className="w-16 h-16 object-cover rounded border mt-1"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              )}
                             </div>
                             {item.status === 'duplicate' && (
                               <div className="mt-2 flex gap-2">
