@@ -46,13 +46,6 @@ const Header = () => {
     }
   };
 
-  const handleEmergency = () => {
-    toast({
-      title: "Emergency Service",
-      description: "Connecting you to emergency healthcare services...",
-      variant: "destructive",
-    });
-  };
 
   const handleLogin = () => {
     if (user) {
@@ -110,15 +103,6 @@ const Header = () => {
           
           {/* Right actions */}
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex items-center gap-2 hover:bg-destructive/10 hover:text-destructive transition-colors"
-              onClick={handleEmergency}
-            >
-              <Phone className="w-4 h-4" />
-              Emergency
-            </Button>
             <Button 
               variant="ghost" 
               size="sm" 
