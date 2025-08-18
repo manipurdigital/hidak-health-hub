@@ -89,11 +89,7 @@ const Header = () => {
     <header className="bg-white border-b border-border shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4">
         {/* Top bar */}
-        <div className="flex items-center justify-between py-2 text-sm text-muted-foreground border-b border-border">
-          <div className="flex items-center gap-4">
-            <span>📞 24/7 Support: 1800-000-0000</span>
-            <span>🚚 Free delivery on orders above ₹499</span>
-          </div>
+        <div className="flex items-center justify-end py-2 text-sm text-muted-foreground border-b border-border">
           <div className="flex items-center gap-4">
             <span>Download App</span>
             <span>Store Locator</span>
