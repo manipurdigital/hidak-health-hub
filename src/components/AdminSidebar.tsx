@@ -47,7 +47,12 @@ export function AdminSidebar() {
               {adminSidebarItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
+                    <NavLink 
+                      to={item.url} 
+                      className={({ isActive }) => 
+                        isActive ? "bg-muted text-primary font-medium flex items-center" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground flex items-center"
+                      }
+                    >
                       <item.icon className="mr-2 h-4 w-4" />
                       <span>{item.title}</span>
                     </NavLink>
