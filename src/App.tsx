@@ -53,6 +53,7 @@ import AdminDeliveryAssignmentsPage from "./pages/admin/AdminDeliveryAssignments
 import AccountPage from "./pages/AccountPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
+import AdminRLSAuditPage from "./pages/admin/AdminRLSAuditPage";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => (
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="doctors" element={<AdminDoctorsPage />} />
                 <Route path="settings/security" element={<AdminSecurityPage />} />
+                <Route path="security/rls-audit" element={<AdminRLSAuditPage />} />
               </Route>
               
               {/* Lab Routes - Lab role required */}

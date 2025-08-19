@@ -1921,6 +1921,21 @@ export type Database = {
           unique_customers: number
         }[]
       }
+      apply_rls_fixes: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      audit_rls: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          has_default_deny: boolean
+          issues: string[]
+          permissive_policies: number
+          policy_count: number
+          rls_enabled: boolean
+          table_name: string
+        }[]
+      }
       box: {
         Args: { "": unknown } | { "": unknown }
         Returns: unknown
