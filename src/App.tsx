@@ -52,6 +52,7 @@ import AdminLabAssignmentsPage from "./pages/admin/AdminLabAssignmentsPage";
 import AdminDeliveryAssignmentsPage from "./pages/admin/AdminDeliveryAssignmentsPage";
 import AccountPage from "./pages/AccountPage";
 import FeaturesPage from "./pages/FeaturesPage";
+import SearchResults from "./pages/SearchResults";
 import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
 import AdminRLSAuditPage from "./pages/admin/AdminRLSAuditPage";
 import AdminTrackingTestPage from "./pages/admin/AdminTrackingTestPage";
@@ -76,6 +77,7 @@ const App = () => (
               {/* Public Routes - No authentication required */}
               <Route path="/" element={<Index />} />
               <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/search" element={<SearchResults />} />
               <Route path="/medicines" element={<MedicinesPage />} />
               <Route path="/medicines/:id" element={<MedicineDetailPage />} />
               <Route path="/medicine/:id" element={<MedicineDetailPage />} /> {/* Handle singular route for search results */}

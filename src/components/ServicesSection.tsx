@@ -1,19 +1,31 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pill, TestTube2, Video, Heart, ArrowRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import pharmacyImage from "@/assets/pharmacy-section.jpg";
 import consultationImage from "@/assets/consultation-section.jpg";
 import labImage from "@/assets/lab-section.jpg";
 
 const ServicesSection = () => {
-  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleServiceClick = (serviceName: string) => {
-    toast({
-      title: `${serviceName} Service`,
-      description: `Exploring ${serviceName.toLowerCase()} options...`,
-    });
+  const handleServiceClick = (serviceTitle: string) => {
+    switch (serviceTitle) {
+      case "Online Pharmacy":
+        navigate("/medicines");
+        break;
+      case "Doctor Consultations":
+        navigate("/doctors");
+        break;
+      case "Lab Tests":
+        navigate("/lab-tests");
+        break;
+      case "Wellness Plans":
+        navigate("/wellness");
+        break;
+      default:
+        break;
+    }
   };
 
   const services = [
@@ -152,7 +164,7 @@ const ServicesSection = () => {
                 variant="outline" 
                 size="lg" 
                 className="bg-white text-primary border-white hover:bg-white/90 hover:scale-105 transition-all duration-200"
-                onClick={() => toast({ title: "App Download", description: "Redirecting to app store..." })}
+                onClick={() => navigate("/auth")}
               >
                 Download App
               </Button>
@@ -160,7 +172,7 @@ const ServicesSection = () => {
                 variant="ghost" 
                 size="lg" 
                 className="text-white border-white/20 border hover:bg-white/10 hover:scale-105 transition-all duration-200"
-                onClick={() => toast({ title: "Learn More", description: "Exploring more features..." })}
+                onClick={() => navigate("/features")}
               >
                 Learn More
               </Button>
