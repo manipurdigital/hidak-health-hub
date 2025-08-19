@@ -257,9 +257,18 @@ export function SearchBar({
           onKeyDown={handleKeyDown}
           onBlur={handleInputBlur}
           className={cn("pl-10 pr-10", inputClassName)}
+          aria-label={`Search ${placeholder.toLowerCase()}`}
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
+          aria-describedby={query.length >= 2 && isLoading ? "search-loading" : undefined}
+          role="combobox"
         />
         {isLoading && query.length >= 2 && (
-          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 animate-spin" />
+          <Loader2 
+            id="search-loading"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 animate-spin" 
+            aria-label="Loading search results"
+          />
         )}
       </div>
 
@@ -267,6 +276,8 @@ export function SearchBar({
         <div
           ref={dropdownRef}
           className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto"
+          role="listbox"
+          aria-label="Search results"
         >
           {isLoading ? (
             <div className="p-4 text-center text-muted-foreground">

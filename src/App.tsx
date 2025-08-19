@@ -70,6 +70,8 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+            
+            <div id="main-content">
             <Routes>
               {/* Public Routes - No authentication required */}
               <Route path="/" element={<Index />} />
@@ -145,6 +147,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </div>
           </BrowserRouter>
           </GoogleMapsProvider>
         </TooltipProvider>
