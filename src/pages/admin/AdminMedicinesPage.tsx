@@ -29,10 +29,52 @@ import {
 import { Navigate } from 'react-router-dom';
 import { ThumbnailUrlProcessor } from '@/components/ThumbnailUrlProcessor';
 
+// Helper functions to compute composition keys
+const normalizeComposition = (composition: string): string => {
+  return composition
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\w\s\+\-\(\)\[\]\.]/g, '')
+    .trim();
+};
+
+const generateCompositionKey = (composition: string): string => {
+  if (!composition?.trim()) return '';
+  
+  const normalized = normalizeComposition(composition);
+  const ingredients = normalized
+    .split(/\+|,|\band\b/)
+    .map(ingredient => ingredient.trim().replace(/\s*\d+\.?\d*\s*(mg|g|ml|mcg|iu|%)\s*/g, ''))
+    .filter(ingredient => ingredient.length > 0)
+    .sort();
+  
+  return ingredients.join('+');
+};
+
+const generateCompositionFamilyKey = (composition: string): string => {
+  if (!composition?.trim()) return '';
+  
+  const normalized = normalizeComposition(composition);
+  const activeIngredients = normalized
+    .split(/\+|,|\band\b/)
+    .map(ingredient => {
+      const cleaned = ingredient.trim();
+      const match = cleaned.match(/^([a-zA-Z\s\-]+)/);
+      return match ? match[1].trim() : cleaned;
+    })
+    .filter(ingredient => ingredient.length > 2)
+    .sort();
+  
+  return activeIngredients.join('+');
+};
+
 interface Medicine {
   id: string;
   name: string;
-  brand: string;
+  brand?: string;
+  composition_text?: string;
+  composition_key?: string;
+  composition_family_key?: string;
   price: number;
   original_price: number;
   stock_quantity: number;
@@ -104,9 +146,12 @@ const AdminMedicinesPage = () => {
 
   const handleAddMedicine = async (formData: FormData) => {
     try {
+      const compositionText = formData.get('composition_text') as string;
       const medicineData = {
         name: formData.get('name') as string,
-        brand: formData.get('brand') as string,
+        composition_text: compositionText,
+        composition_key: generateCompositionKey(compositionText),
+        composition_family_key: generateCompositionFamilyKey(compositionText),
         price: parseFloat(formData.get('price') as string),
         original_price: parseFloat(formData.get('original_price') as string),
         stock_quantity: parseInt(formData.get('stock_quantity') as string),
@@ -145,9 +190,12 @@ const AdminMedicinesPage = () => {
     if (!editingMedicine) return;
 
     try {
+      const compositionText = formData.get('composition_text') as string;
       const medicineData = {
         name: formData.get('name') as string,
-        brand: formData.get('brand') as string,
+        composition_text: compositionText,
+        composition_key: generateCompositionKey(compositionText),
+        composition_family_key: generateCompositionFamilyKey(compositionText),
         price: parseFloat(formData.get('price') as string),
         original_price: parseFloat(formData.get('original_price') as string),
         stock_quantity: parseInt(formData.get('stock_quantity') as string),
@@ -273,6 +321,7 @@ const AdminMedicinesPage = () => {
 
   const filteredMedicines = medicines.filter(medicine =>
     medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    medicine.composition_text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     medicine.brand?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -357,12 +406,25 @@ const AdminMedicinesPage = () => {
                   }} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="name">Medicine Name</Label>
-                        <Input id="name" name="name" required />
+                        <Label htmlFor="brand_trade_name">Brand / Trade Name</Label>
+                        <Input 
+                          id="brand_trade_name" 
+                          name="name" 
+                          placeholder="Calpol 650" 
+                          required 
+                        />
                       </div>
                       <div>
-                        <Label htmlFor="brand">Brand</Label>
-                        <Input id="brand" name="brand" />
+                        <Label htmlFor="composition_text">Salt Composition (Generic)</Label>
+                        <Textarea 
+                          id="composition_text" 
+                          name="composition_text" 
+                          placeholder="Paracetamol 650 mg"
+                          rows={2}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Use active ingredients and strengths; powers substitute matching.
+                        </p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -436,7 +498,7 @@ const AdminMedicinesPage = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search medicines by name or brand..."
+                    placeholder="Search medicines by brand/trade name or salt composition..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -458,8 +520,8 @@ const AdminMedicinesPage = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b text-left">
-                          <th className="pb-3 text-sm font-medium text-muted-foreground">Medicine</th>
-                          <th className="pb-3 text-sm font-medium text-muted-foreground">Brand</th>
+                          <th className="pb-3 text-sm font-medium text-muted-foreground">Brand / Trade Name</th>
+                          <th className="pb-3 text-sm font-medium text-muted-foreground">Salt Composition</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Price</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Stock</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Prescription</th>
@@ -471,7 +533,7 @@ const AdminMedicinesPage = () => {
                         {filteredMedicines.map((medicine) => (
                           <tr key={medicine.id} className="border-b hover:bg-muted/30 transition-colors">
                             <td className="py-4 font-medium">{medicine.name}</td>
-                            <td className="py-4 text-muted-foreground">{medicine.brand || 'N/A'}</td>
+                            <td className="py-4 text-muted-foreground">{medicine.composition_text || 'N/A'}</td>
                             <td className="py-4">₹{medicine.price}</td>
                             <td className="py-4">
                               <Badge variant={medicine.stock_quantity > 10 ? "default" : "destructive"}>
@@ -546,12 +608,27 @@ const AdminMedicinesPage = () => {
             }} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit_name">Medicine Name</Label>
-                  <Input id="edit_name" name="name" defaultValue={editingMedicine.name} required />
+                  <Label htmlFor="edit_brand_trade_name">Brand / Trade Name</Label>
+                  <Input 
+                    id="edit_brand_trade_name" 
+                    name="name" 
+                    placeholder="Calpol 650"
+                    defaultValue={editingMedicine.name} 
+                    required 
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="edit_brand">Brand</Label>
-                  <Input id="edit_brand" name="brand" defaultValue={editingMedicine.brand || ''} />
+                  <Label htmlFor="edit_composition_text">Salt Composition (Generic)</Label>
+                  <Textarea 
+                    id="edit_composition_text" 
+                    name="composition_text" 
+                    placeholder="Paracetamol 650 mg"
+                    rows={2}
+                    defaultValue={editingMedicine.composition_text || ''} 
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use active ingredients and strengths; powers substitute matching.
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
