@@ -56,6 +56,7 @@ import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
 import AdminRLSAuditPage from "./pages/admin/AdminRLSAuditPage";
 import AdminTrackingTestPage from "./pages/admin/AdminTrackingTestPage";
 import AdminPaymentReconciliationPage from "./pages/admin/AdminPaymentReconciliationPage";
+import AdminPerformancePage from "./pages/admin/AdminPerformancePage";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +122,7 @@ const App = () => (
                 <Route path="security/rls-audit" element={<AdminRLSAuditPage />} />
                 <Route path="tracking-test" element={<AdminTrackingTestPage />} />
                 <Route path="reports/reconciliation" element={<AdminPaymentReconciliationPage />} />
+                <Route path="analytics/perf" element={<AdminPerformancePage />} />
               </Route>
               
               {/* Lab Routes - Lab role required */}

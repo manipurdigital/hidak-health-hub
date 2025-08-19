@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, TrendingUp, Clock, Database, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { AdminLayout } from '@/components/AdminLayout';
+// Performance page without layout wrapper
 
 interface PerformanceStats {
   p50: number;
@@ -154,7 +154,7 @@ export default function AdminPerformancePage() {
 
   if (loading) {
     return (
-      <AdminLayout>
+      <div className="min-h-screen bg-background">
         <div className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-muted rounded w-1/4"></div>
@@ -165,12 +165,12 @@ export default function AdminPerformancePage() {
             </div>
           </div>
         </div>
-      </AdminLayout>
+      </div>
     );
   }
 
   return (
-    <AdminLayout>
+    <div className="min-h-screen bg-background">
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -326,6 +326,6 @@ export default function AdminPerformancePage() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
+    </div>
   );
 }

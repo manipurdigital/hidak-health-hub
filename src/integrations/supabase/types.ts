@@ -2661,6 +2661,21 @@ export type Database = {
           speed_mps: number
         }[]
       }
+      get_medicine_recommendations: {
+        Args: { limit_count?: number }
+        Returns: {
+          brand: string
+          category_id: string
+          id: string
+          image_url: string
+          last_updated: string
+          name: string
+          order_count: number
+          popularity_score: number
+          price: number
+          trend_status: string
+        }[]
+      }
       get_order_by_token: {
         Args: { order_id: string; token: string }
         Returns: {

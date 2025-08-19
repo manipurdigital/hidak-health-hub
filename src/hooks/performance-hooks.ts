@@ -53,18 +53,24 @@ export function useCachedRecommendations() {
         const requestId = PerformanceMonitor.generateRequestId();
         PerformanceMonitor.startTimer(requestId);
 
-        // Try to query using rpc or raw SQL instead
-        const { data, error } = await supabase.rpc('get_medicine_recommendations');
+        // Use direct medicine query for now
+        const { data, error } = await supabase
+          .from('medicines')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
         await PerformanceMonitor.endTimer(
           requestId,
           '/api/medicines/recommendations',
           'GET',
-          200,
+          error ? 500 : 200,
           1,
-          true
+          false
         );
 
+        if (error) throw error;
         return data || [];
       },
       60000 // 1 minute cache for recommendations
