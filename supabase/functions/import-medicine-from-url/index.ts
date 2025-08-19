@@ -10,15 +10,18 @@ interface ImportOptions {
   downloadImages?: boolean;
   userId?: string;
   respectRobots?: boolean;
+  storeHtmlAudit?: boolean;
 }
 
 interface ImportResult {
   success: boolean;
   medicineId?: string;
+  medicineData?: MedicineData;
   mode: 'created' | 'updated' | 'failed';
   dedupeReason?: string;
   warnings: string[];
   error?: string;
+  auditUrl?: string;
 }
 
 interface MedicineData {
@@ -94,6 +97,7 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
   const warnings: string[] = [];
   const urlObj = new URL(url);
   const domain = urlObj.hostname.toLowerCase();
+  let rawHtml = '';
 
   // Domain allowlist check
   if (!DOMAIN_ALLOWLIST.some(allowed => domain.includes(allowed))) {
@@ -114,7 +118,9 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
   }
 
   // Fetch and parse HTML
-  const medicineData = await parseProductPage(url);
+  const parseResult = await parseProductPage(url);
+  const medicineData = parseResult.medicineData;
+  rawHtml = parseResult.rawHtml;
   
   // Normalize and build composition keys
   await normalizeComposition(medicineData);
@@ -182,12 +188,43 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
     throw new Error(`Database insert failed: ${error.message}`);
   }
 
-  return {
+  const returnResult: ImportResult = {
     success: true,
     medicineId: data.id,
+    medicineData: medicineData,
     mode: 'created',
     warnings
   };
+
+  // Store HTML audit if requested
+  if (options.storeHtmlAudit && rawHtml) {
+    try {
+      const checksum = await generateChecksum(rawHtml);
+      const fileName = `raw/${domain}/${checksum}.html`;
+      
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('sources')
+        .upload(fileName, new Blob([rawHtml], { type: 'text/html' }), {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (!uploadError && uploadData) {
+        const { data: urlData } = supabase
+          .storage
+          .from('sources')
+          .getPublicUrl(fileName);
+        
+        returnResult.auditUrl = urlData.publicUrl;
+        console.log(`HTML audit stored at: ${fileName}`);
+      }
+    } catch (auditError) {
+      console.warn('Failed to store HTML audit:', auditError);
+    }
+  }
+
+  return returnResult;
 }
 
 async function checkRobotsPermission(url: string): Promise<boolean> {
@@ -232,7 +269,7 @@ async function checkRobotsPermission(url: string): Promise<boolean> {
   }
 }
 
-async function parseProductPage(url: string): Promise<MedicineData> {
+async function parseProductPage(url: string): Promise<{medicineData: MedicineData, rawHtml: string}> {
   const urlObj = new URL(url);
   const domain = urlObj.hostname.toLowerCase();
 
@@ -249,28 +286,28 @@ async function parseProductPage(url: string): Promise<MedicineData> {
   const html = await response.text();
 
   // Try structured data first (Schema.org JSON-LD)
-  let medicineData = await tryParseStructuredData(html);
+  let result = await tryParseStructuredData(html, url);
   
-  if (!medicineData) {
+  if (!result) {
     // Try OpenGraph
-    medicineData = await tryParseOpenGraph(html);
+    result = await tryParseOpenGraph(html, url);
   }
 
-  if (!medicineData) {
+  if (!result) {
     // Use domain-specific parsers
     if (domain.includes('1mg.com')) {
-      medicineData = await parse1mgProduct(html, url);
+      result = await parse1mgProduct(html, url);
     } else if (domain.includes('apollopharmacy.in')) {
-      medicineData = await parseApolloProduct(html, url);
+      result = await parseApolloProduct(html, url);
     } else {
-      medicineData = await parseGenericProduct(html, url);
+      result = await parseGenericProduct(html, url);
     }
   }
 
-  return medicineData;
+  return result;
 }
 
-async function tryParseStructuredData(html: string): Promise<MedicineData | null> {
+async function tryParseStructuredData(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string} | null> {
   try {
     const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gis);
     
@@ -282,17 +319,20 @@ async function tryParseStructuredData(html: string): Promise<MedicineData | null
       
       if (data['@type'] === 'Product' || data['@type'] === 'Drug') {
         return {
-          name: data.name || '',
-          brand: data.brand?.name || '',
-          manufacturer: data.manufacturer?.name || '',
-          price: parseFloat(data.offers?.price || '0'),
-          original_price: parseFloat(data.offers?.price || '0'),
-          description: data.description || '',
-          image_url: data.image || data.image?.[0],
-          requires_prescription: false,
-          external_source_url: '',
-          external_source_domain: '',
-          source_attribution: ''
+          medicineData: {
+            name: data.name || '',
+            brand: data.brand?.name || '',
+            manufacturer: data.manufacturer?.name || '',
+            price: parseFloat(data.offers?.price || '0'),
+            original_price: parseFloat(data.offers?.price || '0'),
+            description: data.description || '',
+            image_url: data.image || data.image?.[0],
+            requires_prescription: false,
+            external_source_url: url,
+            external_source_domain: new URL(url).hostname,
+            source_attribution: ''
+          },
+          rawHtml: html
         };
       }
     }
@@ -303,7 +343,7 @@ async function tryParseStructuredData(html: string): Promise<MedicineData | null
   return null;
 }
 
-async function tryParseOpenGraph(html: string): Promise<MedicineData | null> {
+async function tryParseOpenGraph(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string} | null> {
   try {
     const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i)?.[1];
     const ogImage = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)?.[1];
@@ -311,16 +351,19 @@ async function tryParseOpenGraph(html: string): Promise<MedicineData | null> {
     
     if (ogTitle) {
       return {
-        name: ogTitle,
-        brand: extractBrandFromName(ogTitle),
-        manufacturer: '',
-        price: 0,
-        description: ogDescription || '',
-        image_url: ogImage,
-        requires_prescription: false,
-        external_source_url: '',
-        external_source_domain: '',
-        source_attribution: ''
+        medicineData: {
+          name: ogTitle,
+          brand: extractBrandFromName(ogTitle),
+          manufacturer: '',
+          price: 0,
+          description: ogDescription || '',
+          image_url: ogImage,
+          requires_prescription: false,
+          external_source_url: url,
+          external_source_domain: new URL(url).hostname,
+          source_attribution: ''
+        },
+        rawHtml: html
       };
     }
   } catch (error) {
@@ -330,7 +373,7 @@ async function tryParseOpenGraph(html: string): Promise<MedicineData | null> {
   return null;
 }
 
-async function parse1mgProduct(html: string, url: string): Promise<MedicineData> {
+async function parse1mgProduct(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string}> {
   const urlObj = new URL(url);
   
   const nameMatch = html.match(/<h1[^>]*class="[^"]*ProductTitle[^"]*"[^>]*>([^<]+)</i);
@@ -343,24 +386,27 @@ async function parse1mgProduct(html: string, url: string): Promise<MedicineData>
   const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
 
   return {
-    name,
-    brand,
-    manufacturer: manufacturerMatch ? manufacturerMatch[1].trim() : '',
-    price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
-    original_price: mrpMatch ? parseFloat(mrpMatch[1].replace(/,/g, '')) : 0,
-    description: '',
-    dosage,
-    pack_size: packSize,
-    composition_text: composition,
-    requires_prescription: html.toLowerCase().includes('prescription'),
-    image_url: imageMatch ? imageMatch[1] : undefined,
-    external_source_url: url,
-    external_source_domain: urlObj.hostname,
-    source_attribution: ''
+    medicineData: {
+      name,
+      brand,
+      manufacturer: manufacturerMatch ? manufacturerMatch[1].trim() : '',
+      price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
+      original_price: mrpMatch ? parseFloat(mrpMatch[1].replace(/,/g, '')) : 0,
+      description: '',
+      dosage,
+      pack_size: packSize,
+      composition_text: composition,
+      requires_prescription: html.toLowerCase().includes('prescription'),
+      image_url: imageMatch ? imageMatch[1] : undefined,
+      external_source_url: url,
+      external_source_domain: urlObj.hostname,
+      source_attribution: ''
+    },
+    rawHtml: html
   };
 }
 
-async function parseApolloProduct(html: string, url: string): Promise<MedicineData> {
+async function parseApolloProduct(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string}> {
   const urlObj = new URL(url);
   
   const nameMatch = html.match(/<h1[^>]*>([^<]+)</i) || html.match(/<title>([^<]+)</i);
@@ -370,41 +416,47 @@ async function parseApolloProduct(html: string, url: string): Promise<MedicineDa
   const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
 
   return {
-    name,
-    brand,
-    manufacturer: '',
-    price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
-    original_price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
-    description: '',
-    dosage,
-    pack_size: packSize,
-    composition_text: composition,
-    requires_prescription: html.toLowerCase().includes('prescription'),
-    external_source_url: url,
-    external_source_domain: urlObj.hostname,
-    source_attribution: ''
+    medicineData: {
+      name,
+      brand,
+      manufacturer: '',
+      price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
+      original_price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
+      description: '',
+      dosage,
+      pack_size: packSize,
+      composition_text: composition,
+      requires_prescription: html.toLowerCase().includes('prescription'),
+      external_source_url: url,
+      external_source_domain: urlObj.hostname,
+      source_attribution: ''
+    },
+    rawHtml: html
   };
 }
 
-async function parseGenericProduct(html: string, url: string): Promise<MedicineData> {
+async function parseGenericProduct(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string}> {
   const urlObj = new URL(url);
   const name = extractFromTitle(html);
   const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
 
   return {
-    name,
-    brand,
-    manufacturer: '',
-    price: 0,
-    original_price: 0,
-    description: '',
-    dosage,
-    pack_size: packSize,
-    composition_text: composition,
-    requires_prescription: false,
-    external_source_url: url,
-    external_source_domain: urlObj.hostname,
-    source_attribution: ''
+    medicineData: {
+      name,
+      brand,
+      manufacturer: '',
+      price: 0,
+      original_price: 0,
+      description: '',
+      dosage,
+      pack_size: packSize,
+      composition_text: composition,
+      requires_prescription: false,
+      external_source_url: url,
+      external_source_domain: urlObj.hostname,
+      source_attribution: ''
+    },
+    rawHtml: html
   };
 }
 

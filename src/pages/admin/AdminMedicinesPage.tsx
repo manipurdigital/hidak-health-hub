@@ -23,7 +23,8 @@ import {
   Trash2,
   Package,
   Link,
-  Upload
+  Upload,
+  RefreshCw
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { ThumbnailUrlProcessor } from '@/components/ThumbnailUrlProcessor';
@@ -43,6 +44,9 @@ interface Medicine {
   dosage: string;
   pack_size: string;
   image_url?: string;
+  external_source_url?: string;
+  external_source_domain?: string;
+  source_last_fetched?: string;
 }
 
 const AdminMedicinesPage = () => {
@@ -56,6 +60,7 @@ const AdminMedicinesPage = () => {
   const [isUrlImportOpen, setIsUrlImportOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
+  const [refetchingMedicines, setRefetchingMedicines] = useState<Set<string>>(new Set());
 
   // Check if user is admin
   if (userRole !== 'admin') {
@@ -201,6 +206,67 @@ const AdminMedicinesPage = () => {
         title: "Error",
         description: "Failed to delete medicine",
         variant: "destructive"
+      });
+    }
+  };
+
+  const handleRefetchMedicine = async (medicine: Medicine, overwriteManualChanges = false) => {
+    if (!medicine.external_source_url) {
+      toast({
+        title: "Error",
+        description: "No source URL available for re-fetching",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setRefetchingMedicines(prev => new Set(prev).add(medicine.id));
+
+    try {
+      const { data, error } = await supabase.functions.invoke('refetch-medicine', {
+        body: {
+          medicineId: medicine.id,
+          options: {
+            overwriteManualChanges,
+            storeHtmlAudit: true
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: data.message,
+        });
+
+        if (data.updatedFields && data.updatedFields.length > 0) {
+          toast({
+            title: "Fields Updated",
+            description: `Updated: ${data.updatedFields.join(', ')}`,
+          });
+        }
+
+        if (data.auditUrl) {
+          console.log('HTML audit stored at:', data.auditUrl);
+        }
+
+        fetchMedicines();
+      } else {
+        throw new Error(data.message || 'Failed to re-fetch medicine');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to re-fetch medicine data",
+        variant: "destructive"
+      });
+    } finally {
+      setRefetchingMedicines(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(medicine.id);
+        return newSet;
       });
     }
   };
@@ -424,6 +490,17 @@ const AdminMedicinesPage = () => {
                             </td>
                             <td className="py-4">
                               <div className="flex items-center gap-2">
+                                {medicine.external_source_url && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleRefetchMedicine(medicine)}
+                                    disabled={refetchingMedicines.has(medicine.id)}
+                                    title="Re-fetch from source URL"
+                                  >
+                                    <RefreshCw className={`w-4 h-4 ${refetchingMedicines.has(medicine.id) ? 'animate-spin' : ''}`} />
+                                  </Button>
+                                )}
                                 <Button 
                                   variant="outline" 
                                   size="sm"
