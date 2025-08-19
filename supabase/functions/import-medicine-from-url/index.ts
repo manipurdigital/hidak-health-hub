@@ -47,12 +47,10 @@ interface MedicineData {
   image_hash?: string;
 }
 
+// Minimal domain allowlist - start with Tata 1mg, expand via config later
 const DOMAIN_ALLOWLIST = [
-  '1mg.com',
-  'apollopharmacy.in', 
-  'netmeds.com',
-  'pharmeasy.in',
-  'medplus.in'
+  '1mg.com'
+  // Add other domains via configuration as needed
 ];
 
 serve(async (req) => {
@@ -99,9 +97,12 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
   const domain = urlObj.hostname.toLowerCase();
   let rawHtml = '';
 
+  console.log(`Processing URL: ${url} from domain: ${domain}`);
+
   // Domain allowlist check
   if (!DOMAIN_ALLOWLIST.some(allowed => domain.includes(allowed))) {
-    warnings.push(`Domain ${domain} not in allowlist - proceeding with generic parser`);
+    console.warn(`Domain ${domain} not in allowlist - using generic parser`);
+    warnings.push(`Domain ${domain} not in allowlist - parsed with generic parser, review carefully`);
   }
 
   // Robots.txt check
@@ -289,16 +290,14 @@ async function parseProductPage(url: string): Promise<{medicineData: MedicineDat
   let result = await tryParseStructuredData(html, url);
   
   if (!result) {
-    // Try OpenGraph
+    // Try OpenGraph fallback
     result = await tryParseOpenGraph(html, url);
   }
 
   if (!result) {
-    // Use domain-specific parsers
+    // Use domain-specific parser for 1mg, otherwise generic
     if (domain.includes('1mg.com')) {
       result = await parse1mgProduct(html, url);
-    } else if (domain.includes('apollopharmacy.in')) {
-      result = await parseApolloProduct(html, url);
     } else {
       result = await parseGenericProduct(html, url);
     }
@@ -375,6 +374,7 @@ async function tryParseOpenGraph(html: string, url: string): Promise<{medicineDa
 
 async function parse1mgProduct(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string}> {
   const urlObj = new URL(url);
+  const warnings: string[] = [];
   
   const nameMatch = html.match(/<h1[^>]*class="[^"]*ProductTitle[^"]*"[^>]*>([^<]+)</i);
   const priceMatch = html.match(/₹\s*([0-9,]+(?:\.[0-9]{2})?)/);
@@ -384,6 +384,27 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
   
   const name = nameMatch ? nameMatch[1].trim() : extractFromTitle(html);
   const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
+
+  // Log parsing warnings for reviewer attention
+  if (!priceMatch) {
+    console.warn(`No price found for ${name} - manual review needed`);
+    warnings.push('No price found - requires manual review');
+  }
+  
+  if (!manufacturerMatch) {
+    console.warn(`No manufacturer found for ${name} - manual review needed`);
+    warnings.push('No manufacturer found - requires manual review');
+  }
+  
+  if (!composition) {
+    console.warn(`Composition uncertain for ${name} - manual review needed`);
+    warnings.push('Composition uncertain - requires manual review');
+  }
+
+  if (!imageMatch) {
+    console.warn(`No product image found for ${name}`);
+    warnings.push('No product image found');
+  }
 
   return {
     medicineData: {
@@ -406,39 +427,20 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
   };
 }
 
-async function parseApolloProduct(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string}> {
-  const urlObj = new URL(url);
-  
-  const nameMatch = html.match(/<h1[^>]*>([^<]+)</i) || html.match(/<title>([^<]+)</i);
-  const priceMatch = html.match(/₹\s*([0-9,]+(?:\.[0-9]{2})?)/);
-  
-  const name = nameMatch ? nameMatch[1].trim().replace(' - Apollo Pharmacy', '') : '';
-  const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
-
-  return {
-    medicineData: {
-      name,
-      brand,
-      manufacturer: '',
-      price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
-      original_price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
-      description: '',
-      dosage,
-      pack_size: packSize,
-      composition_text: composition,
-      requires_prescription: html.toLowerCase().includes('prescription'),
-      external_source_url: url,
-      external_source_domain: urlObj.hostname,
-      source_attribution: ''
-    },
-    rawHtml: html
-  };
-}
 
 async function parseGenericProduct(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string}> {
   const urlObj = new URL(url);
   const name = extractFromTitle(html);
   const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
+
+  // Log warnings for generic parser usage
+  console.warn(`Using generic parser for ${url} - limited data extraction possible`);
+  console.warn(`No price found for ${name} - manual review required`);
+  console.warn(`No manufacturer found for ${name} - manual review required`);
+  
+  if (!composition) {
+    console.warn(`Composition uncertain for ${name} - manual review critical`);
+  }
 
   return {
     medicineData: {
