@@ -697,6 +697,7 @@ export type Database = {
           id: string
           last_distance_meters: number | null
           last_eta_mins: number | null
+          paid_at: string | null
           patient_email: string | null
           patient_name: string
           patient_phone: string
@@ -729,6 +730,7 @@ export type Database = {
           id?: string
           last_distance_meters?: number | null
           last_eta_mins?: number | null
+          paid_at?: string | null
           patient_email?: string | null
           patient_name: string
           patient_phone: string
@@ -761,6 +763,7 @@ export type Database = {
           id?: string
           last_distance_meters?: number | null
           last_eta_mins?: number | null
+          paid_at?: string | null
           patient_email?: string | null
           patient_name?: string
           patient_phone?: string
@@ -1169,6 +1172,7 @@ export type Database = {
           order_number: string
           out_for_delivery_at: string | null
           packed_at: string | null
+          paid_at: string | null
           payment_method: string | null
           payment_status: string | null
           prescription_required: boolean | null
@@ -1198,6 +1202,7 @@ export type Database = {
           order_number: string
           out_for_delivery_at?: string | null
           packed_at?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
           prescription_required?: boolean | null
@@ -1227,6 +1232,7 @@ export type Database = {
           order_number?: string
           out_for_delivery_at?: string | null
           packed_at?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
           prescription_required?: boolean | null
@@ -2502,6 +2508,18 @@ export type Database = {
           total_events: number
         }[]
       }
+      get_payment_summary: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: {
+          date: string
+          lab_payments_amount: number
+          lab_payments_count: number
+          order_payments_amount: number
+          order_payments_count: number
+          total_payments_amount: number
+          total_payments_count: number
+        }[]
+      }
       get_proj4_from_srid: {
         Args: { "": number }
         Returns: string
@@ -2944,6 +2962,15 @@ export type Database = {
       postgis_wagyu_version: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      process_payment_captured: {
+        Args: {
+          p_amount: number
+          p_currency?: string
+          p_razorpay_order_id: string
+          p_razorpay_payment_id: string
+        }
+        Returns: undefined
       }
       recommend_medicines_for_time: {
         Args: {
