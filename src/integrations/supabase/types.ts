@@ -2082,6 +2082,10 @@ export type Database = {
         Args: { area_data: Json; geom_sql: string }
         Returns: string
       }
+      detect_salt_composition: {
+        Args: { text_input: string }
+        Returns: boolean
+      }
       disablelongtransactions: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -2112,6 +2116,14 @@ export type Database = {
       equals: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
+      }
+      generate_composition_family_key: {
+        Args: { composition: string }
+        Returns: string
+      }
+      generate_composition_key: {
+        Args: { composition: string }
+        Returns: string
       }
       generate_order_number: {
         Args: Record<PropertyKey, never>
@@ -2624,6 +2636,10 @@ export type Database = {
           prepaid_orders: number
           total_orders: number
         }[]
+      }
+      normalize_composition: {
+        Args: { composition: string }
+        Returns: string
       }
       normalize_token: {
         Args: { s: string }
