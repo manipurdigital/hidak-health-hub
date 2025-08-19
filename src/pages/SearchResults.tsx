@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useSearchSuggestions, addRecentSearch } from "@/hooks/useSearchSuggestions";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { SearchResult } from "@/integrations/supabase/search";
 
 export default function SearchResults() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,7 +15,8 @@ export default function SearchResults() {
   const [query, setQuery] = React.useState(initialQuery);
   const debouncedQuery = useDebouncedValue(query, 200);
   
-  const { data: results = [], isLoading, error } = useSearchSuggestions(debouncedQuery, 20);
+  const { data: resultsData, isLoading, error } = useSearchSuggestions(debouncedQuery, 20);
+  const results: SearchResult[] = (resultsData as SearchResult[]) ?? [];
 
   React.useEffect(() => {
     if (initialQuery) {

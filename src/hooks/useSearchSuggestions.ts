@@ -21,31 +21,67 @@ export interface TrendingMedicine {
 const RECENT_SEARCHES_KEY = 'recent_searches';
 const MAX_RECENT_SEARCHES = 10;
 
+// Simple in-memory LRU cache
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const CACHE_MAX_ENTRIES = 50;
+const localCache = new Map<string, { data: SearchResult[]; ts: number }>();
+
+function getFromCache(key: string): SearchResult[] | null {
+  const entry = localCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) {
+    localCache.delete(key);
+    return null;
+  }
+  // refresh LRU
+  localCache.delete(key);
+  localCache.set(key, entry);
+  return entry.data;
+}
+
+function setInCache(key: string, data: SearchResult[]) {
+  if (localCache.size >= CACHE_MAX_ENTRIES) {
+    const firstKey = localCache.keys().next().value as string | undefined;
+    if (firstKey) localCache.delete(firstKey);
+  }
+  localCache.set(key, { data, ts: Date.now() });
+}
+
 export function useSearchSuggestions(query: string, maxPerGroup: number = 5) {
   return useQuery<SearchResult[]>({
     queryKey: ["search-suggestions", query, maxPerGroup],
     queryFn: async ({ signal }) => {
-      // Use the corrected search function
-      const { data, error } = await supabase.rpc("universal_search", {
-        q: query,
-        max_per_group: maxPerGroup,
-      });
+      const cacheKey = `${query}|${maxPerGroup}`;
+      const cached = getFromCache(cacheKey);
+      if (cached) return cached;
 
-      if (error) {
-        console.error("Search error:", error);
-        throw new Error(error.message);
+      try {
+        const { data, error } = await supabase.rpc("universal_search", {
+          q: query,
+          max_per_group: maxPerGroup,
+        }).abortSignal(signal as AbortSignal);
+
+        if (error) {
+          console.warn("Search RPC error (universal_search):", error);
+          return [] as SearchResult[];
+        }
+
+        // Track search suggestions view
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'view_suggestions', {
+            event_category: 'search',
+            search_term: query,
+            results_count: data?.length || 0
+          });
+        }
+
+        const results = (data || []) as SearchResult[];
+        setInCache(cacheKey, results);
+        return results;
+      } catch (err) {
+        console.warn('Search suggestions failed:', err);
+        return [] as SearchResult[];
       }
-
-      // Track search suggestions view
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', 'view_suggestions', {
-          event_category: 'search',
-          search_term: query,
-          results_count: data?.length || 0
-        });
-      }
-
-      return (data || []) as SearchResult[];
     },
     enabled: query.length >= 2,
     staleTime: 30 * 1000, // 30 seconds

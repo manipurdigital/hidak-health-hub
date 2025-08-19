@@ -16,6 +16,7 @@ import { SearchDropdown } from "./SearchDropdown";
 import { SearchSheet } from "./SearchSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { SearchResult } from "@/integrations/supabase/search";
 
 interface SearchBarProps {
   className?: string;
@@ -37,9 +38,11 @@ export function SearchBar({
   const isMobile = useIsMobile();
   
   const debouncedQuery = useDebouncedValue(query, 200);
-  const { data: results = [], isLoading, error } = useSearchSuggestions(debouncedQuery);
+  const { data: resultsData, isLoading, error } = useSearchSuggestions(debouncedQuery);
+  const results: SearchResult[] = (resultsData as SearchResult[]) ?? [];
   const groups = useGroupedSuggestions(results, 5);
-  const { data: trendingMedicines = [] } = useTrendingMedicines(8);
+  const { data: trendingData } = useTrendingMedicines(8);
+  const trendingMedicines = trendingData ?? [];
 
   // Count total items for keyboard navigation
   const allItems = React.useMemo(() => {
