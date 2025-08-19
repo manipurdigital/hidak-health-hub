@@ -10,7 +10,8 @@ import {
   MapPin,
   Map,
   Building2,
-  TestTube
+  TestTube,
+  DollarSign
 } from 'lucide-react';
 
 import {
@@ -37,6 +38,7 @@ const adminSidebarItems = [
   { title: "Geofencing", url: "/admin/geofencing", icon: Map },
   { title: "Locations", url: "/admin/locations", icon: Building2 },
   { title: "Tracking Test", url: "/admin/tracking-test", icon: TestTube },
+  { title: "Payment Reconciliation", url: "/admin/reports/reconciliation", icon: DollarSign },
 ];
 
 export function AdminSidebar() {

@@ -1254,6 +1254,51 @@ export type Database = {
           },
         ]
       }
+      payment_events: {
+        Row: {
+          correlation_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          error_details: Json | null
+          event_type: string | null
+          id: string
+          outcome: string | null
+          payload: Json
+          processed_at: string | null
+          received_at: string
+          signature_valid: boolean
+        }
+        Insert: {
+          correlation_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_details?: Json | null
+          event_type?: string | null
+          id: string
+          outcome?: string | null
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+          signature_valid?: boolean
+        }
+        Update: {
+          correlation_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error_details?: Json | null
+          event_type?: string | null
+          id?: string
+          outcome?: string | null
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+          signature_valid?: boolean
+        }
+        Relationships: []
+      }
       prescriptions: {
         Row: {
           consultation_id: string
@@ -2444,6 +2489,17 @@ export type Database = {
           out_for_delivery_at: string
           status: string
           total_amount: number
+        }[]
+      }
+      get_payment_reconciliation_stats: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: {
+          duplicate_events: number
+          failed_events: number
+          pending_events: number
+          processed_events: number
+          success_rate: number
+          total_events: number
         }[]
       }
       get_proj4_from_srid: {

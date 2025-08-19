@@ -1,58 +1,191 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-// Helper logging function
-const logStep = (step: string, details?: any) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-razorpay-signature',
+};
+
+// Helper logging function with correlation ID
+const logStep = (correlationId: string, step: string, details?: any) => {
+  const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[RAZORPAY-WEBHOOK] ${step}${detailsStr}`);
+  console.log(`[${timestamp}] [${correlationId}] ${step}${detailsStr}`);
 };
 
 // Function to verify Razorpay webhook signature
-const verifyRazorpaySignature = (body: string, signature: string, secret: string): boolean => {
+const verifyRazorpaySignature = async (body: string, signature: string, secret: string): Promise<boolean> => {
   try {
-    const crypto = new TextEncoder().encode(secret);
-    const data = new TextEncoder().encode(body);
-    
-    // Create HMAC-SHA256 signature
-    const key = crypto;
-    const message = data;
-    
-    // Note: This is a simplified version. In production, use proper crypto library
-    // For now, we'll skip signature verification and add logging
-    logStep("Signature verification", { provided: signature, bodyLength: body.length });
-    return true; // Skip verification for now - implement proper crypto verification
+    // Import Web Crypto API
+    const crypto = globalThis.crypto;
+    if (!crypto || !crypto.subtle) {
+      throw new Error('Web Crypto API not available');
+    }
+
+    // Create HMAC key
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    // Sign the body
+    const signatureBytes = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      new TextEncoder().encode(body)
+    );
+
+    // Convert to hex string
+    const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Compare signatures (constant time comparison would be better)
+    return signature === expectedSignature;
   } catch (error) {
-    logStep("Signature verification failed", { error: error.message });
+    console.error('Signature verification error:', error);
     return false;
   }
 };
 
+// Function to record payment event for idempotency
+const recordPaymentEvent = async (
+  supabaseClient: any,
+  eventId: string,
+  payload: any,
+  signatureValid: boolean,
+  correlationId: string
+) => {
+  const eventData = {
+    id: eventId,
+    payload: payload,
+    signature_valid: signatureValid,
+    correlation_id: correlationId,
+    event_type: payload.event,
+    entity_type: payload.payload?.payment?.entity ? 'payment' : 
+                 payload.payload?.order?.entity ? 'order' : 
+                 'unknown',
+    entity_id: payload.payload?.payment?.entity?.id || 
+               payload.payload?.order?.entity?.id || 
+               'unknown'
+  };
+
+  // Try to insert, if it already exists, return existing record
+  const { data: existingEvent, error: selectError } = await supabaseClient
+    .from('payment_events')
+    .select('*')
+    .eq('id', eventId)
+    .single();
+
+  if (existingEvent) {
+    logStep(correlationId, "Event already exists", { eventId, processedAt: existingEvent.processed_at });
+    return { isNew: false, event: existingEvent };
+  }
+
+  const { data: newEvent, error: insertError } = await supabaseClient
+    .from('payment_events')
+    .insert(eventData)
+    .select()
+    .single();
+
+  if (insertError) {
+    // Check if it's a duplicate key error (race condition)
+    if (insertError.code === '23505') {
+      // Another request inserted this event, fetch it
+      const { data: raceEvent } = await supabaseClient
+        .from('payment_events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+      
+      logStep(correlationId, "Race condition detected", { eventId });
+      return { isNew: false, event: raceEvent };
+    }
+    throw insertError;
+  }
+
+  logStep(correlationId, "New event recorded", { eventId });
+  return { isNew: true, event: newEvent };
+};
+
+// Function to update event as processed
+const markEventProcessed = async (
+  supabaseClient: any,
+  eventId: string,
+  outcome: 'success' | 'failed' | 'ignored' | 'error',
+  errorDetails?: any,
+  correlationId?: string
+) => {
+  const { error } = await supabaseClient
+    .from('payment_events')
+    .update({
+      processed_at: new Date().toISOString(),
+      outcome: outcome,
+      error_details: errorDetails
+    })
+    .eq('id', eventId);
+
+  if (error) {
+    logStep(correlationId || 'unknown', "Error marking event processed", { eventId, error });
+  } else {
+    logStep(correlationId || 'unknown', "Event marked as processed", { eventId, outcome });
+  }
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const correlationId = crypto.randomUUID();
+  let eventId = 'unknown';
+
   try {
-    logStep("Webhook received", { method: req.method, url: req.url });
+    logStep(correlationId, "Webhook received", { method: req.method, url: req.url });
 
     if (req.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
+      return new Response("Method not allowed", { 
+        status: 405,
+        headers: corsHeaders 
+      });
     }
 
     const signature = req.headers.get("x-razorpay-signature");
     if (!signature) {
-      logStep("Missing signature header");
-      return new Response("Missing signature", { status: 400 });
+      logStep(correlationId, "Missing signature header");
+      return new Response("Missing signature", { 
+        status: 400,
+        headers: corsHeaders 
+      });
     }
 
     const body = await req.text();
-    const webhookSecret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET") || "your_webhook_secret";
-
-    // Verify signature (simplified - implement proper verification in production)
-    const isValid = verifyRazorpaySignature(body, signature, webhookSecret);
-    if (!isValid) {
-      logStep("Invalid signature");
-      return new Response("Invalid signature", { status: 400 });
+    const webhookSecret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET");
+    
+    if (!webhookSecret) {
+      logStep(correlationId, "Missing webhook secret");
+      return new Response("Server configuration error", { 
+        status: 500,
+        headers: corsHeaders 
+      });
     }
 
+    // Verify signature
+    const isSignatureValid = await verifyRazorpaySignature(body, signature, webhookSecret);
+    logStep(correlationId, "Signature verification result", { isValid: isSignatureValid });
+
     const event = JSON.parse(body);
-    logStep("Event parsed", { event: event.event, entityType: event.entity });
+    eventId = event.id || `${event.event}_${Date.now()}`;
+    
+    logStep(correlationId, "Event parsed", { 
+      eventId,
+      event: event.event, 
+      entityType: event.payload?.payment?.entity ? 'payment' : 'order'
+    });
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -60,112 +193,243 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Handle different webhook events
-    switch (event.event) {
-      case "payment.captured":
-      case "payment.failed":
-        await handlePaymentEvent(supabaseClient, event);
-        break;
+    // Record event for idempotency
+    const { isNew, event: recordedEvent } = await recordPaymentEvent(
+      supabaseClient,
+      eventId,
+      event,
+      isSignatureValid,
+      correlationId
+    );
+
+    // If event already processed, return success
+    if (!isNew && recordedEvent.processed_at) {
+      logStep(correlationId, "Event already processed", { 
+        eventId, 
+        outcome: recordedEvent.outcome,
+        processedAt: recordedEvent.processed_at 
+      });
       
-      case "order.paid":
-        await handleOrderPaidEvent(supabaseClient, event);
-        break;
-        
-      default:
-        logStep("Unhandled event type", { event: event.event });
+      return new Response("Event already processed", { 
+        status: 200,
+        headers: corsHeaders 
+      });
     }
 
-    return new Response("Webhook processed", { status: 200 });
+    // If signature is invalid, mark as failed and return error
+    if (!isSignatureValid) {
+      await markEventProcessed(supabaseClient, eventId, 'failed', {
+        error: 'Invalid signature',
+        signature: signature.substring(0, 10) + '...'
+      }, correlationId);
+      
+      return new Response("Invalid signature", { 
+        status: 400,
+        headers: corsHeaders 
+      });
+    }
+
+    // Process the event within a transaction-like approach
+    try {
+      await processWebhookEvent(supabaseClient, event, correlationId);
+      
+      // Mark as successfully processed
+      await markEventProcessed(supabaseClient, eventId, 'success', null, correlationId);
+      
+      logStep(correlationId, "Webhook processed successfully", { eventId });
+      return new Response("Webhook processed", { 
+        status: 200,
+        headers: corsHeaders 
+      });
+
+    } catch (processingError) {
+      // Mark as failed
+      await markEventProcessed(supabaseClient, eventId, 'error', {
+        error: processingError.message,
+        stack: processingError.stack
+      }, correlationId);
+      
+      throw processingError;
+    }
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in webhook", { message: errorMessage });
-    return new Response("Webhook error", { status: 500 });
+    logStep(correlationId, "ERROR in webhook", { 
+      eventId,
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
+    return new Response("Webhook error", { 
+      status: 500,
+      headers: corsHeaders 
+    });
   }
 });
 
-async function handlePaymentEvent(supabaseClient: any, event: any) {
-  const payment = event.payload.payment.entity;
-  const orderId = payment.order_id;
-  const status = event.event === "payment.captured" ? "paid" : "failed";
-  
-  logStep("Processing payment event", { 
-    paymentId: payment.id, 
-    orderId, 
-    status, 
-    amount: payment.amount 
-  });
-
-  // Update medicine orders
-  const { data: order, error: orderError } = await supabaseClient
-    .from('orders')
-    .select('*')
-    .eq('razorpay_order_id', orderId)
-    .single();
-
-  if (order && !orderError) {
-    logStep("Updating medicine order", { orderId: order.id });
+async function processWebhookEvent(supabaseClient: any, event: any, correlationId: string) {
+  // Handle different webhook events
+  switch (event.event) {
+    case "payment.captured":
+      await handlePaymentCaptured(supabaseClient, event, correlationId);
+      break;
     
-    const { error: updateError } = await supabaseClient
-      .from('orders')
-      .update({
-        payment_status: status,
-        razorpay_payment_id: payment.id,
-        status: status === "paid" ? "confirmed" : "cancelled",
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', order.id);
-
-    if (updateError) {
-      logStep("Error updating order", updateError);
-    } else {
-      logStep("Order updated successfully", { orderId: order.id, status });
-    }
-  }
-
-  // Update lab bookings
-  const { data: booking, error: bookingError } = await supabaseClient
-    .from('lab_bookings')
-    .select('*')
-    .eq('razorpay_order_id', orderId)
-    .single();
-
-  if (booking && !bookingError) {
-    logStep("Updating lab booking", { bookingId: booking.id });
-    
-    const { error: updateError } = await supabaseClient
-      .from('lab_bookings')
-      .update({
-        payment_status: status,
-        razorpay_payment_id: payment.id,
-        status: status === "paid" ? "confirmed" : "cancelled",
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', booking.id);
-
-    if (updateError) {
-      logStep("Error updating booking", updateError);
-    } else {
-      logStep("Booking updated successfully", { bookingId: booking.id, status });
-    }
+    case "payment.failed":
+      await handlePaymentFailed(supabaseClient, event, correlationId);
+      break;
+      
+    case "order.paid":
+      await handleOrderPaid(supabaseClient, event, correlationId);
+      break;
+      
+    default:
+      logStep(correlationId, "Unhandled event type", { event: event.event });
+      // Don't throw error for unknown events, just log them
   }
 }
 
-async function handleOrderPaidEvent(supabaseClient: any, event: any) {
-  const order = event.payload.order.entity;
-  logStep("Processing order paid event", { orderId: order.id, amount: order.amount });
+async function handlePaymentCaptured(supabaseClient: any, event: any, correlationId: string) {
+  const payment = event.payload.payment.entity;
+  const orderId = payment.order_id;
   
-  // This is redundant with payment.captured but kept for completeness
-  await handlePaymentEvent(supabaseClient, {
-    event: "payment.captured",
+  logStep(correlationId, "Processing payment captured", { 
+    paymentId: payment.id, 
+    orderId, 
+    amount: payment.amount 
+  });
+
+  // Use a single transaction to update both orders and lab_bookings
+  const { error: txError } = await supabaseClient.rpc('process_payment_captured', {
+    p_razorpay_order_id: orderId,
+    p_razorpay_payment_id: payment.id,
+    p_amount: payment.amount,
+    p_currency: payment.currency || 'INR'
+  });
+
+  if (txError) {
+    // If RPC doesn't exist, fall back to manual updates
+    logStep(correlationId, "RPC not found, using manual updates", { orderId });
+    await updatePaymentStatusManually(supabaseClient, orderId, payment, 'paid', correlationId);
+  } else {
+    logStep(correlationId, "Payment captured processed via RPC", { orderId });
+  }
+}
+
+async function handlePaymentFailed(supabaseClient: any, event: any, correlationId: string) {
+  const payment = event.payload.payment.entity;
+  const orderId = payment.order_id;
+  
+  logStep(correlationId, "Processing payment failed", { 
+    paymentId: payment.id, 
+    orderId,
+    errorCode: payment.error_code,
+    errorDescription: payment.error_description
+  });
+
+  await updatePaymentStatusManually(supabaseClient, orderId, payment, 'failed', correlationId);
+}
+
+async function handleOrderPaid(supabaseClient: any, event: any, correlationId: string) {
+  const order = event.payload.order.entity;
+  logStep(correlationId, "Processing order paid event", { orderId: order.id, amount: order.amount });
+  
+  // Create a synthetic payment captured event
+  await handlePaymentCaptured(supabaseClient, {
     payload: {
       payment: {
         entity: {
           id: order.id + "_order_paid",
           order_id: order.id,
-          amount: order.amount
+          amount: order.amount,
+          currency: order.currency || 'INR'
         }
       }
     }
-  });
+  }, correlationId);
+}
+
+async function updatePaymentStatusManually(
+  supabaseClient: any, 
+  orderId: string, 
+  payment: any, 
+  status: 'paid' | 'failed',
+  correlationId: string
+) {
+  const timestamp = new Date().toISOString();
+  const newStatus = status === 'paid' ? 'confirmed' : 'cancelled';
+  
+  // Update medicine orders
+  const { data: orders, error: orderError } = await supabaseClient
+    .from('orders')
+    .select('id')
+    .eq('razorpay_order_id', orderId);
+
+  if (orders && orders.length > 0) {
+    for (const order of orders) {
+      logStep(correlationId, "Updating medicine order", { orderId: order.id, status });
+      
+      const updateData = {
+        payment_status: status,
+        razorpay_payment_id: payment.id,
+        status: newStatus,
+        updated_at: timestamp
+      };
+      
+      if (status === 'paid') {
+        updateData.paid_at = timestamp;
+      }
+      
+      const { error: updateError } = await supabaseClient
+        .from('orders')
+        .update(updateData)
+        .eq('id', order.id);
+
+      if (updateError) {
+        logStep(correlationId, "Error updating order", { orderId: order.id, error: updateError });
+        throw new Error(`Failed to update order ${order.id}: ${updateError.message}`);
+      } else {
+        logStep(correlationId, "Order updated successfully", { orderId: order.id, status });
+      }
+    }
+  }
+
+  // Update lab bookings
+  const { data: bookings, error: bookingError } = await supabaseClient
+    .from('lab_bookings')
+    .select('id')
+    .eq('razorpay_order_id', orderId);
+
+  if (bookings && bookings.length > 0) {
+    for (const booking of bookings) {
+      logStep(correlationId, "Updating lab booking", { bookingId: booking.id, status });
+      
+      const updateData = {
+        payment_status: status,
+        razorpay_payment_id: payment.id,
+        status: newStatus,
+        updated_at: timestamp
+      };
+      
+      if (status === 'paid') {
+        updateData.paid_at = timestamp;
+      }
+      
+      const { error: updateError } = await supabaseClient
+        .from('lab_bookings')
+        .update(updateData)
+        .eq('id', booking.id);
+
+      if (updateError) {
+        logStep(correlationId, "Error updating booking", { bookingId: booking.id, error: updateError });
+        throw new Error(`Failed to update booking ${booking.id}: ${updateError.message}`);
+      } else {
+        logStep(correlationId, "Booking updated successfully", { bookingId: booking.id, status });
+      }
+    }
+  }
+
+  if ((!orders || orders.length === 0) && (!bookings || bookings.length === 0)) {
+    logStep(correlationId, "No orders or bookings found for Razorpay order", { orderId });
+    throw new Error(`No orders or bookings found for Razorpay order ID: ${orderId}`);
+  }
 }
