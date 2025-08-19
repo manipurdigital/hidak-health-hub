@@ -84,7 +84,7 @@ export class PerformanceCache {
         .gt('expires_at', new Date().toISOString())
         .maybeSingle();
 
-      return data?.cache_value || null;
+      return data?.cache_value as T || null;
     } catch (error) {
       console.warn('Server cache read failed:', error);
       return null;
@@ -103,7 +103,7 @@ export class PerformanceCache {
         .from('query_cache')
         .upsert({
           cache_key: key,
-          cache_value: data,
+          cache_value: data as any,
           expires_at: expiresAt.toISOString()
         });
     } catch (error) {

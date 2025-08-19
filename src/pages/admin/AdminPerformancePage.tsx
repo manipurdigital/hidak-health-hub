@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, TrendingUp, Clock, Database, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import AdminLayout from '@/components/AdminLayout';
+import { AdminLayout } from '@/components/AdminLayout';
 
 interface PerformanceStats {
   p50: number;

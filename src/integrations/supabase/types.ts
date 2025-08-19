@@ -141,6 +141,13 @@ export type Database = {
             foreignKeyName: "carts_medicine_id_fkey"
             columns: ["medicine_id"]
             isOneToOne: false
+            referencedRelation: "medicine_recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carts_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
             referencedRelation: "medicines"
             referencedColumns: ["id"]
           },
@@ -677,6 +684,13 @@ export type Database = {
             foreignKeyName: "import_job_items_created_medicine_id_fkey"
             columns: ["created_medicine_id"]
             isOneToOne: false
+            referencedRelation: "medicine_recommendations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_job_items_created_medicine_id_fkey"
+            columns: ["created_medicine_id"]
+            isOneToOne: false
             referencedRelation: "medicines"
             referencedColumns: ["id"]
           },
@@ -1178,6 +1192,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "medicine_performance"
             referencedColumns: ["medicine_id"]
+          },
+          {
+            foreignKeyName: "order_items_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_recommendations"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "order_items_medicine_id_fkey"
@@ -1902,6 +1923,29 @@ export type Database = {
           total_quantity: number | null
           total_revenue: number | null
           unique_customers: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicines_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "medicine_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicine_recommendations: {
+        Row: {
+          brand: string | null
+          category_id: string | null
+          id: string | null
+          image_url: string | null
+          last_updated: string | null
+          name: string | null
+          order_count: number | null
+          popularity_score: number | null
+          price: number | null
+          trend_status: string | null
         }
         Relationships: [
           {
@@ -3122,6 +3166,10 @@ export type Database = {
         }[]
       }
       refresh_analytics_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_medicine_recommendations: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

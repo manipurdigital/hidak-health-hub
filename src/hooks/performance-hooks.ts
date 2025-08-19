@@ -53,11 +53,8 @@ export function useCachedRecommendations() {
         const requestId = PerformanceMonitor.generateRequestId();
         PerformanceMonitor.startTimer(requestId);
 
-        // Try materialized view first
-        const { data: materializedData } = await supabase
-          .from('medicine_recommendations')
-          .select('*')
-          .limit(10);
+        // Try to query using rpc or raw SQL instead
+        const { data, error } = await supabase.rpc('get_medicine_recommendations');
 
         await PerformanceMonitor.endTimer(
           requestId,
@@ -68,7 +65,7 @@ export function useCachedRecommendations() {
           true
         );
 
-        return materializedData || [];
+        return data || [];
       },
       60000 // 1 minute cache for recommendations
     ),
