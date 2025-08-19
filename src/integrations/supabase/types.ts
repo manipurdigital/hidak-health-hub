@@ -1341,6 +1341,45 @@ export type Database = {
         }
         Relationships: []
       }
+      performance_logs: {
+        Row: {
+          cache_hit: boolean | null
+          created_at: string
+          duration_ms: number
+          endpoint: string
+          id: string
+          method: string
+          query_count: number | null
+          request_id: string | null
+          status_code: number | null
+          user_id: string | null
+        }
+        Insert: {
+          cache_hit?: boolean | null
+          created_at?: string
+          duration_ms: number
+          endpoint: string
+          id?: string
+          method: string
+          query_count?: number | null
+          request_id?: string | null
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          cache_hit?: boolean | null
+          created_at?: string
+          duration_ms?: number
+          endpoint?: string
+          id?: string
+          method?: string
+          query_count?: number | null
+          request_id?: string | null
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       prescriptions: {
         Row: {
           consultation_id: string
@@ -1460,6 +1499,27 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      query_cache: {
+        Row: {
+          cache_key: string
+          cache_value: Json
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          cache_key: string
+          cache_value: Json
+          created_at?: string
+          expires_at: string
+        }
+        Update: {
+          cache_key?: string
+          cache_value?: Json
+          created_at?: string
+          expires_at?: string
         }
         Relationships: []
       }
@@ -2158,6 +2218,10 @@ export type Database = {
         Returns: number
       }
       cleanup_old_courier_locations: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      cleanup_query_cache: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
