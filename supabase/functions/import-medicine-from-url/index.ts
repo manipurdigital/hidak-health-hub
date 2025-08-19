@@ -47,11 +47,19 @@ interface MedicineData {
   image_hash?: string;
 }
 
-// Minimal domain allowlist - start with Tata 1mg, expand via config later
-const DOMAIN_ALLOWLIST = [
-  '1mg.com'
-  // Add other domains via configuration as needed
+// Trusted domain allowlist for copyright compliance
+const TRUSTED_DOMAINS = [
+  '1mg.com',
+  'apollopharmacy.in',
+  'netmeds.com',
+  'pharmeasy.in'
 ];
+
+// Extended allowlist (configurable via environment)
+const EXTENDED_ALLOWLIST = (Deno.env.get('IMPORT_DOMAIN_ALLOWLIST') || '')
+  .split(',')
+  .map(d => d.trim())
+  .filter(d => d.length > 0);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -99,10 +107,14 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
 
   console.log(`Processing URL: ${url} from domain: ${domain}`);
 
-  // Domain allowlist check
-  if (!DOMAIN_ALLOWLIST.some(allowed => domain.includes(allowed))) {
-    console.warn(`Domain ${domain} not in allowlist - using generic parser`);
-    warnings.push(`Domain ${domain} not in allowlist - parsed with generic parser, review carefully`);
+  // Domain allowlist and trust check
+  const isTrusted = TRUSTED_DOMAINS.some(trusted => domain.includes(trusted));
+  const isAllowlisted = isTrusted || EXTENDED_ALLOWLIST.some(allowed => domain.includes(allowed));
+  
+  if (!isAllowlisted) {
+    console.warn(`Domain ${domain} not in allowlist - using generic parser with IP guard`);
+    warnings.push(`⚠ Domain ${domain} not allowlisted - manual copyright review required`);
+    warnings.push(`⚠ Verify attribution and permission before publishing`);
   }
 
   // Robots.txt check
@@ -138,7 +150,7 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
     };
   }
 
-  // Handle image processing
+  // Enhanced IP Guard: Handle image processing with copyright consideration
   if (options.downloadImages && medicineData.image_url) {
     try {
       const imageResult = await processImage(medicineData.image_url);
@@ -147,16 +159,21 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
         medicineData.thumbnail_url = imageResult.publicUrl;
         medicineData.image_hash = imageResult.imageHash;
         medicineData.image_url = imageResult.publicUrl;
+        console.log(`✓ Image downloaded to storage for copyright compliance`);
       }
     } catch (error) {
-      warnings.push(`Failed to download image: ${error.message}`);
+      warnings.push(`⚠ Failed to download image: ${error.message} - manual intervention required`);
     }
+  } else if (medicineData.image_url && !options.downloadImages) {
+    warnings.push(`⚠ Image remains hotlinked from external source - consider downloading for copyright compliance`);
   }
 
-  // Add source metadata
+  // Enhanced source attribution for IP compliance
+  const trustStatus = isTrusted ? 'trusted medical retailer' : 
+                      isAllowlisted ? 'allowlisted source' : 'external source';
   medicineData.external_source_url = url;
   medicineData.external_source_domain = domain;
-  medicineData.source_attribution = `Imported from ${domain} (public page) - please verify`;
+  medicineData.source_attribution = `Imported from ${domain} (${trustStatus}) - ${isTrusted ? 'verified content' : 'requires copyright review'}`;
   
   // Generate source checksum
   const sourceData = {

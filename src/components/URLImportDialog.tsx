@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { IPGuardBanner } from '@/components/IPGuardBanner';
+import { AttributionDisplay } from '@/components/AttributionDisplay';
 import { 
   Loader2, 
   ExternalLink, 
@@ -423,26 +425,16 @@ export function URLImportDialog({ open, onOpenChange, onSuccess }: URLImportDial
 
           {step === 'preview' && parsedData && editableData && (
             <div className="space-y-6">
-              {/* Source Banner */}
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <ExternalLink className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900">
-                      Imported from {parsedData.external_source_domain}
-                    </span>
-                    <Badge variant="secondary" className="ml-auto">
-                      {parsedData.source_attribution}
-                    </Badge>
-                    {downloadImages && parsedData.image_url && (
-                      <Badge variant="secondary">
-                        <Download className="w-3 h-3 mr-1" />
-                        Image Downloaded
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* IP Guard Banner */}
+              <IPGuardBanner
+                domain={parsedData.external_source_domain}
+                isHotlinked={!downloadImages && !!parsedData.image_url}
+                sourceAttribution={parsedData.source_attribution}
+                originalImageUrl={parsedData.image_url}
+                isAllowlisted={false} // Would check against allowlist
+                onImageUpdate={(newUrl) => setEditableData(prev => prev ? { ...prev, image_url: newUrl } : null)}
+                onAttributionUpdate={(newAttribution) => setEditableData(prev => prev ? { ...prev, source_attribution: newAttribution } : null)}
+              />
 
               {/* Confidence Legend */}
               <Card>

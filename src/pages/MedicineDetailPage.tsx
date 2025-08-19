@@ -11,6 +11,7 @@ import { useMedicine } from '@/hooks/medicine-hooks';
 import { useCart } from '@/contexts/CartContext';
 import { PrescriptionUpload } from '@/components/PrescriptionUpload';
 import { MedicineAlternatives } from '@/components/MedicineAlternatives';
+import { AttributionDisplay } from '@/components/AttributionDisplay';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
 import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
@@ -259,6 +260,19 @@ export function MedicineDetailPage() {
             </Card>
           </div>
         </div>
+
+        {/* Source Attribution (if imported) */}
+        {medicine.external_source_url && medicine.source_attribution && (
+          <div className="mt-8">
+            <AttributionDisplay
+              sourceAttribution={medicine.source_attribution}
+              sourceDomain={medicine.external_source_domain || ''}
+              sourceUrl={medicine.external_source_url}
+              lastFetched={medicine.source_last_fetched}
+              variant="footer"
+            />
+          </div>
+        )}
 
         {/* Medicine Alternatives Section */}
         <div className="mt-8">
