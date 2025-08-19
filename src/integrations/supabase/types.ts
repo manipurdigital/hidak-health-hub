@@ -712,6 +712,7 @@ export type Database = {
           time_slot: string
           total_amount: number
           tracking_token: string | null
+          tracking_token_expires_at: string | null
           updated_at: string
           user_id: string
         }
@@ -743,6 +744,7 @@ export type Database = {
           time_slot: string
           total_amount: number
           tracking_token?: string | null
+          tracking_token_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -774,6 +776,7 @@ export type Database = {
           time_slot?: string
           total_amount?: number
           tracking_token?: string | null
+          tracking_token_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1179,6 +1182,7 @@ export type Database = {
           total_amount: number
           tracking_status: string | null
           tracking_token: string | null
+          tracking_token_expires_at: string | null
           updated_at: string
           user_id: string
         }
@@ -1207,6 +1211,7 @@ export type Database = {
           total_amount: number
           tracking_status?: string | null
           tracking_token?: string | null
+          tracking_token_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1235,6 +1240,7 @@ export type Database = {
           total_amount?: number
           tracking_status?: string | null
           tracking_token?: string | null
+          tracking_token_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2430,10 +2436,12 @@ export type Database = {
       get_order_by_token: {
         Args: { order_id: string; token: string }
         Returns: {
+          created_at: string
           id: string
           last_distance_meters: number
           last_eta_mins: number
           order_number: string
+          out_for_delivery_at: string
           status: string
           total_amount: number
         }[]

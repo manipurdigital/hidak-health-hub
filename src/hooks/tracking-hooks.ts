@@ -211,7 +211,7 @@ export const useSendLocationUpdate = () => {
   });
 };
 
-// Hook for public tracking by token
+// Hook for public tracking by token with expiry validation
 export const usePublicTracking = (
   type: 'lab' | 'order',
   id: string,
@@ -220,24 +220,44 @@ export const usePublicTracking = (
   return useQuery({
     queryKey: ['public-tracking', type, id, token],
     queryFn: async () => {
+      if (!id || !token) return null;
+
       if (type === 'lab') {
         const { data, error } = await supabase.rpc('get_lab_booking_by_token', {
           booking_id: id,
           token: token
         });
-        if (error) throw error;
+        
+        if (error) {
+          console.error('Error fetching lab booking tracking:', error);
+          return null;
+        }
+        
         return data?.[0] || null;
       } else {
         const { data, error } = await supabase.rpc('get_order_by_token', {
           order_id: id,
           token: token
         });
-        if (error) throw error;
+        
+        if (error) {
+          console.error('Error fetching order tracking:', error);
+          return null;
+        }
+        
         return data?.[0] || null;
       }
     },
     enabled: !!id && !!token,
-    refetchInterval: 15000, // Refresh every 15 seconds for public tracking
+    retry: false, // Don't retry failed requests for expired tokens
+    refetchInterval: (data: any) => {
+      // Stop polling if no data (expired/invalid token) or if completed
+      if (!data || data?.status === 'delivered' || data?.status === 'collected') {
+        return false;
+      }
+      // Poll every 15 seconds for active tracking
+      return 15000;
+    }
   });
 };
 
