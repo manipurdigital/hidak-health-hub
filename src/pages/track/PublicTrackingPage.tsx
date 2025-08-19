@@ -59,9 +59,15 @@ export default function PublicTrackingPage() {
         <Card className="w-full max-w-md">
           <CardContent className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Tracking Not Available</h2>
-            <p className="text-muted-foreground">
-              This tracking link has expired or the order/booking has been completed.
+            <h2 className="text-2xl font-bold mb-2">Tracking Link Expired</h2>
+            <p className="text-muted-foreground mb-4">
+              This tracking link has expired or is no longer valid. Tracking links expire 24 hours after activation for security purposes.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {type === 'lab' 
+                ? 'If your sample collection is still in progress, please contact our support team.'
+                : 'If your delivery is still in progress, please contact our support team.'
+              }
             </p>
           </CardContent>
         </Card>
