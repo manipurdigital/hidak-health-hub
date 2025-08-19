@@ -17,7 +17,7 @@ interface GoogleMapsProviderProps {
 export const GoogleMapsProvider = ({ children }: GoogleMapsProviderProps) => {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'AIzaSyCoS3UexTT-0nRhoyFEoXml7KQtUaCFPMk',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
   });
 

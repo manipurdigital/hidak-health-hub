@@ -51,7 +51,7 @@ export default function AdminDeliveryAssignmentsPage() {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: 'AIzaSyCoS3UexTT-0nRhoyFEoXml7KQtUaCFPMk',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries: ["places", "geometry", "drawing"]
   });
 

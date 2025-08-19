@@ -1,0 +1,9 @@
+# Environment files
+.env*
+!.env.example
+
+# Secrets and sensitive data
+*.key
+*.pem
+*.p12
+config/secrets.json

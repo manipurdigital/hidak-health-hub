@@ -85,7 +85,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
   const downloadTemplate = async () => {
     try {
       // Create download link directly with type parameter
-      const url = `https://qaqmlmshpifwdnrvfkao.supabase.co/functions/v1/generate-templates?type=${type}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-templates?type=${type}`;
       const link = document.createElement('a');
       link.href = url;
       link.download = `${type}_template.xlsx`;
