@@ -1,0 +1,160 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { SearchResult } from "@/integrations/supabase/search";
+
+export interface SearchSuggestionGroup {
+  type: 'medicine' | 'doctor' | 'lab_test';
+  title: string;
+  items: SearchResult[];
+  viewAllUrl: string;
+}
+
+export interface TrendingMedicine {
+  id: string;
+  name: string;
+  price: number;
+  thumbnail_url: string | null;
+}
+
+// Local storage for recent searches
+const RECENT_SEARCHES_KEY = 'recent_searches';
+const MAX_RECENT_SEARCHES = 10;
+
+export function useSearchSuggestions(query: string, maxPerGroup: number = 5) {
+  return useQuery<SearchResult[]>({
+    queryKey: ["search-suggestions", query, maxPerGroup],
+    queryFn: async ({ signal }) => {
+      // Use the corrected search function
+      const { data, error } = await supabase.rpc("universal_search", {
+        q: query,
+        max_per_group: maxPerGroup,
+      });
+
+      if (error) {
+        console.error("Search error:", error);
+        throw new Error(error.message);
+      }
+
+      // Track search suggestions view
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'view_suggestions', {
+          event_category: 'search',
+          search_term: query,
+          results_count: data?.length || 0
+        });
+      }
+
+      return (data || []) as SearchResult[];
+    },
+    enabled: query.length >= 2,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useTrendingMedicines(limit: number = 8) {
+  return useQuery<TrendingMedicine[]>({
+    queryKey: ['trending-medicines', limit],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('recommend_medicines_for_time', {
+        at_ts: new Date().toISOString(),
+        in_city: null,
+        in_pincode: null,
+        top_n: limit
+      });
+
+      if (error) {
+        console.error('Error fetching trending medicines:', error);
+        return [];
+      }
+
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        thumbnail_url: item.image_url
+      }));
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+  });
+}
+
+export function useGroupedSuggestions(results: SearchResult[] = [], maxPerGroup: number = 5): SearchSuggestionGroup[] {
+  return useMemo(() => {
+    const groups: SearchSuggestionGroup[] = [];
+    
+    // Group medicines (excluding alternatives)
+    const medicines = results.filter(r => r.type === "medicine" && !r.is_alternative).slice(0, maxPerGroup);
+    if (medicines.length > 0) {
+      groups.push({
+        type: 'medicine',
+        title: 'Medicines',
+        items: medicines,
+        viewAllUrl: '/medicines'
+      });
+    }
+
+    // Group lab tests
+    const labTests = results.filter(r => r.type === "lab_test").slice(0, maxPerGroup);
+    if (labTests.length > 0) {
+      groups.push({
+        type: 'lab_test',
+        title: 'Lab Tests',
+        items: labTests,
+        viewAllUrl: '/lab-tests'
+      });
+    }
+
+    // Group doctors
+    const doctors = results.filter(r => r.type === "doctor").slice(0, maxPerGroup);
+    if (doctors.length > 0) {
+      groups.push({
+        type: 'doctor',
+        title: 'Doctors',
+        items: doctors,
+        viewAllUrl: '/doctors'
+      });
+    }
+
+    return groups;
+  }, [results, maxPerGroup]);
+}
+
+// Recent searches utilities
+export function getRecentSearches(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const recent = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return recent ? JSON.parse(recent) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function addRecentSearch(query: string) {
+  if (typeof window === 'undefined' || !query.trim()) return;
+  
+  try {
+    const recent = getRecentSearches();
+    const filtered = recent.filter(q => q !== query);
+    const updated = [query, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function trackSearchClick(result: SearchResult, query: string) {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    (window as any).gtag('event', 'click_result', {
+      event_category: 'search',
+      search_term: query,
+      result_type: result.type,
+      result_id: result.id,
+      result_title: result.title
+    });
+  }
+}
