@@ -14,7 +14,7 @@ import {
 } from "@/hooks/useSearchSuggestions";
 import { SearchDropdown } from "./SearchDropdown";
 import { SearchSheet } from "./SearchSheet";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface SearchBarProps {
@@ -34,7 +34,7 @@ export function SearchBar({
   const navigate = useNavigate();
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   const debouncedQuery = useDebouncedValue(query, 200);
   const { data: results = [], isLoading, error } = useSearchSuggestions(debouncedQuery);
