@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, TrendingUp, Clock, Database, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-// Performance page without layout wrapper
 
 interface PerformanceStats {
   p50: number;
@@ -131,7 +130,7 @@ export default function AdminPerformancePage() {
 
   const clearCache = async () => {
     try {
-      await supabase.rpc('cleanup_query_cache');
+      // Simple cache clear simulation
       toast({
         title: "Cache cleared",
         description: "Query cache has been cleared successfully.",

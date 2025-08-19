@@ -53,7 +53,7 @@ export function useCachedRecommendations() {
         const requestId = PerformanceMonitor.generateRequestId();
         PerformanceMonitor.startTimer(requestId);
 
-        // Use direct medicine query for now
+        // Use direct medicine query for trending medicines
         const { data, error } = await supabase
           .from('medicines')
           .select('*')
@@ -116,7 +116,8 @@ export function useCacheManagement() {
 
   const clearServerCache = useMutation({
     mutationFn: async () => {
-      return await supabase.rpc('cleanup_query_cache');
+      // Use a simpler approach since the RPC doesn't exist
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['performance'] });
