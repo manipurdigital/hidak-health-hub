@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useSearchSuggestions";
 import { SearchDropdown } from "./SearchDropdown";
 import { SearchSheet } from "./SearchSheet";
+import { TypingPlaceholder } from "./TypingPlaceholder";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { SearchResult } from "@/integrations/supabase/search";
@@ -32,11 +33,21 @@ export function SearchBar({
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
   const popoverContentRef = useRef<HTMLDivElement>(null);
+
+  // Typing animation texts
+  const typingTexts = [
+    "Search for medicines...",
+    "Find lab tests...",
+    "Book doctor consultations...",
+    "Order health products...",
+    "Upload prescriptions..."
+  ];
   
   const debouncedQuery = useDebouncedValue(query, 200);
   const { data: resultsData, isLoading, error } = useSearchSuggestions(debouncedQuery);
@@ -140,10 +151,12 @@ export function SearchBar({
   };
 
   const handleInputFocus = () => {
+    setIsFocused(true);
     setIsOpen(query.length >= 1 || trendingMedicines.length > 0);
   };
 
   const handleInputBlur = () => {
+    setIsFocused(false);
     setTimeout(() => {
       const active = document.activeElement as HTMLElement | null;
       const withinPopover = !!(active && popoverContentRef.current && popoverContentRef.current.contains(active));
@@ -165,16 +178,28 @@ export function SearchBar({
               ref={inputRef}
               type="text"
               autoComplete="off"
-              placeholder={placeholder}
+              placeholder={!query && !isFocused ? "" : placeholder}
               value={query}
               onChange={handleInputChange}
-              onFocus={() => setIsOpen(true)}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               onKeyDown={handleKeyDown}
               className={cn("pl-10 pr-10", inputClassName)}
               aria-label={`Search ${placeholder.toLowerCase()}`}
               role="combobox"
               aria-expanded={isOpen}
             />
+            {/* Typing animation overlay for mobile */}
+            {!query && !isFocused && (
+              <div className="absolute left-10 top-1/2 transform -translate-y-1/2 pointer-events-none text-muted-foreground">
+                <TypingPlaceholder 
+                  texts={typingTexts}
+                  isActive={!isFocused && !query}
+                  speed={80}
+                  pauseDuration={1500}
+                />
+              </div>
+            )}
             {isLoading && query.length >= 2 && (
               <Loader2 
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 animate-spin" 
@@ -212,7 +237,7 @@ export function SearchBar({
               ref={inputRef}
               type="text"
               autoComplete="off"
-              placeholder={placeholder}
+              placeholder={!query && !isFocused ? "" : placeholder}
               value={query}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
@@ -225,6 +250,17 @@ export function SearchBar({
               aria-describedby={query.length >= 2 && isLoading ? "search-loading" : undefined}
               role="combobox"
             />
+            {/* Typing animation overlay for desktop */}
+            {!query && !isFocused && (
+              <div className="absolute left-10 top-1/2 transform -translate-y-1/2 pointer-events-none text-muted-foreground">
+                <TypingPlaceholder 
+                  texts={typingTexts}
+                  isActive={!isFocused && !query}
+                  speed={80}
+                  pauseDuration={1500}
+                />
+              </div>
+            )}
             {isLoading && query.length >= 2 && (
               <Loader2 
                 id="search-loading"
