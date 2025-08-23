@@ -231,49 +231,60 @@ export const MapLocationPicker = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary" />
-            {title}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <AreaSearchBar
-              onLocationSelect={handleSearchSelect}
-              placeholder="Search for a location..."
-              className="w-full"
-            />
+            <h2 className="text-lg font-semibold">{title}</h2>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 p-0"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
 
-          {/* Current Location Button */}
-          <div className="flex justify-between items-center">
+        <div className="flex flex-col h-[calc(90vh-80px)]">
+          {/* Search and Controls */}
+          <div className="p-4 space-y-3 border-b border-border">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <div className="pl-10">
+                <AreaSearchBar
+                  onLocationSelect={handleSearchSelect}
+                  placeholder="Search for a location..."
+                  className="w-full border-input"
+                />
+              </div>
+            </div>
+
+            {/* Current Location Button */}
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={getCurrentLocation}
               disabled={isLoadingLocation}
-              className="flex items-center gap-2"
+              className="w-full justify-start text-left h-auto p-3 hover:bg-muted/50"
             >
-              {isLoadingLocation ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Navigation className="w-4 h-4" />
-              )}
-              Use Current Location
+              <div className="flex items-center gap-3">
+                {isLoadingLocation ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                ) : (
+                  <Navigation className="w-5 h-5 text-primary" />
+                )}
+                <span className="font-medium">Use Current Location</span>
+              </div>
             </Button>
-            
-            <div className="text-sm text-muted-foreground">
-              Tap on map or drag pin to select location
-            </div>
           </div>
 
-          {/* Map */}
-          <div className="relative border border-border rounded-lg overflow-hidden">
+          {/* Map Container */}
+          <div className="flex-1 relative">
             <GoogleMap
-              mapContainerStyle={mapContainerStyle}
+              mapContainerStyle={{ width: '100%', height: '100%' }}
               zoom={15}
               center={mapCenter}
               onClick={handleMapClick}
@@ -283,7 +294,14 @@ export const MapLocationPicker = ({
                 mapTypeControl: false,
                 fullscreenControl: false,
                 zoomControl: true,
-                gestureHandling: 'cooperative'
+                gestureHandling: 'cooperative',
+                styles: [
+                  {
+                    featureType: 'poi',
+                    elementType: 'labels',
+                    stylers: [{ visibility: 'on' }]
+                  }
+                ]
               }}
             >
               <Marker
@@ -292,26 +310,34 @@ export const MapLocationPicker = ({
                 onDragEnd={handleMarkerDragEnd}
                 icon={{
                   url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9.5c-1.381 0-2.5-1.119-2.5-2.5S10.619 6.5 12 6.5s2.5 1.119 2.5 2.5S13.381 11.5 12 11.5z" fill="hsl(192 100% 45%)"/>
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="16" cy="16" r="8" fill="hsl(192 100% 45%)" stroke="white" stroke-width="2"/>
+                      <circle cx="16" cy="16" r="3" fill="white"/>
                     </svg>
                   `),
                   scaledSize: new google.maps.Size(32, 32),
-                  anchor: new google.maps.Point(16, 32)
+                  anchor: new google.maps.Point(16, 16)
                 }}
               />
             </GoogleMap>
+            
+            {/* Map Instructions Overlay */}
+            <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-md shadow-md">
+              <p className="text-sm text-muted-foreground">Tap on map or drag pin to select location</p>
+            </div>
           </div>
 
-          {/* Selected Address Display */}
+          {/* Selected Location Display */}
           {selectedAddress && (
-            <Card>
-              <CardContent className="p-3">
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium text-success">Selected Location</p>
-                    <p className="text-muted-foreground mt-1">
+            <div className="border-t border-border bg-muted/30">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-success flex items-center justify-center mt-0.5">
+                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-success text-sm">Selected Location</p>
+                    <p className="text-sm text-foreground mt-1">
                       {isLoadingAddress ? 'Getting address...' : selectedAddress}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -319,22 +345,24 @@ export const MapLocationPicker = ({
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleConfirmLocation} 
-              disabled={!markerPosition || isLoadingAddress}
-              className="flex-1"
-            >
-              {isLoadingAddress ? 'Getting Address...' : 'Confirm Location'}
-            </Button>
+          <div className="p-4 border-t border-border bg-background">
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmLocation} 
+                disabled={!markerPosition || isLoadingAddress}
+                className="flex-1 bg-primary hover:bg-primary/90"
+              >
+                {isLoadingAddress ? 'Getting Address...' : 'Confirm Location'}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
