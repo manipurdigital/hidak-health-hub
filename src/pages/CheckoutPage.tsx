@@ -68,6 +68,91 @@ const verifyPayment = useVerifyPayment();
     }));
   };
 
+  // Handle location selection and parse address components
+  const handleLocationSelect = async (location: { latitude: number; longitude: number; address?: string }) => {
+    // Update coordinates
+    setShippingAddress(prev => ({
+      ...prev,
+      latitude: location.latitude,
+      longitude: location.longitude,
+    }));
+
+    // If we have an address, try to parse it into components
+    if (location.address) {
+      try {
+        // Use Google Geocoding API to get detailed address components
+        const geocoder = new google.maps.Geocoder();
+        const response = await geocoder.geocode({
+          location: { lat: location.latitude, lng: location.longitude }
+        });
+
+        if (response.results && response.results.length > 0) {
+          const result = response.results[0];
+          let streetNumber = '';
+          let route = '';
+          let locality = '';
+          let city = '';
+          let state = '';
+          let postalCode = '';
+          let sublocality = '';
+
+          // Parse address components
+          result.address_components?.forEach(component => {
+            const types = component.types;
+            
+            if (types.includes('street_number')) {
+              streetNumber = component.long_name;
+            } else if (types.includes('route')) {
+              route = component.long_name;
+            } else if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
+              sublocality = component.long_name;
+            } else if (types.includes('locality')) {
+              locality = component.long_name;
+            } else if (types.includes('administrative_area_level_2')) {
+              city = city || component.long_name;
+            } else if (types.includes('administrative_area_level_1')) {
+              state = component.long_name;
+            } else if (types.includes('postal_code')) {
+              postalCode = component.long_name;
+            }
+          });
+
+          // Construct address line 1
+          const addressLine1 = [streetNumber, route].filter(Boolean).join(' ') || 
+                              result.formatted_address.split(',')[0];
+
+          // Update all address fields
+          setShippingAddress(prev => ({
+            ...prev,
+            address_line_1: addressLine1,
+            address_line_2: sublocality || prev.address_line_2,
+            city: locality || city || prev.city,
+            state: state || prev.state,
+            postal_code: postalCode || prev.postal_code,
+          }));
+
+          toast({
+            title: "Address Updated",
+            description: "Address fields have been automatically filled from map selection.",
+          });
+        } else {
+          // Fallback to just setting the formatted address
+          setShippingAddress(prev => ({
+            ...prev,
+            address_line_1: location.address || prev.address_line_1,
+          }));
+        }
+      } catch (error) {
+        console.warn('Failed to parse address components:', error);
+        // Fallback to just setting the formatted address
+        setShippingAddress(prev => ({
+          ...prev,
+          address_line_1: location.address || prev.address_line_1,
+        }));
+      }
+    }
+  };
+
   // Check serviceability when lat/lng is available
   useEffect(() => {
     const checkAddressServiceability = async () => {
@@ -424,18 +509,13 @@ const verifyPayment = useVerifyPayment();
                   addressValue={shippingAddress.address_line_1}
                   onAddressChange={(value) => handleInputChange('address_line_1', value)}
                   onLocationSelect={(location) => {
-                    setShippingAddress(prev => ({
-                      ...prev,
-                      latitude: location.latitude,
-                      longitude: location.longitude,
-                      // Auto-fill address if available
-                      ...(location.address && !prev.address_line_1 ? { address_line_1: location.address } : {})
-                    }));
+                    handleLocationSelect(location);
                   }}
                   placeholder="House no, Building name, Street"
                   required
                   showGPSPicker={true}
                   showPlacesSearch={true}
+                  showMapPicker={true}
                 />
 
                 <div>
