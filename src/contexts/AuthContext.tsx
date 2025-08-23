@@ -11,6 +11,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any; userRole?: string | null }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  signInWithPhone: (phone: string) => Promise<{ error: any }>;
+  signUpWithPhone: (phone: string, fullName?: string) => Promise<{ error: any }>;
+  verifyOtp: (phone: string, token: string) => Promise<{ error: any; userRole?: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -140,6 +143,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  const signInWithPhone = async (phone: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+      options: {
+        shouldCreateUser: false
+      }
+    });
+    return { error };
+  };
+
+  const signUpWithPhone = async (phone: string, fullName?: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+      options: {
+        shouldCreateUser: true,
+        data: {
+          full_name: fullName
+        }
+      }
+    });
+    return { error };
+  };
+
+  const verifyOtp = async (phone: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: 'sms'
+    });
+    
+    // Immediately fetch role for successful verification to enable instant redirection
+    if (!error && data.user) {
+      try {
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        return { error, userRole: roles?.role || 'user' };
+      } catch (roleError) {
+        console.error('Error fetching user role during OTP verification:', roleError);
+        return { error, userRole: 'user' };
+      }
+    }
+    
+    return { error, userRole: null };
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -149,7 +201,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signIn,
       signOut,
-      resetPassword
+      resetPassword,
+      signInWithPhone,
+      signUpWithPhone,
+      verifyOtp
     }}>
       {children}
     </AuthContext.Provider>
