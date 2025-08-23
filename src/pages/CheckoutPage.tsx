@@ -14,6 +14,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import SubscriptionBenefits from '@/components/SubscriptionBenefits';
 import { supabase } from '@/integrations/supabase/client';
 import { checkServiceability, ServiceabilityResult } from '@/services/serviceability';
+import { LocationInputField } from '@/components/LocationInputField';
 import { ArrowLeft, MapPin, Phone, Mail, CreditCard, Truck, CheckCircle, AlertTriangle } from 'lucide-react';
 import { openRazorpayCheckout, useVerifyPayment } from '@/hooks/payment-hooks';
 
@@ -418,16 +419,24 @@ const verifyPayment = useVerifyPayment();
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="address_line_1">Address Line 1 *</Label>
-                  <Input
-                    id="address_line_1"
-                    value={shippingAddress.address_line_1}
-                    onChange={(e) => handleInputChange('address_line_1', e.target.value)}
-                    placeholder="House no, Building name, Street"
-                    required
-                  />
-                </div>
+                <LocationInputField
+                  label="Address Line 1"
+                  addressValue={shippingAddress.address_line_1}
+                  onAddressChange={(value) => handleInputChange('address_line_1', value)}
+                  onLocationSelect={(location) => {
+                    setShippingAddress(prev => ({
+                      ...prev,
+                      latitude: location.latitude,
+                      longitude: location.longitude,
+                      // Auto-fill address if available
+                      ...(location.address && !prev.address_line_1 ? { address_line_1: location.address } : {})
+                    }));
+                  }}
+                  placeholder="House no, Building name, Street"
+                  required
+                  showGPSPicker={true}
+                  showPlacesSearch={true}
+                />
 
                 <div>
                   <Label htmlFor="address_line_2">Address Line 2</Label>

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { QuickLocationInput } from '@/components/QuickLocationInput';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -434,55 +435,69 @@ export default function AccountPage() {
             </TabsContent>
 
             <TabsContent value="addresses">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Saved Addresses
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {addressesLoading ? (
-                    <div className="text-center py-8">Loading addresses...</div>
-                  ) : addresses && addresses.length > 0 ? (
-                    <div className="grid gap-4">
-                      {addresses.map((address) => (
-                        <Card key={address.id} className={address.is_default ? 'border-primary' : ''}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="font-medium">{address.name}</h3>
-                                  {address.is_default && (
-                                    <Badge variant="default" className="text-xs">Default</Badge>
-                                  )}
+              <div className="grid gap-6">
+                <QuickLocationInput
+                  onLocationSelect={(location) => {
+                    toast({
+                      title: "Location Detected",
+                      description: location.address || `Coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`,
+                    });
+                    // Here you could auto-fill a new address form or show nearby services
+                  }}
+                  title="Quick Address from Location"
+                  description="Get address details using your current location for faster checkout"
+                />
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5" />
+                      Saved Addresses
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {addressesLoading ? (
+                      <div className="text-center py-8">Loading addresses...</div>
+                    ) : addresses && addresses.length > 0 ? (
+                      <div className="grid gap-4">
+                        {addresses.map((address) => (
+                          <Card key={address.id} className={address.is_default ? 'border-primary' : ''}>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="font-medium">{address.name}</h3>
+                                    {address.is_default && (
+                                      <Badge variant="default" className="text-xs">Default</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mb-1">
+                                    {address.address_line_1}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    {address.city}, {address.state} {address.postal_code}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Phone className="w-4 h-4" />
+                                    {address.phone}
+                                  </div>
                                 </div>
-                                <p className="text-sm text-muted-foreground mb-1">
-                                  {address.address_line_1}
-                                </p>
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  {address.city}, {address.state} {address.postal_code}
-                                </p>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Phone className="w-4 h-4" />
-                                  {address.phone}
-                                </div>
+                                <Button variant="outline" size="sm">
+                                  Edit
+                                </Button>
                               </div>
-                              <Button variant="outline" size="sm">
-                                Edit
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No saved addresses found
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No saved addresses found
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="care-plus">

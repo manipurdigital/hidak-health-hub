@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCreateAddress, useUpdateAddress } from '@/hooks/medicine-hooks';
+import { LocationInputField } from '@/components/LocationInputField';
 import { Autocomplete } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
@@ -151,35 +152,23 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
             />
           </div>
 
-          <div>
-            <Label htmlFor="address_line_1">Address *</Label>
-            {isLoaded ? (
-              <Autocomplete
-                onLoad={onAutocompleteLoad}
-                onPlaceChanged={onPlaceChanged}
-                options={{
-                  componentRestrictions: { country: 'in' },
-                  fields: ['formatted_address', 'geometry', 'address_components'],
-                }}
-              >
-                <Input
-                  id="address_line_1"
-                  value={formData.address_line_1}
-                  onChange={(e) => handleInputChange('address_line_1', e.target.value)}
-                  placeholder="Search for address or enter manually"
-                  required
-                />
-              </Autocomplete>
-            ) : (
-              <Input
-                id="address_line_1"
-                value={formData.address_line_1}
-                onChange={(e) => handleInputChange('address_line_1', e.target.value)}
-                placeholder="House/Flat/Building Number, Street"
-                required
-              />
-            )}
-          </div>
+          <LocationInputField
+            label="Address"
+            addressValue={formData.address_line_1}
+            onAddressChange={(value) => handleInputChange('address_line_1', value)}
+            onLocationSelect={(location) => {
+              setFormData(prev => ({
+                ...prev,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                ...(location.address && !prev.address_line_1 ? { address_line_1: location.address } : {})
+              }));
+            }}
+            placeholder="Search for address or enter manually"
+            required
+            showGPSPicker={true}
+            showPlacesSearch={isLoaded}
+          />
 
           <div>
             <Label htmlFor="address_line_2">Address Line 2</Label>
