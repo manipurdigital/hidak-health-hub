@@ -230,7 +230,7 @@ export function SearchBar({
         </PopoverTrigger>
         
         <PopoverContent 
-          className="w-[--radix-popover-trigger-width] p-0 z-50"
+          className="w-[--radix-popover-trigger-width] p-0 z-50 bg-background border shadow-md"
           align="start"
           side="bottom"
           sideOffset={4}

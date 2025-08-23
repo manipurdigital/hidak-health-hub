@@ -56,60 +56,71 @@ export function useSearchSuggestions(query: string, maxPerGroup: number = 5) {
       if (cached) return cached;
 
       try {
-        // Try universal_search_v2 first, fallback to universal_search
-        let data, error;
-        
-        try {
-          const result = await supabase.rpc("universal_search_v2", {
-            q: query,
-            max_per_group: maxPerGroup,
-          }).abortSignal(signal as AbortSignal);
-          data = result.data;
-          error = result.error;
-        } catch (v2Error) {
-          console.warn("universal_search_v2 not available, falling back to basic search");
-          // Fallback to simple medicine search
-          const result = await supabase
-            .from('medicines')
-            .select('id, name, price, image_url, thumbnail_url, manufacturer, brand')
-            .or(`name.ilike.%${query}%, brand.ilike.%${query}%, manufacturer.ilike.%${query}%`)
-            .eq('is_active', true)
-            .limit(maxPerGroup)
-            .abortSignal(signal as AbortSignal);
-          
-          data = result.data?.map(med => ({
-            type: 'medicine' as const,
-            id: med.id,
-            title: med.name,
-            subtitle: med.brand || med.manufacturer,
-            thumbnail_url: med.thumbnail_url || med.image_url,
-            price: med.price,
-            href: `/medicine/${med.id}`
-          }));
-          error = result.error;
+        // Try universal_search_v2 first
+        const v2 = await supabase.rpc("universal_search_v2", {
+          q: query,
+          max_per_group: maxPerGroup,
+        }).abortSignal(signal as AbortSignal);
+
+        if (!v2.error && Array.isArray(v2.data)) {
+          const results = (v2.data || []) as SearchResult[];
+          setInCache(cacheKey, results);
+          return results;
         }
 
-        if (error) {
-          console.warn("Search error:", error);
+        // Fallback to universal_search
+        const v1 = await supabase.rpc("universal_search", {
+          q: query,
+          max_per_group: maxPerGroup,
+        }).abortSignal(signal as AbortSignal);
+
+        if (!v1.error && Array.isArray(v1.data)) {
+          const results = (v1.data || []) as SearchResult[];
+          setInCache(cacheKey, results);
+          return results;
+        }
+
+        // Final fallback: direct medicines query
+        const tbl = await supabase
+          .from('medicines')
+          .select('id, name, price, image_url, thumbnail_url, manufacturer, brand')
+          .or(`name.ilike.%${query}%,brand.ilike.%${query}%,manufacturer.ilike.%${query}%`)
+          .eq('is_active', true)
+          .limit(maxPerGroup)
+          .abortSignal(signal as AbortSignal);
+
+        if (tbl.error) {
+          console.warn('Search fallbacks failed:', v2.error || v1.error || tbl.error);
           return [] as SearchResult[];
         }
 
+        const mapped = (tbl.data || []).map((med: any) => ({
+          type: 'medicine' as const,
+          id: med.id,
+          title: med.name,
+          subtitle: med.brand || med.manufacturer,
+          thumbnail_url: med.thumbnail_url || med.image_url,
+          price: med.price,
+          href: `/medicine/${med.id}`,
+        }));
+
+        setInCache(cacheKey, mapped);
+        
         // Track search suggestions view
         if (typeof window !== 'undefined' && (window as any).gtag) {
           (window as any).gtag('event', 'view_suggestions', {
             event_category: 'search',
             search_term: query,
-            results_count: data?.length || 0
+            results_count: mapped.length
           });
         }
 
-        const results = (data || []) as SearchResult[];
-        setInCache(cacheKey, results);
-        return results;
+        return mapped as SearchResult[];
       } catch (err) {
         console.warn('Search suggestions failed:', err);
         return [] as SearchResult[];
       }
+
     },
     enabled: query.length >= 2,
     staleTime: 30 * 1000, // 30 seconds
