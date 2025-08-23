@@ -164,12 +164,18 @@ export function SearchBar({
               value={query}
               onChange={handleInputChange}
               onFocus={() => setIsOpen(true)}
+              onKeyDown={handleKeyDown}
               className={cn("pl-10 pr-10", inputClassName)}
               aria-label={`Search ${placeholder.toLowerCase()}`}
               role="combobox"
               aria-expanded={isOpen}
-              readOnly
             />
+            {isLoading && query.length >= 2 && (
+              <Loader2 
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 animate-spin" 
+                aria-label="Loading search results"
+              />
+            )}
           </div>
         </div>
         
