@@ -36,6 +36,7 @@ export function SearchBar({
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
+  const popoverContentRef = useRef<HTMLDivElement>(null);
   
   const debouncedQuery = useDebouncedValue(query, 200);
   const { data: resultsData, isLoading, error } = useSearchSuggestions(debouncedQuery);
@@ -143,11 +144,14 @@ export function SearchBar({
   };
 
   const handleInputBlur = () => {
-    // Delay closing to allow clicks on results
     setTimeout(() => {
+      const active = document.activeElement as HTMLElement | null;
+      const withinPopover = !!(active && popoverContentRef.current && popoverContentRef.current.contains(active));
+      const withinInput = active === inputRef.current;
+      if (withinPopover || withinInput) return;
       setIsOpen(false);
       setSelectedIndex(-1);
-    }, 200);
+    }, 10);
   };
 
   // Mobile sheet
@@ -160,6 +164,7 @@ export function SearchBar({
             <Input
               ref={inputRef}
               type="text"
+              autoComplete="off"
               placeholder={placeholder}
               value={query}
               onChange={handleInputChange}
@@ -206,6 +211,7 @@ export function SearchBar({
             <Input
               ref={inputRef}
               type="text"
+              autoComplete="off"
               placeholder={placeholder}
               value={query}
               onChange={handleInputChange}
@@ -230,10 +236,19 @@ export function SearchBar({
         </PopoverTrigger>
         
         <PopoverContent 
+          ref={popoverContentRef}
           className="w-[--radix-popover-trigger-width] p-0 z-50 bg-background border shadow-md"
           align="start"
           side="bottom"
           sideOffset={4}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            inputRef.current?.focus();
+          }}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            inputRef.current?.focus();
+          }}
         >
           <SearchDropdown
             query={query}
