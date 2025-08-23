@@ -274,6 +274,28 @@ const Header = () => {
             >
               Lab Tests
             </Button>
+            
+            {/* Partner Signup Links */}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                onClick={() => navigate('/lab-signup')}
+              >
+                Partner as Lab
+              </Button>
+              <span className="text-muted-foreground">|</span>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                onClick={() => navigate('/pharmacy-signup')}
+              >
+                Partner as Pharmacy
+              </Button>
+            </div>
+            
             <FeatureGuard feature="ENABLE_CONSULTATIONS">
               <Button 
                 variant="ghost" 
