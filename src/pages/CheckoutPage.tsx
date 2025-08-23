@@ -221,12 +221,71 @@ const CheckoutPage = () => {
     }
   };
 
-  const handlePayWithStripe = () => {
-    toast({
-      title: "Payment Integration",
-      description: "Stripe payment integration will be set up next. For now, placing order without payment.",
+  const handlePayNow = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to place an order",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
+
+    if (cartState.items.length === 0) {
+      toast({
+        title: "Empty Cart",
+        description: "Please add items to your cart before checkout",
+        variant: "destructive"
+      });
+      navigate('/');
+      return;
+    }
+
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    
+    try {
+      // Create order and initiate Razorpay payment
+      const orderResult = await createOrderAndInitiatePayment();
+      if (orderResult) {
+        clearCart();
+        navigate('/order-success/' + orderResult.id);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createOrderAndInitiatePayment = async () => {
+    // Use the create-order edge function that integrates with Razorpay
+    const orderData = {
+      items: cartState.items.map(item => ({
+        medicine_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity
+      })),
+      shippingAddress: shippingAddress,
+      notes: notes || null
+    };
+
+    const { data, error } = await supabase.functions.invoke('create-order', {
+      body: orderData
     });
-    handlePlaceOrder();
+
+    if (error) throw error;
+    if (!data.success) throw new Error(data.error);
+    
+    return data.order;
   };
 
   if (cartState.items.length === 0) {
@@ -479,10 +538,10 @@ const CheckoutPage = () => {
               <CardContent className="space-y-4">
                 <Button 
                   className="w-full"
-                  onClick={handlePayWithStripe}
+                  onClick={handlePayNow}
                   disabled={loading}
                 >
-                  {loading ? "Processing..." : "Pay with Stripe"}
+                  {loading ? "Processing..." : "Pay Now"}
                 </Button>
                 
                 <div className="text-xs text-muted-foreground text-center">
