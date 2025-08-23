@@ -13,6 +13,7 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,6 +87,16 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
 
+    if (password !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       const { error } = await signUp(email, password, fullName);
       
@@ -117,6 +128,7 @@ const AuthPage = () => {
         // Switch to sign in tab after successful signup
         setEmail('');
         setPassword('');
+        setConfirmPassword('');
         setFullName('');
       }
     } catch (error) {
@@ -353,6 +365,23 @@ const AuthPage = () => {
                     <p className="text-xs text-muted-foreground">
                       Password must be at least 6 characters long
                     </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <Input
+                        id="confirm-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="pl-10"
+                        minLength={6}
+                        required
+                      />
+                    </div>
                   </div>
                   
                   <Button 
