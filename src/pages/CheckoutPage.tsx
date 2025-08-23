@@ -15,6 +15,7 @@ import SubscriptionBenefits from '@/components/SubscriptionBenefits';
 import { supabase } from '@/integrations/supabase/client';
 import { checkServiceability, ServiceabilityResult } from '@/services/serviceability';
 import { ArrowLeft, MapPin, Phone, Mail, CreditCard, Truck, CheckCircle, AlertTriangle } from 'lucide-react';
+import { openRazorpayCheckout, useVerifyPayment } from '@/hooks/payment-hooks';
 
 interface ShippingAddress {
   full_name: string;
@@ -51,7 +52,8 @@ const CheckoutPage = () => {
   const { user } = useAuth();
   const { extraDiscount, freeDelivery } = useSubscription();
   const { toast } = useToast();
-  const navigate = useNavigate();
+const navigate = useNavigate();
+const verifyPayment = useVerifyPayment();
 
   const deliveryFee = freeDelivery ? 0 : 50;
   const subscriptionDiscount = (cartState.totalAmount * extraDiscount) / 100;
@@ -247,11 +249,50 @@ const CheckoutPage = () => {
     setLoading(true);
     
     try {
-      // Create order and initiate Razorpay payment
+      // Create order and get Razorpay order details
       const orderResult = await createOrderAndInitiatePayment();
       if (orderResult) {
-        clearCart();
-        navigate('/order-success/' + orderResult.id);
+        // Open Razorpay checkout
+        openRazorpayCheckout({
+          key: orderResult.razorpay_key_id,
+          amount: Math.round(orderResult.total_amount * 100),
+          currency: 'INR',
+          name: 'Medicine Order',
+          description: `Order ${orderResult.order_number}`,
+          order_id: orderResult.razorpay_order_id,
+          handler: async (response: any) => {
+            try {
+              await verifyPayment.mutateAsync({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              clearCart();
+              navigate('/order-success/' + orderResult.id);
+            } catch (e) {
+              toast({
+                title: 'Payment Verification Failed',
+                description: 'We could not verify your payment. Please contact support.',
+                variant: 'destructive',
+              });
+            }
+          },
+          prefill: {
+            name: shippingAddress.full_name,
+            email: shippingAddress.email,
+            contact: shippingAddress.phone,
+          },
+          theme: { color: '#06b6d4' },
+          modal: {
+            ondismiss: () => {
+              toast({
+                title: 'Payment Cancelled',
+                description: 'You dismissed the payment. You can try again.',
+                variant: 'destructive',
+              });
+            },
+          },
+        });
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -266,25 +307,29 @@ const CheckoutPage = () => {
   };
 
   const createOrderAndInitiatePayment = async () => {
-    // Use the create-order edge function that integrates with Razorpay
+    // Prepare payload expected by edge function
     const orderData = {
       items: cartState.items.map(item => ({
-        medicine_id: item.id,
+        id: item.id,
+        price: item.price,
         quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity
+        name: item.name,
       })),
-      shippingAddress: shippingAddress,
-      notes: notes || null
+      shippingAddress,
+      notes: notes || null,
     };
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Please sign in to pay.');
+
     const { data, error } = await supabase.functions.invoke('create-order', {
-      body: orderData
+      body: orderData,
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
 
     if (error) throw error;
-    if (!data.success) throw new Error(data.error);
-    
+    if (!data?.success) throw new Error(data?.error || 'Failed to create order');
+
     return data.order;
   };
 
