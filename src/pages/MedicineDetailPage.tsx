@@ -178,6 +178,14 @@ export function MedicineDetailPage() {
                   )}
                 </div>
 
+                {/* Salt Composition */}
+                {medicine.composition_text && (
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Salt Composition (Generic)</h4>
+                    <p className="text-sm text-muted-foreground">{medicine.composition_text}</p>
+                  </div>
+                )}
+
                 {/* Pack Size & Form */}
                 <div className="flex gap-4 text-sm text-muted-foreground">
                   {medicine.pack_size && <span>Pack: {medicine.pack_size}</span>}
