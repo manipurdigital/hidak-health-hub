@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { decode } from "https://deno.land/x/djwt@v2.9/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,11 +38,17 @@ serve(async (req) => {
       )
     }
 
-    // Verify the user is authenticated and is an admin
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    
-    if (authError || !user) {
+    // Extract user id from verified JWT (verify_jwt = true)
+    const token = authHeader.replace('Bearer ', '').trim()
+    let userIdFromToken: string | null = null
+    try {
+      const [, payload] = decode(token)
+      userIdFromToken = (payload as { sub?: string })?.sub ?? null
+    } catch (_) {
+      // ignore - handled below
+    }
+
+    if (!userIdFromToken) {
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { 
@@ -55,7 +62,7 @@ serve(async (req) => {
     const { data: userRoles, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', userIdFromToken)
 
     if (roleError || !userRoles?.some(r => r.role === 'admin')) {
       return new Response(
@@ -81,7 +88,7 @@ serve(async (req) => {
     }
 
     // Prevent admins from deleting themselves
-    if (userId === user.id) {
+    if (userId === userIdFromToken) {
       return new Response(
         JSON.stringify({ error: 'Cannot delete your own account' }),
         { 
