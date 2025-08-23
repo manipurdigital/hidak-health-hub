@@ -12,30 +12,41 @@ import { ErrorState } from '@/components/ui/error-states';
 export function LabBookingSuccessPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  
+  const { data: booking, isLoading, error } = useLabBooking(bookingId || '');
 
-  // For MVP, show mock data since we're simulating the booking
-  const mockBookingData = {
-    id: bookingId,
-    bookingNumber: `LAB-${new Date().getFullYear()}${String(Date.now()).slice(-6)}`,
-    status: 'confirmed',
-    test: {
-      name: 'Complete Blood Count (CBC)',
-      category: 'Blood Test',
-      preparation_required: false,
-      reporting_time: '24 hours'
-    },
-    booking_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    time_slot: '09:00',
-    patient_name: 'John Doe',
-    patient_phone: '+91 98765 43210',
-    total_amount: 350,
-    collection_address: {
-      name: 'John Doe',
-      address: '123 Main St, Apartment 4B',
-      city: 'Mumbai',
-      postalCode: '400001',
-      phone: '+91 98765 43210'
-    },
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <ErrorState 
+              title="Booking Not Found"
+              description="The lab booking you're looking for could not be found."
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const bookingData = {
+    ...booking,
+    bookingNumber: `LAB-${new Date(booking.created_at).getFullYear()}${booking.id.slice(-6).toUpperCase()}`,
   };
 
   const formatDate = (dateString: string) => {
@@ -49,6 +60,10 @@ export function LabBookingSuccessPage() {
   };
 
   const formatTime = (timeString: string) => {
+    // Handle both single time and range formats
+    if (timeString.includes(' - ')) {
+      return timeString;
+    }
     const [hour] = timeString.split(':');
     const hourNum = parseInt(hour);
     const endHour = hourNum + 2;
@@ -72,14 +87,14 @@ export function LabBookingSuccessPage() {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h1 className="text-2xl font-bold text-green-600 mb-2">Booking Confirmed!</h1>
-              <p className="text-muted-foreground mb-4">
-                Your lab test has been scheduled successfully. We'll come to your address between {formatTime(mockBookingData.time_slot)}.
-              </p>
-              <div className="bg-muted p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">Booking ID</p>
-                <p className="text-lg font-mono font-semibold">{mockBookingData.bookingNumber}</p>
-              </div>
+               <h1 className="text-2xl font-bold text-green-600 mb-2">Booking Confirmed!</h1>
+               <p className="text-muted-foreground mb-4">
+                 Your lab test has been scheduled successfully. We'll come to your address between {formatTime(bookingData.time_slot)}.
+               </p>
+               <div className="bg-muted p-4 rounded-lg">
+                 <p className="text-sm text-muted-foreground">Booking ID</p>
+                 <p className="text-lg font-mono font-semibold">{bookingData.bookingNumber}</p>
+               </div>
             </CardContent>
           </Card>
 
@@ -126,13 +141,13 @@ export function LabBookingSuccessPage() {
             <CardContent className="space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold">{mockBookingData.test.name}</h3>
-                  <p className="text-sm text-muted-foreground">{mockBookingData.test.category}</p>
-                  {mockBookingData.test.preparation_required && (
+                  <h3 className="font-semibold">{bookingData.test?.name}</h3>
+                  <p className="text-sm text-muted-foreground">{bookingData.test?.category}</p>
+                  {bookingData.test?.preparation_required && (
                     <Badge variant="secondary" className="mt-1">Fasting Required</Badge>
                   )}
                 </div>
-                <p className="font-semibold">₹{mockBookingData.total_amount}</p>
+                <p className="font-semibold">₹{bookingData.total_amount}</p>
               </div>
 
               <Separator />
@@ -141,7 +156,7 @@ export function LabBookingSuccessPage() {
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{formatDate(mockBookingData.booking_date)}</p>
+                    <p className="font-medium">{formatDate(bookingData.booking_date)}</p>
                     <p className="text-sm text-muted-foreground">Collection Date</p>
                   </div>
                 </div>
@@ -149,7 +164,7 @@ export function LabBookingSuccessPage() {
                 <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{formatTime(mockBookingData.time_slot)}</p>
+                    <p className="font-medium">{formatTime(bookingData.time_slot)}</p>
                     <p className="text-sm text-muted-foreground">Sample Collection Window</p>
                   </div>
                 </div>
@@ -158,7 +173,7 @@ export function LabBookingSuccessPage() {
               <div className="flex items-center gap-3">
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Report in {mockBookingData.test.reporting_time}</p>
+                  <p className="font-medium">Report in {bookingData.test?.reporting_time}</p>
                   <p className="text-sm text-muted-foreground">Will be available in your dashboard</p>
                 </div>
               </div>
@@ -174,17 +189,17 @@ export function LabBookingSuccessPage() {
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-medium">{mockBookingData.collection_address.name}</p>
+                  <p className="font-medium">{bookingData.patient_name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {mockBookingData.collection_address.address}<br />
-                    {mockBookingData.collection_address.city} - {mockBookingData.collection_address.postalCode}
+                    {/* Note: Address data is stored in patient_name and patient_phone only */}
+                    Collection address as provided during booking
                   </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-3 mt-3">
                 <Phone className="w-4 h-4 text-muted-foreground" />
-                <p className="text-sm">{mockBookingData.collection_address.phone}</p>
+                <p className="text-sm">{bookingData.patient_phone}</p>
               </div>
             </CardContent>
           </Card>
@@ -201,7 +216,7 @@ export function LabBookingSuccessPage() {
                 <li>• Please ensure someone is available at the collection address</li>
                 <li>• Reports will be available in your dashboard once ready</li>
                 <li>• For any queries, contact our support team</li>
-                {mockBookingData.test.preparation_required && (
+                {bookingData.test?.preparation_required && (
                   <li className="text-orange-600 font-medium">
                     • Please maintain fasting as per test requirements
                   </li>
