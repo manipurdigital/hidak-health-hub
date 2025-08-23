@@ -475,7 +475,7 @@ const AuthPage = () => {
                   )}
                 </div>
                 
-                {showForgotPassword && (
+                {showForgotPassword && authMethod === 'email' && (
                   <div className="mt-4 p-4 border rounded-lg bg-muted/50">
                     <h3 className="font-medium mb-3">Reset Password</h3>
                     <form onSubmit={handleForgotPassword} className="space-y-3">
