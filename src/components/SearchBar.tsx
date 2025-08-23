@@ -121,8 +121,9 @@ export function SearchBar({
     } else if (item.id) {
       navigate(`/medicine/${item.id}`);
     } else if (typeof item === 'string') {
-      setQuery(item);
-      addRecentSearch(item);
+      // This is a recent search - perform the search instead of just setting query
+      handleSearch(item);
+      return; // Early return to avoid clearing query
     }
     setQuery("");
     setIsOpen(false);
