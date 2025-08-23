@@ -76,25 +76,39 @@ export const useCreateLabBooking = () => {
 
   return useMutation({
     mutationFn: async (booking: any) => {
-      const { data, error } = await supabase
-        .from('lab_bookings')
-        .insert(booking)
-        .select()
-        .single();
-      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Please sign in to book a lab test.');
+
+      // Map incoming shapes to edge function payload
+      const payload = {
+        testId: booking.testId ?? booking.test_id,
+        bookingDate: booking.bookingDate ?? booking.booking_date,
+        timeSlot: booking.timeSlot ?? booking.time_slot,
+        patientName: booking.patientName ?? booking.patient_name,
+        patientPhone: booking.patientPhone ?? booking.patient_phone,
+        patientEmail: booking.patientEmail ?? booking.patient_email,
+        specialInstructions: booking.specialInstructions ?? booking.special_instructions,
+      };
+
+      const { data, error } = await supabase.functions.invoke('create-lab-booking', {
+        body: payload,
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
       if (error) throw error;
-      return data;
+      if (!data.success) throw new Error(data.error);
+      return data.booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lab-bookings'] });
       toast({
-        title: "Success",
-        description: "Lab test booked successfully!",
+        title: "Booking Created",
+        description: "Lab test booking created successfully!",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
-        title: "Error",
+        title: "Booking Failed",
         description: "Failed to book lab test. Please try again.",
         variant: "destructive",
       });
