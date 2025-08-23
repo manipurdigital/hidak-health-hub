@@ -149,15 +149,26 @@ const PharmacySignupPage = () => {
         status: 'pending'
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('pharmacy_applications')
-        .insert([applicationData]);
+        .insert([applicationData])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Pharmacy application insert error:', error);
+        throw error;
+      }
+      if (!data) {
+        console.error('Pharmacy application insert returned no data');
+        throw new Error('Insert succeeded but returned no data');
+      }
+
+      console.log('Pharmacy application created:', data);
       
       toast({
         title: "Application Submitted!",
-        description: "Your pharmacy registration application has been submitted. We'll review it and get back to you within 2-3 business days.",
+        description: `Application received. Ref: ${data.id}`,
       });
       
       // Redirect to success page or back to home

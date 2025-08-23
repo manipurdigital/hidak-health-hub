@@ -148,15 +148,26 @@ const LabSignupPage = () => {
         status: 'pending'
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('lab_applications')
-        .insert([applicationData]);
+        .insert([applicationData])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Lab application insert error:', error);
+        throw error;
+      }
+      if (!data) {
+        console.error('Lab application insert returned no data');
+        throw new Error('Insert succeeded but returned no data');
+      }
+
+      console.log('Lab application created:', data);
       
       toast({
         title: "Application Submitted!",
-        description: "Your lab registration application has been submitted. We'll review it and get back to you within 2-3 business days.",
+        description: `Application received. Ref: ${data.id}`,
       });
       
       // Redirect to success page or back to home
