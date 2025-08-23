@@ -68,26 +68,6 @@ const WellnessPage = () => {
     }
   ];
 
-  const testimonials = [
-    {
-      name: "Priya Sharma",
-      program: "Heart Health Program",
-      rating: 5,
-      comment: "The program helped me manage my blood pressure effectively. The regular monitoring and expert guidance made all the difference."
-    },
-    {
-      name: "Rajesh Kumar",
-      program: "Diabetes Management",
-      rating: 5,
-      comment: "Excellent support for diabetes management. The diet plans and medication reminders are very helpful."
-    },
-    {
-      name: "Anita Singh",
-      program: "Mental Wellness",
-      rating: 5,
-      comment: "The therapy sessions and stress management techniques have significantly improved my mental health."
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,29 +152,6 @@ const WellnessPage = () => {
                     <div className="text-4xl mb-4">{benefit.icon}</div>
                     <h3 className="font-semibold mb-2">{benefit.title}</h3>
                     <p className="text-sm text-muted-foreground">{benefit.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Testimonials */}
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold text-center mb-12">What Our Members Say</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {testimonials.map((testimonial, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-1 mb-3">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-4">"{testimonial.comment}"</p>
-                    <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-xs text-muted-foreground">{testimonial.program}</p>
-                    </div>
                   </CardContent>
                 </Card>
               ))}

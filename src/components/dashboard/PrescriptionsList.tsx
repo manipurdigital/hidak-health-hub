@@ -3,31 +3,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Download, User } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface Prescription {
+  id: string;
+  prescription_number: string;
+  doctor_id: string;
+  patient_id: string;
+  consultation_id: string;
+  diagnosis: string;
+  instructions: string;
+  medications: any;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  follow_up_date: string;
+}
 
 const PrescriptionsList = () => {
-  const prescriptions = [
-    {
-      id: "RX-20250115-001",
-      doctor: "Dr. Sarah Wilson",
-      date: "2025-01-15",
-      medications: ["Paracetamol 500mg", "Vitamin D3"],
-      status: "active"
+  const { user } = useAuth();
+
+  const { data: prescriptions = [], isLoading, error } = useQuery({
+    queryKey: ['user-prescriptions', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .eq('patient_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
     },
-    {
-      id: "RX-20250110-002",
-      doctor: "Dr. Michael Chen", 
-      date: "2025-01-10",
-      medications: ["Antibiotics", "Cough Syrup"],
-      status: "completed"
-    },
-    {
-      id: "RX-20250105-003",
-      doctor: "Dr. Emily Davis",
-      date: "2025-01-05", 
-      medications: ["Blood Pressure Medicine"],
-      status: "active"
-    }
-  ];
+    enabled: !!user?.id,
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -38,9 +52,55 @@ const PrescriptionsList = () => {
   };
 
   const handleDownload = (prescriptionId: string) => {
-    // Mock download functionality
+    // TODO: Implement prescription download functionality
     console.log(`Downloading prescription: ${prescriptionId}`);
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Digital Prescriptions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="p-4 border rounded-lg">
+                <Skeleton className="h-4 w-32 mb-2" />
+                <Skeleton className="h-3 w-48 mb-3" />
+                <Skeleton className="h-3 w-64" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || prescriptions.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Digital Prescriptions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No prescriptions found</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Your digital prescriptions will appear here after consultations
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -56,10 +116,10 @@ const PrescriptionsList = () => {
             <div key={prescription.id} className="p-4 border rounded-lg hover:bg-muted/30 transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-medium">{prescription.id}</h4>
+                  <h4 className="font-medium">{prescription.prescription_number}</h4>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                     <User className="w-4 h-4" />
-                    <span>{prescription.doctor}</span>
+                    <span>Doctor ID: {prescription.doctor_id}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -78,12 +138,18 @@ const PrescriptionsList = () => {
               </div>
               
               <div className="text-sm">
-                <p className="text-muted-foreground mb-1">Medications:</p>
-                <p>{prescription.medications.join(', ')}</p>
+                <p className="text-muted-foreground mb-1">Diagnosis:</p>
+                <p className="mb-2">{prescription.diagnosis || 'Not specified'}</p>
+                {prescription.instructions && (
+                  <>
+                    <p className="text-muted-foreground mb-1">Instructions:</p>
+                    <p>{prescription.instructions}</p>
+                  </>
+                )}
               </div>
               
               <div className="text-xs text-muted-foreground mt-2">
-                Issued on {prescription.date}
+                Issued on {new Date(prescription.created_at).toLocaleDateString()}
               </div>
             </div>
           ))}
