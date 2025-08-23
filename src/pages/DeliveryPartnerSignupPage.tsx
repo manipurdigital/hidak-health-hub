@@ -12,8 +12,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DeliveryPartnerSignupPage = () => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     // Personal Information
     fullName: '',
@@ -145,8 +148,30 @@ const DeliveryPartnerSignupPage = () => {
     setLoading(true);
 
     try {
-      // Here you would typically upload documents and submit form data
-      console.log('Form Data:', formData);
+      const applicationData = {
+        user_id: user?.id,
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        date_of_birth: formData.dateOfBirth,
+        current_address: formData.currentAddress,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        vehicle_type: formData.vehicleType,
+        vehicle_number: formData.vehicleNumber,
+        driving_license_number: formData.drivingLicenseNumber,
+        bank_account_number: formData.bankAccountNumber,
+        ifsc_code: formData.ifscCode,
+        pan_number: formData.panNumber,
+        status: 'pending'
+      };
+
+      const { error } = await supabase
+        .from('delivery_partner_applications')
+        .insert([applicationData]);
+
+      if (error) throw error;
       
       toast({
         title: "Application Submitted Successfully!",

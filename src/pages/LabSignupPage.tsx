@@ -14,8 +14,11 @@ import Footer from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapLocationPicker } from '@/components/MapLocationPicker';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LabSignupPage = () => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     // Basic Information
     centerName: '',
@@ -110,9 +113,46 @@ const LabSignupPage = () => {
       return;
     }
 
+    if (!formData.latitude || !formData.longitude) {
+      toast({
+        title: "Location Required",
+        description: "Please select your center's exact location on the map.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Here you would typically send the data to your backend
-      console.log('Lab signup data:', formData);
+      const applicationData = {
+        user_id: user?.id,
+        center_name: formData.centerName,
+        owner_name: formData.ownerName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        license_number: formData.licenseNumber,
+        center_type: formData.centerType,
+        landmark: formData.landmark,
+        gst_number: formData.gstNumber,
+        established_year: formData.establishedYear,
+        operating_hours: formData.operatingHours,
+        services_offered: formData.servicesOffered,
+        home_collection: formData.homeCollection,
+        emergency_services: formData.emergencyServices,
+        status: 'pending'
+      };
+
+      const { error } = await supabase
+        .from('lab_applications')
+        .insert([applicationData]);
+
+      if (error) throw error;
       
       toast({
         title: "Application Submitted!",
@@ -122,7 +162,8 @@ const LabSignupPage = () => {
       // Redirect to success page or back to home
       navigate('/');
       
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Lab application submission error:', error);
       toast({
         title: "Submission Failed",
         description: "An error occurred while submitting your application. Please try again.",

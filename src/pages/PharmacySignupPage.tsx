@@ -14,8 +14,11 @@ import Footer from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapLocationPicker } from '@/components/MapLocationPicker';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PharmacySignupPage = () => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     // Basic Information
     pharmacyName: '',
@@ -118,9 +121,39 @@ const PharmacySignupPage = () => {
       return;
     }
 
+    if (!formData.latitude || !formData.longitude) {
+      toast({
+        title: "Location Required",
+        description: "Please select your pharmacy's exact location on the map.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Here you would typically send the data to your backend
-      console.log('Pharmacy signup data:', formData);
+      const applicationData = {
+        user_id: user?.id,
+        pharmacy_name: formData.pharmacyName,
+        owner_name: formData.ownerName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        license_number: formData.drugLicense,
+        pharmacy_type: formData.pharmacyType,
+        status: 'pending'
+      };
+
+      const { error } = await supabase
+        .from('pharmacy_applications')
+        .insert([applicationData]);
+
+      if (error) throw error;
       
       toast({
         title: "Application Submitted!",
@@ -130,7 +163,7 @@ const PharmacySignupPage = () => {
       // Redirect to success page or back to home
       navigate('/');
       
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Submission Failed",
         description: "An error occurred while submitting your application. Please try again.",
