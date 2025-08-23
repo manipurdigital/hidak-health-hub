@@ -151,6 +151,11 @@ export function OrderSuccessPage() {
                 <p className="font-medium">Delivery Address</p>
                 <p className="text-sm text-muted-foreground">
                   {shippingAddress?.full_name}<br />
+                  {shippingAddress?.phone && (
+                    <>
+                      {shippingAddress.phone}<br />
+                    </>
+                  )}
                   {shippingAddress?.address_line_1}
                   {shippingAddress?.address_line_2 && <>, {shippingAddress.address_line_2}</>}<br />
                   {shippingAddress?.city}, {shippingAddress?.state} - {shippingAddress?.postal_code}
