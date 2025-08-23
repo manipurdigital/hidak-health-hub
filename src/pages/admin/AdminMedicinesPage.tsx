@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useMedicineCategories } from '@/hooks/category-hooks';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { supabase } from '@/integrations/supabase/client';
@@ -103,6 +105,11 @@ const AdminMedicinesPage = () => {
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [refetchingMedicines, setRefetchingMedicines] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedEditCategory, setSelectedEditCategory] = useState<string>('');
+
+  // Fetch medicine categories
+  const { data: medicineCategories, isLoading: categoriesLoading } = useMedicineCategories();
 
   // Check if user is admin
   if (userRole !== 'admin') {
@@ -161,6 +168,7 @@ const AdminMedicinesPage = () => {
         dosage: formData.get('dosage') as string,
         pack_size: formData.get('pack_size') as string,
         image_url: formData.get('image_url') as string || null,
+        category_id: selectedCategory || null,
         is_active: true
       };
 
@@ -176,6 +184,7 @@ const AdminMedicinesPage = () => {
       });
 
       setIsAddDialogOpen(false);
+      setSelectedCategory(''); // Reset selected category
       fetchMedicines();
     } catch (error) {
       toast({
@@ -205,6 +214,7 @@ const AdminMedicinesPage = () => {
         dosage: formData.get('dosage') as string,
         pack_size: formData.get('pack_size') as string,
         image_url: formData.get('image_url') as string || null,
+        category_id: selectedEditCategory || null,
         is_active: formData.get('is_active') === 'true'
       };
 
@@ -222,6 +232,7 @@ const AdminMedicinesPage = () => {
 
       setIsEditDialogOpen(false);
       setEditingMedicine(null);
+      setSelectedEditCategory(''); // Reset selected edit category
       fetchMedicines();
     } catch (error) {
       toast({
@@ -427,6 +438,30 @@ const AdminMedicinesPage = () => {
                         </p>
                       </div>
                     </div>
+                    <div>
+                      <Label htmlFor="category">Category</Label>
+                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50 bg-background border shadow-lg">
+                          {categoriesLoading ? (
+                            <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                          ) : medicineCategories && medicineCategories.length > 0 ? (
+                            medicineCategories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{category.icon}</span>
+                                  <span>{category.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>No categories available</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="price">Price</Label>
@@ -568,6 +603,7 @@ const AdminMedicinesPage = () => {
                                   size="sm"
                                   onClick={() => {
                                     setEditingMedicine(medicine);
+                                    setSelectedEditCategory(medicine.category_id || '');
                                     setIsEditDialogOpen(true);
                                   }}
                                 >
@@ -630,6 +666,30 @@ const AdminMedicinesPage = () => {
                     Use active ingredients and strengths; powers substitute matching.
                   </p>
                 </div>
+              </div>
+              <div>
+                <Label htmlFor="edit_category">Category</Label>
+                <Select value={selectedEditCategory} onValueChange={setSelectedEditCategory}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50 bg-background border shadow-lg">
+                    {categoriesLoading ? (
+                      <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                    ) : medicineCategories && medicineCategories.length > 0 ? (
+                      medicineCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{category.icon}</span>
+                            <span>{category.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>No categories available</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
