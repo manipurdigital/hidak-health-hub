@@ -186,6 +186,30 @@ export const useCreateConsultation = () => {
 };
 
 // Orders
+// Single Order by ID
+export const useOrder = (id: string) => {
+  return useQuery({
+    queryKey: ['order', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items(
+            *,
+            medicine:medicines(name, brand, image_url, price)
+          )
+        `)
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useOrders = () => {
   return useQuery({
     queryKey: ['orders'],
