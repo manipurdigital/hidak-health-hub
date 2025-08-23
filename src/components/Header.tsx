@@ -294,6 +294,15 @@ const Header = () => {
               >
                 Partner as Pharmacy
               </Button>
+              <span className="text-muted-foreground">|</span>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                onClick={() => navigate('/delivery-partner-signup')}
+              >
+                Join as Delivery Partner
+              </Button>
             </div>
             
             <FeatureGuard feature="ENABLE_CONSULTATIONS">

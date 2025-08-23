@@ -19,6 +19,7 @@ import MedicinesPage from "./pages/MedicinesPage";
 import LabTestsPage from "./pages/LabTestsPage";
 import LabSignupPage from "./pages/LabSignupPage";
 import PharmacySignupPage from "./pages/PharmacySignupPage";
+import DeliveryPartnerSignupPage from "./pages/DeliveryPartnerSignupPage";
 import DoctorsPage from "./pages/DoctorsPage";
 import WellnessPage from "./pages/WellnessPage";
 import CarePlanPage from "./pages/CarePlanPage";
@@ -86,8 +87,9 @@ const App = () => (
               <Route path="/medicine/:id" element={<MedicineDetailPage />} /> {/* Handle singular route for search results */}
               <Route path="/lab-tests" element={<LabTestsPage />} />
               <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
-              <Route path="/lab-signup" element={<LabSignupPage />} />
-              <Route path="/pharmacy-signup" element={<PharmacySignupPage />} />
+        <Route path="/lab-signup" element={<LabSignupPage />} />
+        <Route path="/pharmacy-signup" element={<PharmacySignupPage />} />
+        <Route path="/delivery-partner-signup" element={<DeliveryPartnerSignupPage />} />
               <Route path="/doctors" element={<DoctorsPage />} />
               <Route path="/doctors/:id" element={<DoctorProfilePage />} />
               <Route path="/wellness" element={<WellnessPage />} />
