@@ -7,6 +7,7 @@ import { Search, Filter, Star, Clock, Truck, Upload, ShoppingCart } from 'lucide
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Medicine {
@@ -47,6 +48,7 @@ const PharmacySection = () => {
   const { toast } = useToast();
   const { addItem } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCategories();
@@ -196,7 +198,7 @@ const PharmacySection = () => {
           <Button 
             variant="outline" 
             className="hover:bg-primary hover:text-primary-foreground transition-colors"
-            onClick={() => toast({ title: "All Medicines", description: "Showing all available medicines..." })}
+            onClick={() => navigate('/medicines')}
           >
             View All Medicines
           </Button>

@@ -1,19 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Shield, Truck, Clock, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/healthcare-hero.jpg";
 
 const HeroSection = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleOrderMedicines = () => {
-    const element = document.getElementById('pharmacy');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate('/medicines');
     toast({
       title: "Order Medicines",
-      description: "Browse our extensive medicine catalog below",
+      description: "Browse our complete medicine catalog",
     });
   };
 
