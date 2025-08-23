@@ -147,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       phone,
       options: {
-        shouldCreateUser: false
+        channel: 'sms',
+        shouldCreateUser: false,
       }
     });
     return { error };
@@ -157,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       phone,
       options: {
+        channel: 'sms',
         shouldCreateUser: true,
         data: {
           full_name: fullName
