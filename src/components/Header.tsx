@@ -20,7 +20,7 @@ const Header = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { toast } = useToast();
   const { itemCount, state, updateQuantity, removeItem } = useCart();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -292,13 +292,16 @@ const Header = () => {
                 Wellness
               </Button>
             </FeatureGuard>
-            <Button 
-              variant="ghost" 
-              className={getNavButtonClass('/features')}
-              onClick={() => navigate('/features')}
-            >
-              Features
-            </Button>
+            {/* Features - Only visible to admins */}
+            {userRole === 'admin' && (
+              <Button 
+                variant="ghost" 
+                className={getNavButtonClass('/features')}
+                onClick={() => navigate('/features')}
+              >
+                Features
+              </Button>
+            )}
             {/* <Button 
               variant="ghost" 
               className={getNavButtonClass('/care-plan')}

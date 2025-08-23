@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pill, TestTube2, Video, Heart, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import pharmacyImage from "@/assets/pharmacy-section.jpg";
 import consultationImage from "@/assets/consultation-section.jpg";
 import labImage from "@/assets/lab-section.jpg";
@@ -9,6 +10,7 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 
 const ServicesSection = () => {
   const navigate = useNavigate();
+  const { userRole } = useAuth();
 
   const handleServiceClick = (serviceTitle: string) => {
     switch (serviceTitle) {
@@ -180,14 +182,17 @@ const ServicesSection = () => {
               >
                 Download App
               </Button>
-              <Button 
-                variant="ghost" 
-                size="lg" 
-                className="text-white border-white/20 border hover:bg-white/10 hover:scale-105 transition-all duration-200"
-                onClick={() => navigate("/features")}
-              >
-                Learn More
-              </Button>
+              {/* Features link - Only visible to admins */}
+              {userRole === 'admin' && (
+                <Button 
+                  variant="ghost" 
+                  size="lg" 
+                  className="text-white border-white/20 border hover:bg-white/10 hover:scale-105 transition-all duration-200"
+                  onClick={() => navigate("/features")}
+                >
+                  Learn More
+                </Button>
+              )}
             </div>
           </div>
         </div>
