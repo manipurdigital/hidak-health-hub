@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import pharmacyImage from "@/assets/pharmacy-section.jpg";
 import consultationImage from "@/assets/consultation-section.jpg";
 import labImage from "@/assets/lab-section.jpg";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 const ServicesSection = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ const ServicesSection = () => {
     }
   };
 
-  const services = [
+  const allServices = [
     {
       icon: <Pill className="w-8 h-8" />,
       title: "Online Pharmacy",
@@ -70,6 +71,14 @@ const ServicesSection = () => {
       stats: "Holistic wellness approach"
     }
   ];
+
+  // Filter services based on feature flags
+  const services = allServices.filter(service => {
+    if (service.title === "Doctor Consultations") {
+      return isFeatureEnabled("ENABLE_CONSULTATIONS");
+    }
+    return true;
+  });
 
   return (
     <section id="services" className="py-20 bg-muted/30">

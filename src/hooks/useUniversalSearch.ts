@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { SearchResult } from "@/integrations/supabase/search";
 import { supabase } from "@/integrations/supabase/client";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 
 export function useUniversalSearch(query: string, maxPerGroup: number = 5) {
   return useQuery<SearchResult[]>({
@@ -40,7 +41,15 @@ export function useUniversalSearch(query: string, maxPerGroup: number = 5) {
         })
       );
 
-      return enhancedResults as SearchResult[];
+      // Filter out doctor results if consultations are disabled
+      const filteredResults = enhancedResults.filter(result => {
+        if (result.type === "doctor") {
+          return isFeatureEnabled("ENABLE_CONSULTATIONS");
+        }
+        return true;
+      });
+
+      return filteredResults as SearchResult[];
     },
     enabled: query.length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutes

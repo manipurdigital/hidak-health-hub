@@ -12,6 +12,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { SearchBar } from "./SearchBar";
 import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
+import { FeatureGuard } from "./FeatureGuard";
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -273,13 +274,15 @@ const Header = () => {
             >
               Lab Tests
             </Button>
-            <Button 
-              variant="ghost" 
-              className={getNavButtonClass('/doctors')}
-              onClick={() => navigate('/doctors')}
-            >
-              Consult Doctors
-            </Button>
+            <FeatureGuard feature="ENABLE_CONSULTATIONS">
+              <Button 
+                variant="ghost" 
+                className={getNavButtonClass('/doctors')}
+                onClick={() => navigate('/doctors')}
+              >
+                Consult Doctors
+              </Button>
+            </FeatureGuard>
             <Button 
               variant="ghost" 
               className={getNavButtonClass('/wellness')}

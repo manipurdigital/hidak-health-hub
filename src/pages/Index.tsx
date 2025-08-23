@@ -6,6 +6,7 @@ import DiagnosticsSection from "@/components/DiagnosticsSection";
 import ConsultationsSection from "@/components/ConsultationsSection";
 import { TrendingMedicinesCarousel } from "@/components/TrendingMedicinesCarousel";
 import Footer from "@/components/Footer";
+import { FeatureGuard } from "@/components/FeatureGuard";
 
 const Index = () => {
   return (
@@ -19,7 +20,9 @@ const Index = () => {
         <ServicesSection />
         <PharmacySection />
         <DiagnosticsSection />
-        <ConsultationsSection />
+        <FeatureGuard feature="ENABLE_CONSULTATIONS">
+          <ConsultationsSection />
+        </FeatureGuard>
       </main>
       <Footer />
     </div>
