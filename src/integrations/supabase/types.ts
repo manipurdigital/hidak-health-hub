@@ -384,6 +384,111 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_partner_applications: {
+        Row: {
+          aadhar_card_url: string | null
+          admin_notes: string | null
+          availability: string | null
+          bank_account_number: string
+          city: string
+          created_at: string
+          current_address: string
+          date_of_birth: string
+          driving_license_number: string
+          driving_license_url: string | null
+          email: string
+          emergency_contact: string | null
+          experience: string | null
+          full_name: string
+          id: string
+          ifsc_code: string
+          insurance_document_url: string | null
+          pan_number: string
+          phone: string
+          pincode: string
+          preferred_areas: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          state: string
+          status: string
+          updated_at: string
+          user_id: string | null
+          vehicle_insurance: string | null
+          vehicle_number: string
+          vehicle_rc_url: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          aadhar_card_url?: string | null
+          admin_notes?: string | null
+          availability?: string | null
+          bank_account_number: string
+          city: string
+          created_at?: string
+          current_address: string
+          date_of_birth: string
+          driving_license_number: string
+          driving_license_url?: string | null
+          email: string
+          emergency_contact?: string | null
+          experience?: string | null
+          full_name: string
+          id?: string
+          ifsc_code: string
+          insurance_document_url?: string | null
+          pan_number: string
+          phone: string
+          pincode: string
+          preferred_areas?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          vehicle_insurance?: string | null
+          vehicle_number: string
+          vehicle_rc_url?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          aadhar_card_url?: string | null
+          admin_notes?: string | null
+          availability?: string | null
+          bank_account_number?: string
+          city?: string
+          created_at?: string
+          current_address?: string
+          date_of_birth?: string
+          driving_license_number?: string
+          driving_license_url?: string | null
+          email?: string
+          emergency_contact?: string | null
+          experience?: string | null
+          full_name?: string
+          id?: string
+          ifsc_code?: string
+          insurance_document_url?: string | null
+          pan_number?: string
+          phone?: string
+          pincode?: string
+          preferred_areas?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          vehicle_insurance?: string | null
+          vehicle_number?: string
+          vehicle_rc_url?: string | null
+          vehicle_type?: string
+        }
+        Relationships: []
+      }
       demand_cache: {
         Row: {
           cache_key: string
@@ -730,6 +835,111 @@ export type Database = {
           status?: string | null
           summary?: Json | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      lab_applications: {
+        Row: {
+          address: string
+          admin_notes: string | null
+          alternate_phone: string | null
+          center_name: string
+          center_type: string
+          city: string
+          created_at: string
+          email: string
+          emergency_services: boolean | null
+          established_year: string | null
+          gst_document_url: string | null
+          gst_number: string | null
+          home_collection: boolean | null
+          id: string
+          landmark: string | null
+          latitude: number | null
+          license_document_url: string | null
+          license_number: string
+          longitude: number | null
+          operating_hours: string | null
+          other_documents: Json | null
+          owner_name: string
+          phone: string
+          pincode: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          services_offered: string[] | null
+          state: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          admin_notes?: string | null
+          alternate_phone?: string | null
+          center_name: string
+          center_type: string
+          city: string
+          created_at?: string
+          email: string
+          emergency_services?: boolean | null
+          established_year?: string | null
+          gst_document_url?: string | null
+          gst_number?: string | null
+          home_collection?: boolean | null
+          id?: string
+          landmark?: string | null
+          latitude?: number | null
+          license_document_url?: string | null
+          license_number: string
+          longitude?: number | null
+          operating_hours?: string | null
+          other_documents?: Json | null
+          owner_name: string
+          phone: string
+          pincode: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          services_offered?: string[] | null
+          state: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          admin_notes?: string | null
+          alternate_phone?: string | null
+          center_name?: string
+          center_type?: string
+          city?: string
+          created_at?: string
+          email?: string
+          emergency_services?: boolean | null
+          established_year?: string | null
+          gst_document_url?: string | null
+          gst_number?: string | null
+          home_collection?: boolean | null
+          id?: string
+          landmark?: string | null
+          latitude?: number | null
+          license_document_url?: string | null
+          license_number?: string
+          longitude?: number | null
+          operating_hours?: string | null
+          other_documents?: Json | null
+          owner_name?: string
+          phone?: string
+          pincode?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          services_offered?: string[] | null
+          state?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1435,6 +1645,111 @@ export type Database = {
           query_count?: number | null
           request_id?: string | null
           status_code?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      pharmacy_applications: {
+        Row: {
+          address: string
+          admin_notes: string | null
+          alternate_phone: string | null
+          city: string
+          created_at: string
+          email: string
+          established_year: string | null
+          gst_document_url: string | null
+          gst_number: string | null
+          home_delivery: boolean | null
+          id: string
+          landmark: string | null
+          latitude: number | null
+          license_document_url: string | null
+          license_number: string
+          longitude: number | null
+          operating_hours: string | null
+          other_documents: Json | null
+          owner_name: string
+          pharmacy_name: string
+          pharmacy_type: string
+          phone: string
+          pincode: string
+          prescription_only: boolean | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          services_offered: string[] | null
+          state: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          admin_notes?: string | null
+          alternate_phone?: string | null
+          city: string
+          created_at?: string
+          email: string
+          established_year?: string | null
+          gst_document_url?: string | null
+          gst_number?: string | null
+          home_delivery?: boolean | null
+          id?: string
+          landmark?: string | null
+          latitude?: number | null
+          license_document_url?: string | null
+          license_number: string
+          longitude?: number | null
+          operating_hours?: string | null
+          other_documents?: Json | null
+          owner_name: string
+          pharmacy_name: string
+          pharmacy_type: string
+          phone: string
+          pincode: string
+          prescription_only?: boolean | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          services_offered?: string[] | null
+          state: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          admin_notes?: string | null
+          alternate_phone?: string | null
+          city?: string
+          created_at?: string
+          email?: string
+          established_year?: string | null
+          gst_document_url?: string | null
+          gst_number?: string | null
+          home_delivery?: boolean | null
+          id?: string
+          landmark?: string | null
+          latitude?: number | null
+          license_document_url?: string | null
+          license_number?: string
+          longitude?: number | null
+          operating_hours?: string | null
+          other_documents?: Json | null
+          owner_name?: string
+          pharmacy_name?: string
+          pharmacy_type?: string
+          phone?: string
+          pincode?: string
+          prescription_only?: boolean | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          services_offered?: string[] | null
+          state?: string
+          status?: string
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: []
