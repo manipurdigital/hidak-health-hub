@@ -56,13 +56,41 @@ export function useSearchSuggestions(query: string, maxPerGroup: number = 5) {
       if (cached) return cached;
 
       try {
-        const { data, error } = await supabase.rpc("universal_search", {
-          q: query,
-          max_per_group: maxPerGroup,
-        }).abortSignal(signal as AbortSignal);
+        // Try universal_search_v2 first, fallback to universal_search
+        let data, error;
+        
+        try {
+          const result = await supabase.rpc("universal_search_v2", {
+            q: query,
+            max_per_group: maxPerGroup,
+          }).abortSignal(signal as AbortSignal);
+          data = result.data;
+          error = result.error;
+        } catch (v2Error) {
+          console.warn("universal_search_v2 not available, falling back to basic search");
+          // Fallback to simple medicine search
+          const result = await supabase
+            .from('medicines')
+            .select('id, name, price, image_url, thumbnail_url, manufacturer, brand')
+            .or(`name.ilike.%${query}%, brand.ilike.%${query}%, manufacturer.ilike.%${query}%`)
+            .eq('is_active', true)
+            .limit(maxPerGroup)
+            .abortSignal(signal as AbortSignal);
+          
+          data = result.data?.map(med => ({
+            type: 'medicine' as const,
+            id: med.id,
+            title: med.name,
+            subtitle: med.brand || med.manufacturer,
+            thumbnail_url: med.thumbnail_url || med.image_url,
+            price: med.price,
+            href: `/medicine/${med.id}`
+          }));
+          error = result.error;
+        }
 
         if (error) {
-          console.warn("Search RPC error (universal_search):", error);
+          console.warn("Search error:", error);
           return [] as SearchResult[];
         }
 
