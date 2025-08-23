@@ -58,8 +58,16 @@ export const useCreateLabBooking = () => {
       patientEmail?: string;
       specialInstructions?: string;
     }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Please sign in to book a lab test.');
+      }
+
       const { data, error } = await supabase.functions.invoke('create-lab-booking', {
-        body: bookingData
+        body: bookingData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
       
       if (error) throw error;
