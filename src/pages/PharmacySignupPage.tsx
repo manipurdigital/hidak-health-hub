@@ -12,6 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MapLocationPicker } from '@/components/MapLocationPicker';
+import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 
 const PharmacySignupPage = () => {
   const [formData, setFormData] = useState({
@@ -29,6 +31,8 @@ const PharmacySignupPage = () => {
     state: '',
     pincode: '',
     landmark: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
     
     // Business Information
     drugLicense: '',
@@ -63,6 +67,7 @@ const PharmacySignupPage = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -137,10 +142,11 @@ const PharmacySignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
+    <GoogleMapsProvider>
+      <div className="min-h-screen bg-background">
+        <Header />
+        
+        <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <Button 
@@ -334,6 +340,49 @@ const PharmacySignupPage = () => {
                       onChange={(e) => handleInputChange('landmark', e.target.value)}
                       placeholder="Nearby landmark for easy identification"
                     />
+                  </div>
+                  
+                  {/* Exact Location Selection */}
+                  <div className="col-span-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Exact Location (Pin Drop) *</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowLocationPicker(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        {formData.latitude ? 'Update Location' : 'Select Location'}
+                      </Button>
+                    </div>
+                    
+                    {formData.latitude && formData.longitude ? (
+                      <div className="p-3 bg-muted/50 border rounded-md">
+                        <div className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full bg-success flex items-center justify-center mt-0.5">
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-success text-sm">Location Selected</p>
+                            <p className="text-sm text-foreground mt-1">
+                              {formData.address || 'Custom location selected'}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-muted/30 border border-dashed rounded-md text-center">
+                        <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          Please select your pharmacy's exact location for accurate delivery calculations
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
@@ -623,7 +672,7 @@ const PharmacySignupPage = () => {
             </form>
           </CardContent>
         </Card>
-
+        
         {/* Additional Information */}
         <div className="max-w-4xl mx-auto mt-8 text-center">
           <Card className="bg-muted/50">
@@ -649,10 +698,30 @@ const PharmacySignupPage = () => {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Location Picker Modal */}
+        <MapLocationPicker
+          isOpen={showLocationPicker}
+          onClose={() => setShowLocationPicker(false)}
+          onLocationSelect={(location) => {
+            handleInputChange('latitude', location.latitude);
+            handleInputChange('longitude', location.longitude);
+            if (location.address) {
+              handleInputChange('address', location.address);
+            }
+          }}
+          initialLocation={
+            formData.latitude && formData.longitude
+              ? { lat: formData.latitude, lng: formData.longitude, address: formData.address }
+              : undefined
+          }
+          title="Select Pharmacy Location"
+        />
       </main>
       
       <Footer />
     </div>
+  </GoogleMapsProvider>
   );
 };
 
