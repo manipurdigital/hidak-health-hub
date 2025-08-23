@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCreateLabBooking } from '@/hooks/api-hooks';
+import { openRazorpayCheckout, useVerifyPayment } from '@/hooks/payment-hooks';
 import { useToast } from '@/hooks/use-toast';
 import { checkServiceability, ServiceabilityResult } from '@/services/serviceability';
 
@@ -32,8 +33,9 @@ export function LabBookingReview({
   const [isBooking, setIsBooking] = useState(false);
   const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null);
   const [checkingServiceability, setCheckingServiceability] = useState(false);
-  const createLabBooking = useCreateLabBooking();
-  const { toast } = useToast();
+const createLabBooking = useCreateLabBooking();
+const verifyPayment = useVerifyPayment();
+const { toast } = useToast();
 
   const selectedAddr = addresses.find(addr => addr.id === selectedAddress);
   
@@ -74,16 +76,18 @@ export function LabBookingReview({
   };
 
   const formatTime = (timeString: string) => {
-    const [hour] = timeString.split(':');
+    // Support both single time (e.g., "09:00") and range (e.g., "09:00 - 11:00")
+    if (timeString.includes(' - ')) {
+      const [start, end] = timeString.split(' - ').map((s) => s.trim());
+      return { start, end, display: `${start} - ${end}` };
+    }
+    const [hour, minute = '00'] = timeString.split(':');
     const hourNum = parseInt(hour);
-    const endHour = hourNum + 2;
-    return {
-      start: timeString,
-      end: `${endHour.toString().padStart(2, '0')}:00`,
-      display: `${timeString} - ${endHour.toString().padStart(2, '0')}:00`
-    };
+    const endHour = (hourNum + 2) % 24;
+    const start = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    const end = `${endHour.toString().padStart(2, '0')}:${minute}`;
+    return { start, end, display: `${start} - ${end}` };
   };
-
   const handleConfirmBooking = async () => {
     if (!selectedAddr) {
       toast({
@@ -117,10 +121,7 @@ export function LabBookingReview({
         pickup_window_end: timeWindow.end,
         patient_name: selectedAddr.name,
         patient_phone: selectedAddr.phone,
-        patient_email: '', // Will be filled from user profile
-        total_amount: labTest.price,
-        payment_status: paymentMethod === 'cod' ? 'pending' : 'paid', // Simulate payment for MVP
-        status: 'pending',
+        patient_email: '', // Will be filled from user profile on backend
         special_instructions: slot.notes || (labTest.preparation_required 
           ? 'Patient requires fasting as per test requirements.' 
           : undefined),
@@ -132,14 +133,59 @@ export function LabBookingReview({
       }
 
       const result = await createLabBooking.mutateAsync(bookingData);
-      
-      navigate(`/lab-booking-success/${result.id}`);
+
+      if (paymentMethod === 'razorpay') {
+        // Open Razorpay checkout and navigate only on success
+        setIsBooking(false);
+        openRazorpayCheckout({
+          key: result.razorpay_key_id,
+          amount: labTest.price * 100,
+          currency: 'INR',
+          name: 'Lab Test Booking',
+          description: `${labTest.name} - ${formatDate(slot.date)} (${formatTime(slot.time).display})`,
+          order_id: result.razorpay_order_id,
+          handler: async (response: any) => {
+            try {
+              await verifyPayment.mutateAsync({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              navigate(`/lab-booking-success/${result.id}`);
+            } catch (e) {
+              toast({
+                title: 'Payment Verification Failed',
+                description: 'We could not verify your payment. Please contact support.',
+                variant: 'destructive',
+              });
+            }
+          },
+          prefill: {
+            name: selectedAddr.name,
+            contact: selectedAddr.phone,
+            email: undefined,
+          },
+          theme: { color: '#06b6d4' },
+          modal: {
+            ondismiss: () => {
+              toast({
+                title: 'Payment Cancelled',
+                description: 'You dismissed the payment. You can try again.',
+                variant: 'destructive',
+              });
+            },
+          },
+        });
+      } else {
+        // Pay Later
+        navigate(`/lab-booking-success/${result.id}`);
+      }
     } catch (error: any) {
       console.error('Booking error:', error);
       toast({
-        title: "Booking Failed",
-        description: error.message || "Failed to create booking. Please try again.",
-        variant: "destructive",
+        title: 'Booking Failed',
+        description: error.message || 'Failed to create booking. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsBooking(false);
