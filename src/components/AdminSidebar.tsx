@@ -11,7 +11,8 @@ import {
   Map,
   Building2,
   TestTube,
-  DollarSign
+  DollarSign,
+  Tags
 } from 'lucide-react';
 
 import {
@@ -28,6 +29,7 @@ import {
 const adminSidebarItems = [
   { title: "Dashboard", url: "/admin/dashboard", icon: Home },
   { title: "Reports", url: "/admin/reports", icon: BarChart3 },
+  { title: "Categories", url: "/admin/categories", icon: Tags },
   { title: "Medicines", url: "/admin/medicines", icon: Pill },
   { title: "Lab Tests", url: "/admin/lab-tests", icon: ClipboardList },
   { title: "Doctors", url: "/admin/doctors", icon: Stethoscope },
