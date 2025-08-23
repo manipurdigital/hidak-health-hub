@@ -41,10 +41,14 @@ export function useUniversalSearch(query: string, maxPerGroup: number = 5) {
         })
       );
 
-      // Filter out doctor results if consultations are disabled
+      // Filter out results based on feature flags
       const filteredResults = enhancedResults.filter(result => {
         if (result.type === "doctor") {
           return isFeatureEnabled("ENABLE_CONSULTATIONS");
+        }
+        // Filter wellness-related content if it exists in search results
+        if (result.href?.includes('/wellness') || result.title?.toLowerCase().includes('wellness')) {
+          return isFeatureEnabled("ENABLE_WELLNESS");
         }
         return true;
       });

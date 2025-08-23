@@ -283,13 +283,15 @@ const Header = () => {
                 Consult Doctors
               </Button>
             </FeatureGuard>
-            <Button 
-              variant="ghost" 
-              className={getNavButtonClass('/wellness')}
-              onClick={() => navigate('/wellness')}
-            >
-              Wellness
-            </Button>
+            <FeatureGuard feature="ENABLE_WELLNESS">
+              <Button 
+                variant="ghost" 
+                className={getNavButtonClass('/wellness')}
+                onClick={() => navigate('/wellness')}
+              >
+                Wellness
+              </Button>
+            </FeatureGuard>
             <Button 
               variant="ghost" 
               className={getNavButtonClass('/features')}

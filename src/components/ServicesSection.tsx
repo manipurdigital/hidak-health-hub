@@ -77,6 +77,9 @@ const ServicesSection = () => {
     if (service.title === "Doctor Consultations") {
       return isFeatureEnabled("ENABLE_CONSULTATIONS");
     }
+    if (service.title === "Wellness Plans") {
+      return isFeatureEnabled("ENABLE_WELLNESS");
+    }
     return true;
   });
 
