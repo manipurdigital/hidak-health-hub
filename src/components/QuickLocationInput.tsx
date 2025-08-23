@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { GPSLocationPicker } from '@/components/GPSLocationPicker';
 import { AreaSearchBar } from '@/components/geofencing/AreaSearchBar';
-import { MapPin, Search } from 'lucide-react';
+import { MapLocationPicker } from '@/components/MapLocationPicker';
+import { MapPin, Search, Map } from 'lucide-react';
 
 interface QuickLocationInputProps {
   onLocationSelect: (location: { latitude: number; longitude: number; address?: string }) => void;
@@ -19,6 +20,7 @@ export const QuickLocationInput = ({
   description = "Use your current location or search for an address"
 }: QuickLocationInputProps) => {
   const [showOptions, setShowOptions] = useState(false);
+  const [showMapDialog, setShowMapDialog] = useState(false);
 
   const handlePlaceSelect = (result: { lat: number; lng: number; address: string }) => {
     onLocationSelect({ 
@@ -55,6 +57,16 @@ export const QuickLocationInput = ({
                 onLocationSelect={onLocationSelect}
               />
               
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowMapDialog(true)}
+                className="w-full flex items-center gap-2"
+              >
+                <Map className="w-4 h-4" />
+                Choose on Map
+              </Button>
+              
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
@@ -80,6 +92,13 @@ export const QuickLocationInput = ({
               </Button>
             </div>
           )}
+          
+          <MapLocationPicker
+            isOpen={showMapDialog}
+            onClose={() => setShowMapDialog(false)}
+            onLocationSelect={onLocationSelect}
+            title="Select Location"
+          />
         </div>
       </CardContent>
     </Card>

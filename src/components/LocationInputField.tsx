@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { GPSLocationPicker } from '@/components/GPSLocationPicker';
 import { Separator } from '@/components/ui/separator';
 import { AreaSearchBar } from '@/components/geofencing/AreaSearchBar';
+import { MapLocationPicker } from '@/components/MapLocationPicker';
+import { Map, MapPin } from 'lucide-react';
 
 interface LocationInputFieldProps {
   label: string;
@@ -15,6 +18,7 @@ interface LocationInputFieldProps {
   disabled?: boolean;
   showGPSPicker?: boolean;
   showPlacesSearch?: boolean;
+  showMapPicker?: boolean;
 }
 
 export const LocationInputField = ({
@@ -26,9 +30,11 @@ export const LocationInputField = ({
   required = false,
   disabled = false,
   showGPSPicker = true,
-  showPlacesSearch = true
+  showPlacesSearch = true,
+  showMapPicker = true
 }: LocationInputFieldProps) => {
   const [selectedLocation, setSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showMapDialog, setShowMapDialog] = useState(false);
 
   const handleGPSLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
     setSelectedLocation({ latitude: location.latitude, longitude: location.longitude });
@@ -59,7 +65,7 @@ export const LocationInputField = ({
       />
 
       {/* Location Options */}
-      {(showGPSPicker || showPlacesSearch) && !disabled && (
+      {(showGPSPicker || showPlacesSearch || showMapPicker) && !disabled && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
@@ -76,6 +82,20 @@ export const LocationInputField = ({
               />
             )}
 
+            {/* Map Location Picker */}
+            {showMapPicker && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowMapDialog(true)}
+                disabled={disabled}
+                className="w-full flex items-center gap-2"
+              >
+                <Map className="w-4 h-4" />
+                Choose on Map
+              </Button>
+            )}
+
             {/* Places Search */}
             {showPlacesSearch && (
               <div>
@@ -89,6 +109,19 @@ export const LocationInputField = ({
           </div>
         </div>
       )}
+
+      {/* Map Picker Dialog */}
+      <MapLocationPicker
+        isOpen={showMapDialog}
+        onClose={() => setShowMapDialog(false)}
+        onLocationSelect={handleGPSLocationSelect}
+        initialLocation={selectedLocation ? {
+          lat: selectedLocation.latitude,
+          lng: selectedLocation.longitude,
+          address: addressValue
+        } : undefined}
+        title="Choose Delivery Location"
+      />
 
       {/* Location Status */}
       {selectedLocation && (
