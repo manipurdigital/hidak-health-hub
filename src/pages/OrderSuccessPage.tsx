@@ -46,9 +46,6 @@ export function OrderSuccessPage() {
     );
   }
 
-  // Format the estimated delivery date (2-3 business days from created_at)
-  const estimatedDeliveryDate = new Date(order.created_at);
-  estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 3);
   
   // Parse shipping address from JSON
   const shippingAddress = order.shipping_address as any;
@@ -149,7 +146,7 @@ export function OrderSuccessPage() {
             <CardHeader>
               <CardTitle>Delivery Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div>
                 <p className="font-medium">Delivery Address</p>
                 <p className="text-sm text-muted-foreground">
@@ -158,16 +155,6 @@ export function OrderSuccessPage() {
                   {shippingAddress?.address_line_2 && <>, {shippingAddress.address_line_2}</>}<br />
                   {shippingAddress?.city}, {shippingAddress?.state} - {shippingAddress?.postal_code}
                 </p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Estimated Delivery</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{estimatedDeliveryDate.toLocaleDateString()}</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    (2-3 business days)
-                  </span>
-                </div>
               </div>
             </CardContent>
           </Card>
