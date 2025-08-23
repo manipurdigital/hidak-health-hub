@@ -78,3 +78,77 @@ export const useCreateAddress = () => {
     },
   });
 };
+
+export const useUpdateAddress = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ id, ...addressData }: any) => {
+      if (!user?.id) {
+        throw new Error('Please sign in to update an address.');
+      }
+      const { data, error } = await supabase
+        .from('addresses')
+        .update(addressData)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      toast({
+        title: "Success",
+        description: "Address updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeleteAddress = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (addressId: string) => {
+      if (!user?.id) {
+        throw new Error('Please sign in to delete an address.');
+      }
+      const { error } = await supabase
+        .from('addresses')
+        .delete()
+        .eq('id', addressId)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return addressId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      toast({
+        title: "Success",
+        description: "Address deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};

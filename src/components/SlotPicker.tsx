@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Plus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { AddressDialog } from '@/components/AddressDialog';
 import { useToast } from '@/hooks/use-toast';
+import { useDeleteAddress } from '@/hooks/medicine-hooks';
 
 interface SlotPickerProps {
   labTest: any;
@@ -30,7 +31,9 @@ export function SlotPicker({
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<any>(null);
   const { toast } = useToast();
+  const deleteAddress = useDeleteAddress();
 
   // Generate next 7 days
   const generateDates = () => {
@@ -109,6 +112,22 @@ export function SlotPicker({
     });
   };
 
+  const handleEditAddress = (address: any) => {
+    setEditingAddress(address);
+    setShowAddressDialog(true);
+  };
+
+  const handleDeleteAddress = (addressId: string) => {
+    if (window.confirm('Are you sure you want to delete this address?')) {
+      deleteAddress.mutate(addressId);
+    }
+  };
+
+  const handleDialogClose = () => {
+    setShowAddressDialog(false);
+    setEditingAddress(null);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Collection Address */}
@@ -145,12 +164,41 @@ export function SlotPicker({
                     <RadioGroupItem value={address.id} id={address.id} />
                     <Label htmlFor={address.id} className="flex-1 cursor-pointer">
                       <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium">{address.name}</span>
-                          <Badge variant="outline">{address.type}</Badge>
-                          {address.is_default && (
-                            <Badge variant="secondary">Default</Badge>
-                          )}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{address.name}</span>
+                            <Badge variant="outline">{address.type}</Badge>
+                            {address.is_default && (
+                              <Badge variant="secondary">Default</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleEditAddress(address);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDeleteAddress(address.id);
+                              }}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              disabled={deleteAddress.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {address.address_line_1}, {address.address_line_2 && `${address.address_line_2}, `}
@@ -252,8 +300,9 @@ export function SlotPicker({
       </div>
 
       <AddressDialog 
-        isOpen={showAddressDialog}
-        onClose={() => setShowAddressDialog(false)}
+        isOpen={showAddressDialog} 
+        onClose={handleDialogClose}
+        editingAddress={editingAddress}
       />
     </div>
   );

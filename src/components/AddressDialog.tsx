@@ -6,33 +6,35 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useCreateAddress } from '@/hooks/medicine-hooks';
+import { useCreateAddress, useUpdateAddress } from '@/hooks/medicine-hooks';
 import { Autocomplete } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 interface AddressDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  editingAddress?: any;
 }
 
-export function AddressDialog({ isOpen, onClose }: AddressDialogProps) {
+export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialogProps) {
   const [formData, setFormData] = useState({
-    type: 'home',
-    name: '',
-    phone: '',
-    address_line_1: '',
-    address_line_2: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    landmark: '',
-    latitude: null as number | null,
-    longitude: null as number | null,
-    is_default: false,
+    type: editingAddress?.type || 'home',
+    name: editingAddress?.name || '',
+    phone: editingAddress?.phone || '',
+    address_line_1: editingAddress?.address_line_1 || '',
+    address_line_2: editingAddress?.address_line_2 || '',
+    city: editingAddress?.city || '',
+    state: editingAddress?.state || '',
+    postal_code: editingAddress?.postal_code || '',
+    landmark: editingAddress?.landmark || '',
+    latitude: editingAddress?.latitude || null,
+    longitude: editingAddress?.longitude || null,
+    is_default: editingAddress?.is_default || false,
   });
 
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const createAddress = useCreateAddress();
+  const updateAddress = useUpdateAddress();
   const { isLoaded } = useGoogleMaps();
 
   const onAutocompleteLoad = (autocompleteInstance: google.maps.places.Autocomplete) => {
@@ -72,23 +74,27 @@ export function AddressDialog({ isOpen, onClose }: AddressDialogProps) {
     e.preventDefault();
     
     try {
-      await createAddress.mutateAsync(formData);
-      
-      // Reset form
-      setFormData({
-        type: 'home',
-        name: '',
-        phone: '',
-        address_line_1: '',
-        address_line_2: '',
-        city: '',
-        state: '',
-        postal_code: '',
-        landmark: '',
-        latitude: null,
-        longitude: null,
-        is_default: false,
-      });
+      if (editingAddress) {
+        await updateAddress.mutateAsync({ id: editingAddress.id, ...formData });
+      } else {
+        await createAddress.mutateAsync(formData);
+        
+        // Reset form
+        setFormData({
+          type: 'home',
+          name: '',
+          phone: '',
+          address_line_1: '',
+          address_line_2: '',
+          city: '',
+          state: '',
+          postal_code: '',
+          landmark: '',
+          latitude: null,
+          longitude: null,
+          is_default: false,
+        });
+      }
       
       onClose();
     } catch (error) {
@@ -104,7 +110,7 @@ export function AddressDialog({ isOpen, onClose }: AddressDialogProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add New Address</DialogTitle>
+          <DialogTitle>{editingAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -244,10 +250,14 @@ export function AddressDialog({ isOpen, onClose }: AddressDialogProps) {
             </Button>
             <Button 
               type="submit" 
-              disabled={createAddress.isPending}
+              disabled={createAddress.isPending || updateAddress.isPending}
               className="flex-1"
             >
-              {createAddress.isPending ? 'Saving...' : 'Save Address'}
+              {(createAddress.isPending || updateAddress.isPending) 
+                ? "Saving..." 
+                : editingAddress 
+                  ? "Update Address" 
+                  : "Save Address"}
             </Button>
           </div>
         </form>
