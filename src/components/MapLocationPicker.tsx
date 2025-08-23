@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { MapPin, Navigation, Search, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AreaSearchBar } from '@/components/geofencing/AreaSearchBar';
-
-const libraries: ("places" | "geometry")[] = ["places", "geometry"];
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 const mapContainerStyle = {
   width: '100%',
@@ -44,10 +43,7 @@ export const MapLocationPicker = ({
   const mapRef = useRef<google.maps.Map | null>(null);
   const { toast } = useToast();
 
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-  });
+  const { isLoaded, loadError } = useGoogleMaps();
 
   // Reverse geocode to get address from coordinates
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
