@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useCreateGeofence } from '@/hooks/geofencing-hooks';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Trash2 } from 'lucide-react';
+import { Save, Trash2, Hand, Undo2, Map } from 'lucide-react';
 import { latLngsToGeoJSONPolygon, normalizeService } from '@/utils/geo';
 import { supabase } from '@/integrations/supabase/client';
 import { AreaSearchBar } from './AreaSearchBar';
@@ -45,6 +45,7 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
   const [polygon, setPolygon] = useState<google.maps.Polygon | null>(null);
   const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isPanMode, setIsPanMode] = useState(false);
   
   // Form state
   const [geofenceName, setGeofenceName] = useState('');
@@ -86,6 +87,7 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
         
         setPolygon(newPolygon);
         setIsDrawing(false);
+        setIsPanMode(true);
         
         // Switch back to hand mode after drawing
         drawingManager.setDrawingMode(null);
@@ -105,7 +107,25 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
   const startDrawing = () => {
     if (drawingManager) {
       setIsDrawing(true);
+      setIsPanMode(false);
       drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+    }
+  };
+
+  const enablePanMode = () => {
+    if (drawingManager) {
+      drawingManager.setDrawingMode(null);
+    }
+    setIsDrawing(false);
+    setIsPanMode(true);
+  };
+
+  const deleteLastPoint = () => {
+    if (polygon) {
+      const path = polygon.getPath();
+      if (path.getLength() > 3) { // Keep at least 3 points for a valid polygon
+        path.removeAt(path.getLength() - 1);
+      }
     }
   };
 
@@ -115,6 +135,7 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
       setPolygon(null);
     }
     setIsDrawing(false);
+    setIsPanMode(false);
     if (drawingManager) {
       drawingManager.setDrawingMode(null);
     }
@@ -162,6 +183,7 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
       setGeofenceName('');
       setPriority(5);
       setIsActive(true);
+      setIsPanMode(false);
       clearPolygon();
       
       onGeofenceCreated?.();
@@ -234,13 +256,6 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={startDrawing} disabled={isDrawing}>
-              {isDrawing ? 'Drawing...' : 'Start Drawing'}
-            </Button>
-            <Button variant="outline" onClick={clearPolygon} disabled={!polygon}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
             <Button 
               onClick={saveGeofence} 
               disabled={!polygon || !geofenceName.trim() || isSaving}
@@ -265,25 +280,99 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={defaultCenter}
-            zoom={11}
-            onLoad={onMapLoad}
-          >
-            <DrawingManager
-              onLoad={onDrawingManagerLoad}
+        <CardContent className="space-y-4">
+          {/* Drawing Tools */}
+          <div className="space-y-4">
+            {/* Primary Drawing Controls */}
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                onClick={startDrawing} 
+                variant={isDrawing ? "default" : "outline"} 
+                size="sm"
+              >
+                <Map className="h-4 w-4 mr-2" />
+                {isDrawing ? 'Drawing...' : 'Draw Area'}
+              </Button>
+              <Button 
+                onClick={enablePanMode} 
+                variant={isPanMode ? "default" : "outline"} 
+                size="sm"
+              >
+                <Hand className="h-4 w-4 mr-2" />
+                Hand Tool
+              </Button>
+            </div>
+
+            {/* Drawing Tools (show only when drawing or polygon exists) */}
+            {(isDrawing || polygon) && (
+              <div className="flex gap-2 flex-wrap">
+                <Button 
+                  onClick={deleteLastPoint} 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={!polygon}
+                  title="Delete last point"
+                >
+                  <Undo2 className="h-4 w-4 mr-2" />
+                  Undo Point
+                </Button>
+                <Button 
+                  onClick={clearPolygon} 
+                  variant="outline" 
+                  size="sm"
+                  title="Clear all and start over"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
+                </Button>
+              </div>
+            )}
+
+            {/* Status Messages */}
+            {isDrawing && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Drawing Mode:</strong> Click on the map to add points. Complete the polygon by clicking on the first point.
+                </p>
+              </div>
+            )}
+
+            {isPanMode && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800">
+                  <strong>Pan Mode:</strong> Drag to move around the map.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Map Container */}
+          <div className="border rounded-lg overflow-hidden">
+            <GoogleMap
+              mapContainerStyle={mapContainerStyle}
+              center={defaultCenter}
+              zoom={11}
+              onLoad={onMapLoad}
               options={{
-                drawingControl: false,
-                drawingControlOptions: {
-                  position: google.maps.ControlPosition.TOP_CENTER,
-                  drawingModes: [google.maps.drawing.OverlayType.POLYGON],
-                },
-                polygonOptions: drawingOptions,
+                streetViewControl: false,
+                mapTypeControl: true,
+                fullscreenControl: false,
+                zoomControl: true,
               }}
-            />
-          </GoogleMap>
+            >
+              <DrawingManager
+                onLoad={onDrawingManagerLoad}
+                options={{
+                  drawingControl: false,
+                  drawingControlOptions: {
+                    position: google.maps.ControlPosition.TOP_CENTER,
+                    drawingModes: [google.maps.drawing.OverlayType.POLYGON],
+                  },
+                  polygonOptions: drawingOptions,
+                }}
+              />
+            </GoogleMap>
+          </div>
         </CardContent>
       </Card>
     </div>
