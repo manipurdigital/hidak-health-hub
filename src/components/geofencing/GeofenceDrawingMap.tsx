@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useCreateGeofence } from '@/hooks/geofencing-hooks';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Trash2, Hand, Undo2, Map, Maximize2, Minimize2 } from 'lucide-react';
+import { Save, Trash2, Hand, X, Map, Maximize2, Minimize2 } from 'lucide-react';
 import { latLngsToGeoJSONPolygon, normalizeService } from '@/utils/geo';
 import { supabase } from '@/integrations/supabase/client';
 import { AreaSearchBar } from './AreaSearchBar';
@@ -329,8 +329,8 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
                   disabled={!polygon}
                   title="Delete last point"
                 >
-                  <Undo2 className="h-4 w-4 mr-2" />
-                  Undo Point
+                  <X className="h-4 w-4 mr-2" />
+                  Delete Point
                 </Button>
                 <Button 
                   onClick={clearPolygon} 
