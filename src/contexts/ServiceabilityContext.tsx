@@ -23,6 +23,9 @@ interface ServiceabilityState {
   visibleLabs: ServiceCenter[];
   topStore: ServiceCenter | null;
   topLabCenter: ServiceCenter | null;
+  deliveryCoverage: 'has_partners' | 'available_no_partner' | 'out_of_area' | null;
+  labCoverage: 'has_partners' | 'available_no_partner' | 'out_of_area' | null;
+  deliveryFeeEstimate: number | null;
   loading: boolean;
   error: string | null;
   lastCheckedAt: number | null;
@@ -50,6 +53,9 @@ export const ServiceabilityProvider = ({ children }: ServiceabilityProviderProps
     visibleLabs: [],
     topStore: null,
     topLabCenter: null,
+    deliveryCoverage: null,
+    labCoverage: null,
+    deliveryFeeEstimate: null,
     loading: false,
     error: null,
     lastCheckedAt: null,
@@ -98,12 +104,23 @@ export const ServiceabilityProvider = ({ children }: ServiceabilityProviderProps
       const sortedStores = (stores || []).sort((a, b) => b.priority - a.priority);
       const sortedLabs = (labs || []).sort((a, b) => b.priority - a.priority);
 
+      // Determine coverage status
+      const deliveryCoverage = sortedStores.length > 0 ? 'has_partners' : 'available_no_partner';
+      const labCoverage = sortedLabs.length > 0 ? 'has_partners' : 'available_no_partner';
+
+      // For now, use a simple distance-based fee calculation
+      // TODO: Replace with actual RPC when calc_distance_fee_from_geofence is available
+      const deliveryFeeEstimate = 50; // Default fee in case RPC is not available
+
       const newState: ServiceabilityState = {
         location: { lat, lng, address },
         visibleStores: sortedStores,
         visibleLabs: sortedLabs,
         topStore: sortedStores[0] || null,
         topLabCenter: sortedLabs[0] || null,
+        deliveryCoverage,
+        labCoverage,
+        deliveryFeeEstimate,
         loading: false,
         error: null,
         lastCheckedAt: Date.now(),

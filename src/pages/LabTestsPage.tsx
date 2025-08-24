@@ -39,7 +39,7 @@ const LabTestsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { filters, updateFilters, clearFilters } = useUrlFilters();
-  const { visibleLabs, topLabCenter } = useServiceability();
+  const { visibleLabs, topLabCenter, labCoverage } = useServiceability();
 
   const page = filters.page || 1;
   const pageSize = 12;
@@ -160,16 +160,26 @@ const LabTestsPage = () => {
           </div>
 
           {/* Lab coverage banner */}
-          {visibleLabs.length > 0 ? (
+          {labCoverage === 'has_partners' && topLabCenter && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-green-700 text-sm">
-                Home collection available by <span className="font-medium">{topLabCenter?.center_name}</span>
+                <span className="font-medium">Home collection available by:</span> {topLabCenter.center_name}
               </p>
             </div>
-          ) : (
+          )}
+          
+          {labCoverage === 'available_no_partner' && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-amber-700 text-sm">
-                Home collection is not available in your location. You can still browse tests for clinic visits.
+                <span className="font-medium">Home collection coming soon!</span> We're working to bring partner labs to your area.
+              </p>
+            </div>
+          )}
+          
+          {labCoverage === 'out_of_area' && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">
+                <span className="font-medium">Collection unavailable:</span> Home collection is not available in your location yet.
               </p>
             </div>
           )}

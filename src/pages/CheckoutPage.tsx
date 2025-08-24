@@ -17,6 +17,7 @@ import { checkServiceability, ServiceabilityResult } from '@/services/serviceabi
 import { LocationInputField } from '@/components/LocationInputField';
 import { ArrowLeft, MapPin, Phone, Mail, CreditCard, Truck, CheckCircle, AlertTriangle } from 'lucide-react';
 import { openRazorpayCheckout, useVerifyPayment } from '@/hooks/payment-hooks';
+import { useServiceability } from '@/contexts/ServiceabilityContext';
 
 interface ShippingAddress {
   full_name: string;
@@ -56,7 +57,8 @@ const CheckoutPage = () => {
 const navigate = useNavigate();
 const verifyPayment = useVerifyPayment();
 
-  const deliveryFee = freeDelivery ? 0 : 50;
+  const { deliveryFeeEstimate } = useServiceability();
+  const deliveryFee = freeDelivery ? 0 : (deliveryFeeEstimate || 50);
   const subscriptionDiscount = (cartState.totalAmount * extraDiscount) / 100;
   const finalTotal = cartState.totalAmount - subscriptionDiscount;
   const totalAmount = finalTotal + deliveryFee;

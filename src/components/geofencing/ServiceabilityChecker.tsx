@@ -157,9 +157,14 @@ export function ServiceabilityChecker() {
             </div>
           </div>
         ) : results.length === 0 && checkServiceability.isSuccess ? (
-          <div className="flex items-center gap-2 text-red-600">
-            <XCircle className="h-5 w-5" />
-            <span className="font-medium">No service available for this location</span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-amber-600">
+              <XCircle className="h-5 w-5" />
+              <span className="font-medium">No partners available in this area</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Service coverage exists for this location, but no partner centers are currently operational.
+            </div>
           </div>
         ) : null}
       </CardContent>
