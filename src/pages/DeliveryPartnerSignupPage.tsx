@@ -167,26 +167,18 @@ const DeliveryPartnerSignupPage = () => {
         status: 'pending'
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('delivery_partner_applications')
-        .insert([applicationData])
-        .select()
-        .single();
+        .insert([applicationData]);
 
       if (error) {
         console.error('Delivery partner application insert error:', error);
         throw error;
       }
-      if (!data) {
-        console.error('Delivery partner application insert returned no data');
-        throw new Error('Insert succeeded but returned no data');
-      }
 
-      console.log('Delivery partner application created:', data);
-      
       toast({
         title: "Application Submitted Successfully!",
-        description: `We'll review your application and contact you within 24-48 hours. Ref: ${data.id}`,
+        description: "We'll review your application and contact you within 24-48 hours.",
         variant: "default",
       });
 

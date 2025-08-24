@@ -149,26 +149,18 @@ const PharmacySignupPage = () => {
         status: 'pending'
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('pharmacy_applications')
-        .insert([applicationData])
-        .select()
-        .single();
+        .insert([applicationData]);
 
       if (error) {
         console.error('Pharmacy application insert error:', error);
         throw error;
       }
-      if (!data) {
-        console.error('Pharmacy application insert returned no data');
-        throw new Error('Insert succeeded but returned no data');
-      }
 
-      console.log('Pharmacy application created:', data);
-      
       toast({
         title: "Application Submitted!",
-        description: `Application received. Ref: ${data.id}`,
+        description: "Application received. We'll be in touch shortly.",
       });
       
       // Redirect to success page or back to home
