@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 import { latLngsToGeoJSONPolygon } from '@/utils/geo';
-import { Map, Save, RotateCcw } from 'lucide-react';
+import { Map, Save, RotateCcw, Hand, Undo2, Trash2 } from 'lucide-react';
 
 interface GeofenceAreaEditorProps {
   currentPolygon: any; // GeoJSON polygon
@@ -34,6 +34,8 @@ export function GeofenceAreaEditor({
   const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
   const [polygon, setPolygon] = useState<google.maps.Polygon | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [isPanMode, setIsPanMode] = useState(false);
 
   // Convert GeoJSON to Google Maps LatLng format
   const convertGeoJSONToLatLng = useCallback((geoJson: any) => {
@@ -69,10 +71,11 @@ export function GeofenceAreaEditor({
       polygon.setMap(null);
     }
 
-    // Disable drawing
+    // Disable drawing and enable pan mode
     if (drawingManager) {
       drawingManager.setDrawingMode(null);
     }
+    setIsDrawing(false);
 
     setPolygon(newPolygon);
     setHasChanges(true);
@@ -95,6 +98,52 @@ export function GeofenceAreaEditor({
   const startDrawing = () => {
     if (drawingManager) {
       drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+      setIsDrawing(true);
+      setIsPanMode(false);
+    }
+  };
+
+  const enablePanMode = () => {
+    if (drawingManager) {
+      drawingManager.setDrawingMode(null);
+    }
+    setIsDrawing(false);
+    setIsPanMode(true);
+  };
+
+  const clearAll = () => {
+    if (polygon) {
+      polygon.setMap(null);
+      setPolygon(null);
+    }
+    if (drawingManager) {
+      drawingManager.setDrawingMode(null);
+    }
+    setIsDrawing(false);
+    setIsPanMode(false);
+    setHasChanges(false);
+    onPolygonChange(null);
+  };
+
+  const deleteLastPoint = () => {
+    if (polygon) {
+      const path = polygon.getPath();
+      if (path.getLength() > 3) { // Keep at least 3 points for a valid polygon
+        path.removeAt(path.getLength() - 1);
+        
+        // Update the polygon coordinates
+        const coordinates = path.getArray().map(latLng => ({
+          lat: latLng.lat(),
+          lng: latLng.lng(),
+        }));
+
+        try {
+          const geoJsonPolygon = latLngsToGeoJSONPolygon(coordinates);
+          onPolygonChange(geoJsonPolygon);
+        } catch (error) {
+          console.error('Error updating polygon after delete:', error);
+        }
+      }
     }
   };
 
@@ -106,12 +155,16 @@ export function GeofenceAreaEditor({
     if (drawingManager) {
       drawingManager.setDrawingMode(null);
     }
+    setIsDrawing(false);
+    setIsPanMode(false);
     setHasChanges(false);
     onPolygonChange(currentPolygon);
   };
 
   const handleSave = () => {
     setHasChanges(false);
+    setIsDrawing(false);
+    setIsPanMode(false);
     onSave();
   };
 
@@ -134,11 +187,53 @@ export function GeofenceAreaEditor({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Primary Drawing Controls */}
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={startDrawing} variant="outline" size="sm">
+          <Button 
+            onClick={startDrawing} 
+            variant={isDrawing ? "default" : "outline"} 
+            size="sm"
+          >
             <Map className="h-4 w-4 mr-2" />
-            Redraw Area
+            {isDrawing ? 'Drawing...' : 'Draw New Area'}
           </Button>
+          <Button 
+            onClick={enablePanMode} 
+            variant={isPanMode ? "default" : "outline"} 
+            size="sm"
+          >
+            <Hand className="h-4 w-4 mr-2" />
+            Hand Tool
+          </Button>
+        </div>
+
+        {/* Drawing Tools (show only when drawing or polygon exists) */}
+        {(isDrawing || polygon) && (
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              onClick={deleteLastPoint} 
+              variant="outline" 
+              size="sm" 
+              disabled={!polygon}
+              title="Delete last point"
+            >
+              <Undo2 className="h-4 w-4 mr-2" />
+              Undo Point
+            </Button>
+            <Button 
+              onClick={clearAll} 
+              variant="outline" 
+              size="sm"
+              title="Clear all and start over"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
+          </div>
+        )}
+
+        {/* Reset Control */}
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={resetToOriginal} variant="outline" size="sm" disabled={!hasChanges}>
             <RotateCcw className="h-4 w-4 mr-2" />
             Reset to Original
@@ -148,7 +243,23 @@ export function GeofenceAreaEditor({
         {hasChanges && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-sm text-amber-800">
-              You have unsaved changes to the geofence area. Draw a new polygon or reset to continue.
+              You have unsaved changes to the geofence area.
+            </p>
+          </div>
+        )}
+
+        {isDrawing && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <strong>Drawing Mode:</strong> Click on the map to add points. Complete the polygon by clicking on the first point.
+            </p>
+          </div>
+        )}
+
+        {isPanMode && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <p className="text-sm text-green-800">
+              <strong>Pan Mode:</strong> Drag to move around the map.
             </p>
           </div>
         )}
@@ -208,6 +319,7 @@ export function GeofenceAreaEditor({
             Update Area
           </Button>
         </div>
+
       </CardContent>
     </Card>
   );
