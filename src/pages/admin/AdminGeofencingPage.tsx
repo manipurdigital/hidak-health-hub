@@ -6,10 +6,12 @@ import { GeofenceDrawingMap } from '@/components/geofencing/GeofenceDrawingMap';
 import { GeofenceList } from '@/components/geofencing/GeofenceList';
 import { GeofenceAssignments } from '@/components/geofencing/GeofenceAssignments';
 import { ServiceabilityChecker } from '@/components/geofencing/ServiceabilityChecker';
+import { GeofenceEditDialog } from '@/components/geofencing/GeofenceEditDialog';
 import { MapPin, Layers, Link, Search } from 'lucide-react';
 
 export default function AdminGeofencingPage() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editingGeofence, setEditingGeofence] = useState<any | null>(null);
 
   const handleGeofenceCreated = () => {
     // Refresh the geofence list
@@ -17,10 +19,12 @@ export default function AdminGeofencingPage() {
   };
 
   const handleEditGeofence = (geofence: any) => {
-    // For now, just show a toast with geofence info
-    // In the future, this could open an edit modal or navigate to edit page
-    console.log('Edit geofence:', geofence);
-    alert(`Edit functionality for "${geofence.name}" - Coming soon!`);
+    setEditingGeofence(geofence);
+  };
+
+  const handleCloseEdit = () => {
+    setEditingGeofence(null);
+    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -88,6 +92,15 @@ export default function AdminGeofencingPage() {
             <ServiceabilityChecker />
           </TabsContent>
         </Tabs>
+
+        {/* Edit Dialog */}
+        <GeofenceEditDialog
+          geofence={editingGeofence}
+          open={!!editingGeofence}
+          onOpenChange={(open) => {
+            if (!open) handleCloseEdit();
+          }}
+        />
       </div>
     </GoogleMapsProvider>
   );
