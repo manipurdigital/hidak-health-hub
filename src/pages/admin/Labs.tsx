@@ -8,10 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { TestTube, MapPin } from 'lucide-react';
+import { TestTube, MapPin, Edit, Trash2 } from 'lucide-react';
 
 interface LabForm {
+  id?: string;
   code: string;
   name: string;
   is_active: boolean;
@@ -27,6 +29,8 @@ export default function Labs() {
     name: '', 
     is_active: true 
   });
+  
+  const [editingLab, setEditingLab] = useState<string | null>(null);
   
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
@@ -49,28 +53,61 @@ export default function Labs() {
     }
   });
 
-  // Create lab mutation
-  const createLabMutation = useMutation({
+  // Create/Update lab mutation
+  const saveLabMutation = useMutation({
     mutationFn: async (labData: any) => {
-      const { error } = await supabase
-        .from('diagnostic_centers')
-        .insert(labData);
-      
-      if (error) throw error;
+      if (editingLab) {
+        const { error } = await supabase
+          .from('diagnostic_centers')
+          .update(labData)
+          .eq('id', editingLab);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('diagnostic_centers')
+          .insert(labData);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Diagnostic center created successfully"
+        description: editingLab ? "Diagnostic center updated successfully" : "Diagnostic center created successfully"
       });
       setForm({ code: '', name: '', is_active: true });
       setSelectedLocation(null);
+      setEditingLab(null);
       queryClient.invalidateQueries({ queryKey: ['diagnostic_centers'] });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create diagnostic center",
+        description: error.message || `Failed to ${editingLab ? 'update' : 'create'} diagnostic center`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete lab mutation
+  const deleteLabMutation = useMutation({
+    mutationFn: async (labId: string) => {
+      const { error } = await supabase
+        .from('diagnostic_centers')
+        .delete()
+        .eq('id', labId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Diagnostic center deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['diagnostic_centers'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete diagnostic center",
         variant: "destructive"
       });
     }
@@ -95,7 +132,30 @@ export default function Labs() {
       lng: selectedLocation?.longitude
     };
 
-    createLabMutation.mutate(labData);
+    saveLabMutation.mutate(labData);
+  };
+
+  const handleEdit = (lab: any) => {
+    setForm({
+      id: lab.id,
+      code: lab.code || '',
+      name: lab.name,
+      is_active: lab.is_active,
+      address: lab.address
+    });
+    setEditingLab(lab.id);
+    // Reset location when editing
+    setSelectedLocation(null);
+  };
+
+  const handleCancelEdit = () => {
+    setForm({ code: '', name: '', is_active: true });
+    setSelectedLocation(null);
+    setEditingLab(null);
+  };
+
+  const handleDelete = (labId: string) => {
+    deleteLabMutation.mutate(labId);
   };
 
   const handleLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
@@ -116,7 +176,7 @@ export default function Labs() {
         {/* Create Lab Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Create New Diagnostic Center</CardTitle>
+            <CardTitle>{editingLab ? 'Edit Diagnostic Center' : 'Create New Diagnostic Center'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -181,13 +241,24 @@ export default function Labs() {
                 <Label htmlFor="is_active">Active</Label>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={createLabMutation.isPending}
-              >
-                {createLabMutation.isPending ? 'Creating...' : 'Create Diagnostic Center'}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={saveLabMutation.isPending}
+                >
+                  {saveLabMutation.isPending ? 'Saving...' : (editingLab ? 'Update Center' : 'Create Diagnostic Center')}
+                </Button>
+                {editingLab && (
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -205,20 +276,57 @@ export default function Labs() {
                 {labs.map((lab, index) => (
                   <div key={lab.id}>
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-medium">{lab.name}</h4>
                         <p className="text-sm text-muted-foreground">ID: {lab.id.slice(0, 8)}...</p>
                         {lab.address && (
                           <p className="text-xs text-muted-foreground">{lab.address}</p>
                         )}
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        lab.is_active 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {lab.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          lab.is_active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {lab.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(lab)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Diagnostic Center</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{lab.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(lab.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                     {index < labs.length - 1 && <Separator className="mt-3" />}
                   </div>

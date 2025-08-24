@@ -8,10 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Store, MapPin } from 'lucide-react';
+import { Store, MapPin, Edit, Trash2 } from 'lucide-react';
 
 interface StoreForm {
+  id?: string;
   code: string;
   name: string;
   is_active: boolean;
@@ -27,6 +29,8 @@ export default function AdminStoresPage() {
     name: '', 
     is_active: true 
   });
+  
+  const [editingStore, setEditingStore] = useState<string | null>(null);
   
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
@@ -49,28 +53,61 @@ export default function AdminStoresPage() {
     }
   });
 
-  // Create store mutation
-  const createStoreMutation = useMutation({
+  // Create/Update store mutation
+  const saveStoreMutation = useMutation({
     mutationFn: async (storeData: any) => {
-      const { error } = await supabase
-        .from('stores')
-        .insert(storeData);
-      
-      if (error) throw error;
+      if (editingStore) {
+        const { error } = await supabase
+          .from('stores')
+          .update(storeData)
+          .eq('id', editingStore);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('stores')
+          .insert(storeData);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Store created successfully"
+        description: editingStore ? "Store updated successfully" : "Store created successfully"
       });
       setForm({ code: '', name: '', is_active: true });
       setSelectedLocation(null);
+      setEditingStore(null);
       queryClient.invalidateQueries({ queryKey: ['stores'] });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create store",
+        description: error.message || `Failed to ${editingStore ? 'update' : 'create'} store`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete store mutation
+  const deleteStoreMutation = useMutation({
+    mutationFn: async (storeId: string) => {
+      const { error } = await supabase
+        .from('stores')
+        .delete()
+        .eq('id', storeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Store deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['stores'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete store",
         variant: "destructive"
       });
     }
@@ -93,7 +130,30 @@ export default function AdminStoresPage() {
       address: selectedLocation?.address || form.address
     };
 
-    createStoreMutation.mutate(storeData);
+    saveStoreMutation.mutate(storeData);
+  };
+
+  const handleEdit = (store: any) => {
+    setForm({
+      id: store.id,
+      code: store.code,
+      name: store.name,
+      is_active: store.is_active,
+      address: store.address
+    });
+    setEditingStore(store.id);
+    // Reset location when editing
+    setSelectedLocation(null);
+  };
+
+  const handleCancelEdit = () => {
+    setForm({ code: '', name: '', is_active: true });
+    setSelectedLocation(null);
+    setEditingStore(null);
+  };
+
+  const handleDelete = (storeId: string) => {
+    deleteStoreMutation.mutate(storeId);
   };
 
   const handleLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
@@ -114,7 +174,7 @@ export default function AdminStoresPage() {
         {/* Create Store Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Create New Store</CardTitle>
+            <CardTitle>{editingStore ? 'Edit Store' : 'Create New Store'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -179,13 +239,24 @@ export default function AdminStoresPage() {
                 <Label htmlFor="is_active">Active</Label>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={createStoreMutation.isPending}
-              >
-                {createStoreMutation.isPending ? 'Creating...' : 'Create Store'}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="submit" 
+                  className="flex-1"
+                  disabled={saveStoreMutation.isPending}
+                >
+                  {saveStoreMutation.isPending ? 'Saving...' : (editingStore ? 'Update Store' : 'Create Store')}
+                </Button>
+                {editingStore && (
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -203,20 +274,57 @@ export default function AdminStoresPage() {
                 {stores.map((store, index) => (
                   <div key={store.id}>
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-medium">{store.name}</h4>
                         <p className="text-sm text-muted-foreground">Code: {store.code}</p>
                         {store.address && (
                           <p className="text-xs text-muted-foreground">{store.address}</p>
                         )}
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        store.is_active 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {store.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          store.is_active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {store.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(store)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Store</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{store.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(store.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                     {index < stores.length - 1 && <Separator className="mt-3" />}
                   </div>
