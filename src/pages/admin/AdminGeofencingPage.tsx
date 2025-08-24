@@ -16,6 +16,13 @@ export default function AdminGeofencingPage() {
     setRefreshKey(prev => prev + 1);
   };
 
+  const handleEditGeofence = (geofence: any) => {
+    // For now, just show a toast with geofence info
+    // In the future, this could open an edit modal or navigate to edit page
+    console.log('Edit geofence:', geofence);
+    alert(`Edit functionality for "${geofence.name}" - Coming soon!`);
+  };
+
   return (
     <GoogleMapsProvider>
       <div className="space-y-6">
@@ -70,7 +77,7 @@ export default function AdminGeofencingPage() {
           </TabsContent>
 
           <TabsContent value="manage" className="space-y-6">
-            <GeofenceList key={refreshKey} />
+            <GeofenceList key={refreshKey} onEdit={handleEditGeofence} />
           </TabsContent>
 
           <TabsContent value="assignments" className="space-y-6">
