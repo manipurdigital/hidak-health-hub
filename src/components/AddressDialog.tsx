@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -6,10 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { useCreateAddress, useUpdateAddress } from '@/hooks/medicine-hooks';
 import { LocationInputField } from '@/components/LocationInputField';
 import { Autocomplete } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
+import { useServiceability } from '@/contexts/ServiceabilityContext';
+import { useToast } from '@/hooks/use-toast';
+import { AlertTriangle, CheckCircle, MapPin } from 'lucide-react';
 
 interface AddressDialogProps {
   isOpen: boolean;
@@ -37,6 +42,8 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
   const createAddress = useCreateAddress();
   const updateAddress = useUpdateAddress();
   const { isLoaded } = useGoogleMaps();
+  const { setManualLocation, feePreview, inDeliveryArea, loading: serviceabilityLoading } = useServiceability();
+  const { toast } = useToast();
 
   const onAutocompleteLoad = (autocompleteInstance: google.maps.places.Autocomplete) => {
     setAutocomplete(autocompleteInstance);
@@ -74,6 +81,24 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check serviceability before saving if we have coordinates
+    if (formData.latitude && formData.longitude) {
+      await setManualLocation({ 
+        lat: formData.latitude, 
+        lng: formData.longitude, 
+        address: formData.address_line_1 
+      });
+      
+      if (inDeliveryArea === false) {
+        toast({
+          title: "Address not serviceable",
+          description: "This location is outside our delivery area. Please select a different address.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     try {
       if (editingAddress) {
         await updateAddress.mutateAsync({ id: editingAddress.id, ...formData });
@@ -94,6 +119,14 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
           latitude: null,
           longitude: null,
           is_default: false,
+        });
+      }
+      
+      // Show fee preview if available
+      if (feePreview && inDeliveryArea) {
+        toast({
+          title: "Address saved successfully!",
+          description: `Estimated delivery fee: ₹${feePreview.fee}`,
         });
       }
       
@@ -156,13 +189,22 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
             label="Address"
             addressValue={formData.address_line_1}
             onAddressChange={(value) => handleInputChange('address_line_1', value)}
-            onLocationSelect={(location) => {
+            onLocationSelect={async (location) => {
               setFormData(prev => ({
                 ...prev,
                 latitude: location.latitude,
                 longitude: location.longitude,
                 ...(location.address && !prev.address_line_1 ? { address_line_1: location.address } : {})
               }));
+              
+              // Check serviceability when location is selected
+              if (location.latitude && location.longitude) {
+                await setManualLocation({ 
+                  lat: location.latitude, 
+                  lng: location.longitude, 
+                  address: location.address 
+                });
+              }
             }}
             placeholder="Search for address or enter manually"
             required
@@ -233,13 +275,44 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
             <Label htmlFor="is_default">Set as default address</Label>
           </div>
 
+          {/* Serviceability Status */}
+          {formData.latitude && formData.longitude && (
+            <div className="space-y-2">
+              {serviceabilityLoading ? (
+                <Alert>
+                  <MapPin className="h-4 w-4" />
+                  <AlertDescription>Checking service availability...</AlertDescription>
+                </Alert>
+              ) : inDeliveryArea === true ? (
+                <Alert className="border-green-200 bg-green-50">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    Service available in this area
+                    {feePreview && (
+                      <Badge variant="outline" className="ml-2">
+                        Delivery fee: ₹{feePreview.fee}
+                      </Badge>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              ) : inDeliveryArea === false ? (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    This location is outside our delivery area
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+          )}
+
           <div className="flex space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
             <Button 
               type="submit" 
-              disabled={createAddress.isPending || updateAddress.isPending}
+              disabled={createAddress.isPending || updateAddress.isPending || serviceabilityLoading || inDeliveryArea === false}
               className="flex-1"
             >
               {(createAddress.isPending || updateAddress.isPending) 

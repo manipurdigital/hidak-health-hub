@@ -47,18 +47,16 @@ const CheckoutPage = () => {
   });
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
-  const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null);
-  const [checkingServiceability, setCheckingServiceability] = useState(false);
   
   const { state: cartState, clearCart } = useCart();
   const { user } = useAuth();
   const { extraDiscount, freeDelivery } = useSubscription();
   const { toast } = useToast();
-const navigate = useNavigate();
-const verifyPayment = useVerifyPayment();
+  const navigate = useNavigate();
+  const verifyPayment = useVerifyPayment();
 
-  const { deliveryFeeEstimate } = useServiceability();
-  const deliveryFee = freeDelivery ? 0 : (deliveryFeeEstimate || 50);
+  const { setManualLocation, feePreview, inDeliveryArea, loading: serviceabilityLoading } = useServiceability();
+  const deliveryFee = freeDelivery ? 0 : (feePreview?.fee || 50);
   const subscriptionDiscount = (cartState.totalAmount * extraDiscount) / 100;
   const finalTotal = cartState.totalAmount - subscriptionDiscount;
   const totalAmount = finalTotal + deliveryFee;
@@ -78,6 +76,13 @@ const verifyPayment = useVerifyPayment();
       latitude: location.latitude,
       longitude: location.longitude,
     }));
+
+    // Check serviceability immediately
+    await setManualLocation({ 
+      lat: location.latitude, 
+      lng: location.longitude, 
+      address: location.address 
+    });
 
     // If we have an address, try to parse it into components
     if (location.address) {
@@ -155,31 +160,6 @@ const verifyPayment = useVerifyPayment();
     }
   };
 
-  // Check serviceability when lat/lng is available
-  useEffect(() => {
-    const checkAddressServiceability = async () => {
-      if (shippingAddress.latitude && shippingAddress.longitude) {
-        setCheckingServiceability(true);
-        try {
-          const result = await checkServiceability(
-            'delivery',
-            shippingAddress.latitude,
-            shippingAddress.longitude
-          );
-          setServiceability(result);
-        } catch (error) {
-          console.error('Error checking serviceability:', error);
-        } finally {
-          setCheckingServiceability(false);
-        }
-      } else {
-        setServiceability(null);
-      }
-    };
-
-    checkAddressServiceability();
-  }, [shippingAddress.latitude, shippingAddress.longitude]);
-
   const validateForm = () => {
     const required = ['full_name', 'phone', 'email', 'address_line_1', 'city', 'state', 'postal_code'];
     for (const field of required) {
@@ -194,11 +174,11 @@ const verifyPayment = useVerifyPayment();
       }
     }
 
-    // Check serviceability
-    if (serviceability && !serviceability.isServiceable) {
+    // Check serviceability using new context
+    if (inDeliveryArea === false) {
       toast({
         title: "Service Not Available",
-        description: serviceability.error || "Delivery not available in your area",
+        description: "This location is outside our delivery area. Please select a different address.",
         variant: "destructive"
       });
       return false;
@@ -257,11 +237,8 @@ const verifyPayment = useVerifyPayment();
         payment_status: 'pending'
       };
 
-      // Add assigned center if available
-      if (serviceability?.center) {
-        orderData.delivery_center_id = serviceability.center.id;
-      }
-
+      // No need to add center assignment here - it will be handled automatically by the new geofencing system
+      
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([orderData])
@@ -625,39 +602,40 @@ const verifyPayment = useVerifyPayment();
                 </div>
                 
                 {/* Serviceability Status */}
-                {checkingServiceability && (
+                {serviceabilityLoading && (
                   <Alert className="mt-4">
-                    <AlertTriangle className="h-4 w-4" />
+                    <MapPin className="h-4 w-4" />
                     <AlertDescription>
                       Checking delivery availability for your area...
                     </AlertDescription>
                   </Alert>
                 )}
                 
-                {serviceability && (
-                  <Alert className={`mt-4 ${serviceability.isServiceable ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}`}>
-                    {serviceability.isServiceable ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                    )}
+                {inDeliveryArea === true && (
+                  <Alert className="mt-4 border-green-200 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
                     <AlertDescription>
-                      {serviceability.isServiceable ? (
-                        <div>
-                          <span className="text-green-800 font-medium">✓ Delivery Available</span>
-                          {serviceability.center && (
-                            <div className="mt-1">
-                              <Badge variant="secondary" className="text-xs">
-                                Serviceable by: {serviceability.center.name}
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-red-800 font-medium">
-                          {serviceability.error || "Delivery not available in your area"}
-                        </span>
-                      )}
+                      <div>
+                        <span className="text-green-800 font-medium">✓ Delivery Available</span>
+                        {feePreview && (
+                          <div className="mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              Estimated delivery fee: ₹{feePreview.fee}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {inDeliveryArea === false && (
+                  <Alert className="mt-4 border-red-200 bg-red-50">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <AlertDescription>
+                      <span className="text-red-800 font-medium">
+                        Delivery not available in your area
+                      </span>
                     </AlertDescription>
                   </Alert>
                 )}
