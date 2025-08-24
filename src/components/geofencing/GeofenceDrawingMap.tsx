@@ -308,7 +308,7 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
                   onClick={deleteLastPoint} 
                   variant="outline" 
                   size="sm" 
-                  disabled={!polygon && !isDrawing}
+                  disabled={!polygon || isDrawing}
                   title="Delete last point"
                 >
                   <X className="h-4 w-4 mr-2" />
