@@ -296,6 +296,163 @@ const AdminPartnerApplicationsPage = () => {
                     </>
                   )}
                 </div>
+                
+                {/* Document Links Section */}
+                <div className="space-y-3 border-t pt-4">
+                  <Label className="text-base font-semibold">Uploaded Documents</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {type === 'pharmacy' && (
+                      <>
+                        {application.license_document_url && (
+                          <div>
+                            <Label className="text-sm">License Document</Label>
+                            <a 
+                              href={application.license_document_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View License Document
+                            </a>
+                          </div>
+                        )}
+                        {application.gst_document_url && (
+                          <div>
+                            <Label className="text-sm">GST Document</Label>
+                            <a 
+                              href={application.gst_document_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View GST Document
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {type === 'lab' && (
+                      <>
+                        {application.license_document_url && (
+                          <div>
+                            <Label className="text-sm">License Document</Label>
+                            <a 
+                              href={application.license_document_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View License Document
+                            </a>
+                          </div>
+                        )}
+                        {application.gst_document_url && (
+                          <div>
+                            <Label className="text-sm">GST Document</Label>
+                            <a 
+                              href={application.gst_document_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View GST Document
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {type === 'delivery' && (
+                      <>
+                        {application.aadhar_card_url && (
+                          <div>
+                            <Label className="text-sm">Aadhar Card</Label>
+                            <a 
+                              href={application.aadhar_card_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View Aadhar Card
+                            </a>
+                          </div>
+                        )}
+                        {application.driving_license_url && (
+                          <div>
+                            <Label className="text-sm">Driving License</Label>
+                            <a 
+                              href={application.driving_license_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View Driving License
+                            </a>
+                          </div>
+                        )}
+                        {application.vehicle_rc_url && (
+                          <div>
+                            <Label className="text-sm">Vehicle RC</Label>
+                            <a 
+                              href={application.vehicle_rc_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View Vehicle RC
+                            </a>
+                          </div>
+                        )}
+                        {application.insurance_document_url && (
+                          <div>
+                            <Label className="text-sm">Insurance Document</Label>
+                            <a 
+                              href={application.insurance_document_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              View Insurance Document
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Other Documents for all types */}
+                    {application.other_documents && Array.isArray(application.other_documents) && application.other_documents.length > 0 && (
+                      <div className="md:col-span-2">
+                        <Label className="text-sm">Other Documents</Label>
+                        <div className="space-y-1">
+                          {application.other_documents.map((doc: any, index: number) => (
+                            <a 
+                              key={index}
+                              href={doc.url || doc} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:underline block"
+                            >
+                              {doc.name || `Document ${index + 1}`}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Show message if no documents */}
+                  {!application.license_document_url && 
+                   !application.gst_document_url && 
+                   !application.aadhar_card_url && 
+                   !application.driving_license_url && 
+                   !application.vehicle_rc_url && 
+                   !application.insurance_document_url && 
+                   (!application.other_documents || application.other_documents.length === 0) && (
+                    <p className="text-sm text-muted-foreground italic">No documents uploaded</p>
+                  )}
+                </div>
+                
                 {application.admin_notes && (
                   <div>
                     <Label>Admin Notes</Label>
