@@ -5,9 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCreateGeofence, useCentersAndStores } from '@/hooks/geofencing-hooks';
+import { Switch } from '@/components/ui/switch';
+import { useCreateGeofence } from '@/hooks/geofencing-hooks';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash2 } from 'lucide-react';
+import { latLngsToGeoJSONPolygon, normalizeService } from '@/utils/geo';
+import { supabase } from '@/integrations/supabase/client';
 import { AreaSearchBar } from './AreaSearchBar';
 
 const mapContainerStyle = {
@@ -46,12 +49,9 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
   // Form state
   const [geofenceName, setGeofenceName] = useState('');
   const [serviceType, setServiceType] = useState<'delivery' | 'lab_collection'>('delivery');
-  const [selectedCenterId, setSelectedCenterId] = useState<string>('');
-  const [selectedStoreId, setSelectedStoreId] = useState<string>('');
-  const [priority, setPriority] = useState(1);
-
-  const { data: centersAndStores } = useCentersAndStores();
-  const createGeofence = useCreateGeofence();
+  const [priority, setPriority] = useState(5);
+  const [isActive, setIsActive] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
@@ -130,61 +130,50 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
       return;
     }
 
-    if (serviceType === 'lab_collection' && !selectedCenterId) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a diagnostic center for lab collection geofence.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (serviceType === 'delivery' && !selectedStoreId) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a store for delivery geofence.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
+      setIsSaving(true);
+      
       // Get polygon coordinates
       const path = polygon.getPath();
-      const coordinates: google.maps.LatLng[] = [];
+      const coordinates: Array<{ lat: number; lng: number }> = [];
       path.forEach((latLng: google.maps.LatLng) => {
-        coordinates.push(latLng);
+        coordinates.push({ lat: latLng.lat(), lng: latLng.lng() });
       });
 
-      // Convert to GeoJSON format
-      const geoJsonPolygon = {
-        type: 'Polygon',
-        coordinates: [[
-          ...coordinates.map(coord => [coord.lng(), coord.lat()]),
-          // Close the polygon by repeating the first coordinate
-          [coordinates[0].lng(), coordinates[0].lat()]
-        ]]
-      };
+      // Convert to GeoJSON format using utility function
+      const geoJsonPolygon = latLngsToGeoJSONPolygon(coordinates);
 
-      await createGeofence.mutateAsync({
+      const { error } = await supabase.from('geofences').insert({
         name: geofenceName.trim(),
-        service_type: serviceType,
-        center_id: serviceType === 'lab_collection' ? selectedCenterId : undefined,
-        store_id: serviceType === 'delivery' ? selectedStoreId : undefined,
-        polygon_coordinates: geoJsonPolygon,
+        service_type: normalizeService(serviceType),
         priority,
+        is_active: isActive,
+        polygon_coordinates: geoJsonPolygon as any,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Geofence created successfully",
       });
 
       // Reset form
       setGeofenceName('');
-      setSelectedCenterId('');
-      setSelectedStoreId('');
-      setPriority(1);
+      setPriority(5);
+      setIsActive(true);
       clearPolygon();
       
       onGeofenceCreated?.();
     } catch (error) {
       console.error('Error saving geofence:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create geofence",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -209,56 +198,16 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
             
             <div>
               <Label htmlFor="serviceType">Service Type</Label>
-              <Select value={serviceType} onValueChange={(value: 'delivery' | 'lab_collection') => {
-                setServiceType(value);
-                setSelectedCenterId('');
-                setSelectedStoreId('');
-              }}>
+              <Select value={serviceType} onValueChange={(value: 'delivery' | 'lab_collection') => setServiceType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select service type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="delivery">Medicine Delivery</SelectItem>
-                  <SelectItem value="lab_collection">Lab Collection</SelectItem>
+                  <SelectItem value="lab_collection">Lab Home Collection</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {serviceType === 'lab_collection' && (
-              <div>
-                <Label htmlFor="centerId">Diagnostic Center</Label>
-                <Select value={selectedCenterId} onValueChange={setSelectedCenterId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select diagnostic center" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {centersAndStores?.centers.map((center) => (
-                      <SelectItem key={center.id} value={center.id}>
-                        {center.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {serviceType === 'delivery' && (
-              <div>
-                <Label htmlFor="storeId">Store/Pharmacy</Label>
-                <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select store" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {centersAndStores?.stores.map((store) => (
-                      <SelectItem key={store.id} value={store.id}>
-                        {store.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             <div>
               <Label htmlFor="priority">Priority (1-10)</Label>
@@ -268,8 +217,19 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
                 min="1"
                 max="10"
                 value={priority}
-                onChange={(e) => setPriority(parseInt(e.target.value) || 1)}
+                onChange={(e) => setPriority(parseInt(e.target.value) || 5)}
+                placeholder="Higher number wins when areas overlap"
               />
+              <p className="text-xs text-muted-foreground mt-1">Higher values take precedence when areas overlap</p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="active"
+                checked={isActive}
+                onCheckedChange={setIsActive}
+              />
+              <Label htmlFor="active">Active</Label>
             </div>
           </div>
 
@@ -283,10 +243,10 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
             </Button>
             <Button 
               onClick={saveGeofence} 
-              disabled={!polygon || !geofenceName.trim() || createGeofence.isPending}
+              disabled={!polygon || !geofenceName.trim() || isSaving}
             >
               <Save className="h-4 w-4 mr-2" />
-              {createGeofence.isPending ? 'Saving...' : 'Save Geofence'}
+              {isSaving ? 'Saving...' : 'Save Geofence'}
             </Button>
           </div>
         </CardContent>

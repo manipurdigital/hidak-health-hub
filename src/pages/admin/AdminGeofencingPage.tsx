@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 import { GeofenceDrawingMap } from '@/components/geofencing/GeofenceDrawingMap';
 import { GeofenceList } from '@/components/geofencing/GeofenceList';
+import { GeofenceAssignments } from '@/components/geofencing/GeofenceAssignments';
 import { ServiceabilityChecker } from '@/components/geofencing/ServiceabilityChecker';
-import { MapPin, Layers, Search } from 'lucide-react';
+import { MapPin, Layers, Link, Search } from 'lucide-react';
 
 export default function AdminGeofencingPage() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -45,7 +46,7 @@ export default function AdminGeofencingPage() {
 
         {/* Main Content */}
         <Tabs defaultValue="create" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="create" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Create Geofence
@@ -53,6 +54,10 @@ export default function AdminGeofencingPage() {
             <TabsTrigger value="manage" className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
               Manage Geofences
+            </TabsTrigger>
+            <TabsTrigger value="assignments" className="flex items-center gap-2">
+              <Link className="h-4 w-4" />
+              Assignments
             </TabsTrigger>
             <TabsTrigger value="test" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
@@ -66,6 +71,10 @@ export default function AdminGeofencingPage() {
 
           <TabsContent value="manage" className="space-y-6">
             <GeofenceList key={refreshKey} />
+          </TabsContent>
+
+          <TabsContent value="assignments" className="space-y-6">
+            <GeofenceAssignments />
           </TabsContent>
 
           <TabsContent value="test" className="space-y-6">
