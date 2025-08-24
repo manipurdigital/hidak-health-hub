@@ -10,7 +10,6 @@ import { useCreateGeofence } from '@/hooks/geofencing-hooks';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash2, Hand, X, Map, Maximize2, Minimize2 } from 'lucide-react';
 import { latLngsToGeoJSONPolygon, normalizeService } from '@/utils/geo';
-import { supabase } from '@/integrations/supabase/client';
 import { AreaSearchBar } from './AreaSearchBar';
 
 const mapContainerStyle = {
@@ -58,8 +57,9 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
   const [serviceType, setServiceType] = useState<'delivery' | 'lab_collection'>('delivery');
   const [priority, setPriority] = useState(5);
   const [isActive, setIsActive] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  
   const { toast } = useToast();
+  const createGeofence = useCreateGeofence();
   
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
 
@@ -157,52 +157,34 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
       return;
     }
 
-    try {
-      setIsSaving(true);
-      
-      // Get polygon coordinates
-      const path = polygon.getPath();
-      const coordinates: Array<{ lat: number; lng: number }> = [];
-      path.forEach((latLng: google.maps.LatLng) => {
-        coordinates.push({ lat: latLng.lat(), lng: latLng.lng() });
-      });
+    // Get polygon coordinates
+    const path = polygon.getPath();
+    const coordinates: Array<{ lat: number; lng: number }> = [];
+    path.forEach((latLng: google.maps.LatLng) => {
+      coordinates.push({ lat: latLng.lat(), lng: latLng.lng() });
+    });
 
-      // Convert to GeoJSON format using utility function
-      const geoJsonPolygon = latLngsToGeoJSONPolygon(coordinates);
+    // Convert to GeoJSON format using utility function
+    const geoJsonPolygon = latLngsToGeoJSONPolygon(coordinates);
 
-      const { error } = await supabase.from('geofences').insert({
-        name: geofenceName.trim(),
-        service_type: normalizeService(serviceType),
-        priority,
-        is_active: isActive,
-        polygon_coordinates: geoJsonPolygon as any,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Geofence created successfully",
-      });
-
-      // Reset form
-      setGeofenceName('');
-      setPriority(5);
-      setIsActive(true);
-      setIsPanMode(false);
-      clearPolygon();
-      
-      onGeofenceCreated?.();
-    } catch (error) {
-      console.error('Error saving geofence:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create geofence",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    createGeofence.mutate({
+      name: geofenceName.trim(),
+      service_type: normalizeService(serviceType),
+      priority,
+      is_active: isActive,
+      polygon_coordinates: geoJsonPolygon as any,
+    }, {
+      onSuccess: () => {
+        // Reset form
+        setGeofenceName('');
+        setPriority(5);
+        setIsActive(true);
+        setIsPanMode(false);
+        clearPolygon();
+        
+        onGeofenceCreated?.();
+      }
+    });
   };
 
   return (
@@ -264,10 +246,10 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
           <div className="flex gap-2">
             <Button 
               onClick={saveGeofence} 
-              disabled={!polygon || !geofenceName.trim() || isSaving}
+              disabled={!polygon || !geofenceName.trim() || createGeofence.isPending}
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Geofence'}
+              {createGeofence.isPending ? 'Saving...' : 'Save Geofence'}
             </Button>
           </div>
         </CardContent>
