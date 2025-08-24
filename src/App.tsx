@@ -65,6 +65,7 @@ import AdminPerformancePage from "./pages/admin/AdminPerformancePage";
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
 import AdminPartnerApplicationsPage from "./pages/admin/AdminPartnerApplicationsPage";
 import AdminStoresPage from "./pages/admin/AdminStoresPage";
+import Labs from "./pages/admin/Labs";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,7 @@ const App = () => (
                 <Route path="categories" element={<AdminCategoriesPage />} />
                 <Route path="partner-applications" element={<AdminPartnerApplicationsPage />} />
                 <Route path="stores" element={<AdminStoresPage />} />
+                <Route path="labs" element={<Labs />} />
               </Route>
               
               {/* Lab Routes - Lab role required */}
