@@ -64,6 +64,7 @@ import AdminPaymentReconciliationPage from "./pages/admin/AdminPaymentReconcilia
 import AdminPerformancePage from "./pages/admin/AdminPerformancePage";
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
 import AdminPartnerApplicationsPage from "./pages/admin/AdminPartnerApplicationsPage";
+import AdminStoresPage from "./pages/admin/AdminStoresPage";
 
 const queryClient = new QueryClient();
 
@@ -139,6 +140,7 @@ const App = () => (
                 <Route path="analytics/perf" element={<AdminPerformancePage />} />
                 <Route path="categories" element={<AdminCategoriesPage />} />
                 <Route path="partner-applications" element={<AdminPartnerApplicationsPage />} />
+                <Route path="stores" element={<AdminStoresPage />} />
               </Route>
               
               {/* Lab Routes - Lab role required */}
