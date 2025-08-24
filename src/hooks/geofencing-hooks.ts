@@ -206,3 +206,43 @@ export const useCheckServiceability = () => {
     },
   });
 };
+
+// Get coverage areas for a location (even without partners)
+export const useCoverage = () => {
+  return useMutation({
+    mutationFn: async ({ lat, lng, serviceType }: { lat: number; lng: number; serviceType: 'delivery' | 'lab_collection' }) => {
+      const { data, error } = await supabase.rpc('get_service_coverage' as any, {
+        lat,
+        lng,
+        service_type: serviceType
+      });
+
+      if (error) {
+        console.error('Error checking coverage:', error);
+        throw error;
+      }
+
+      return data;
+    },
+  });
+};
+
+// Preview delivery fee for a location
+export const useFeePreview = () => {
+  return useMutation({
+    mutationFn: async ({ lat, lng }: { lat: number; lng: number }) => {
+      const { data, error } = await supabase.rpc('calc_distance_fee_from_geofence' as any, {
+        p_service: 'delivery',
+        p_dest_lat: lat,
+        p_dest_lng: lng,
+      });
+
+      if (error) {
+        console.error('Error previewing fee:', error);
+        throw error;
+      }
+
+      return data?.[0] ?? null;
+    },
+  });
+};

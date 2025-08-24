@@ -5,19 +5,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useCheckServiceability } from '@/hooks/geofencing-hooks';
-import { MapPin, CheckCircle, XCircle, Building, Store } from 'lucide-react';
+import { MapPin, Navigation, AlertCircle, CheckCircle, XCircle, Building, Store } from 'lucide-react';
 import { AreaSearchBar } from './AreaSearchBar';
+import { useCheckServiceability, useCoverage, useFeePreview } from '@/hooks/geofencing-hooks';
 
 export function ServiceabilityChecker() {
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [serviceType, setServiceType] = useState<'delivery' | 'lab_collection'>('delivery');
   const [results, setResults] = useState<any[]>([]);
-  
+  const [coverageResults, setCoverageResults] = useState<any[]>([]);
+  const [feePreview, setFeePreview] = useState<any>(null);
+
   const checkServiceability = useCheckServiceability();
+  const checkCoverage = useCoverage();
+  const previewFee = useFeePreview();
 
   const handleCheck = async () => {
+    if (!latitude || !longitude || !serviceType) {
+      return;
+    }
+
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
 
@@ -26,15 +34,39 @@ export function ServiceabilityChecker() {
     }
 
     try {
-      const centers = await checkServiceability.mutateAsync({
+      // Check for partners first
+      const partners = await checkServiceability.mutateAsync({
         lat,
         lng,
-        serviceType,
+        serviceType
       });
-      setResults(centers);
+      
+      setResults(partners || []);
+
+      // If no partners, check coverage
+      if (!partners || partners.length === 0) {
+        const coverage = await checkCoverage.mutateAsync({
+          lat,
+          lng,
+          serviceType: serviceType as 'delivery' | 'lab_collection'
+        });
+        setCoverageResults(coverage || []);
+      } else {
+        setCoverageResults([]);
+      }
+
+      // Preview fee for delivery
+      if (serviceType === 'delivery') {
+        const fee = await previewFee.mutateAsync({ lat, lng });
+        setFeePreview(fee);
+      } else {
+        setFeePreview(null);
+      }
     } catch (error) {
       console.error('Error checking serviceability:', error);
       setResults([]);
+      setCoverageResults([]);
+      setFeePreview(null);
     }
   };
 
@@ -52,55 +84,59 @@ export function ServiceabilityChecker() {
     }
   };
 
-  const handleLocationSelect = (location: { lat: number; lng: number; address: string }) => {
+  const handleLocationSelect = (location: { lat: number; lng: number; address?: string }) => {
     setLatitude(location.lat.toString());
     setLongitude(location.lng.toString());
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Serviceability Checker
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="mb-4">
-          <Label>Quick Location Search</Label>
-          <AreaSearchBar
-            onLocationSelect={handleLocationSelect}
-            placeholder="Search for an area or address..."
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="latitude">Latitude</Label>
-            <Input
-              id="latitude"
-              type="number"
-              step="any"
-              value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
-              placeholder="28.6139"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="longitude">Longitude</Label>
-            <Input
-              id="longitude"
-              type="number"
-              step="any"
-              value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
-              placeholder="77.2090"
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Test Serviceability
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search Bar */}
+          <div className="space-y-2">
+            <Label>Search Location</Label>
+            <AreaSearchBar
+              onLocationSelect={handleLocationSelect}
+              placeholder="Search for a location..."
             />
           </div>
 
-          <div>
-            <Label htmlFor="serviceType">Service Type</Label>
+          {/* Manual Coordinates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input
+                id="latitude"
+                type="number"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                placeholder="Enter latitude"
+                step="any"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input
+                id="longitude"
+                type="number"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                placeholder="Enter longitude"
+                step="any"
+              />
+            </div>
+          </div>
+
+          {/* Service Type */}
+          <div className="space-y-2">
+            <Label>Service Type</Label>
             <Select value={serviceType} onValueChange={(value: 'delivery' | 'lab_collection') => setServiceType(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select service type" />
@@ -111,63 +147,122 @@ export function ServiceabilityChecker() {
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        <div className="flex gap-2">
-          <Button onClick={handleCheck} disabled={checkServiceability.isPending || !latitude || !longitude}>
-            {checkServiceability.isPending ? 'Checking...' : 'Check Serviceability'}
-          </Button>
-          <Button variant="outline" onClick={getCurrentLocation}>
-            Use Current Location
-          </Button>
-        </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleCheck} 
+              disabled={!latitude || !longitude || !serviceType || checkServiceability.isPending}
+            >
+              {checkServiceability.isPending ? 'Checking...' : 'Check Serviceability'}
+            </Button>
+            <Button variant="outline" onClick={getCurrentLocation}>
+              <Navigation className="h-4 w-4 mr-2" />
+              Use Current Location
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Results */}
-        {results.length > 0 ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">Service Available!</span>
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="font-medium">Available Centers:</h4>
+      {/* Results */}
+      {(results.length > 0 || coverageResults.length > 0 || checkServiceability.isSuccess) && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Results</h3>
+          
+          {results.length > 0 ? (
+            <div className="space-y-3">
               {results.map((center, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {serviceType === 'delivery' ? (
-                      <Store className="h-4 w-4 text-blue-500" />
-                    ) : (
-                      <Building className="h-4 w-4 text-green-500" />
-                    )}
-                    <div>
-                      <div className="font-medium">
-                        {serviceType === 'delivery' ? center.store_name : center.center_name}
+                <Card key={index} className="border-green-200 bg-green-50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {center.center_name || center.store_name || 'Service Center'}
+                          </Badge>
+                          <Badge variant="outline">Priority: {center.priority}</Badge>
+                        </div>
+                        
+                        {center.geofence_name && (
+                          <p className="text-sm text-muted-foreground">
+                            Area: {center.geofence_name}
+                          </p>
+                        )}
+                        
+                        {center.geofence_id && (
+                          <p className="text-xs font-mono text-muted-foreground">
+                            ID: {center.geofence_id}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Geofence: {center.geofence_name}
-                      </div>
+                      
+                      <Badge className="bg-green-100 text-green-800 border-green-300">
+                        Available
+                      </Badge>
                     </div>
-                  </div>
-                  <Badge variant="secondary">
-                    Priority {center.priority}
-                  </Badge>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-          </div>
-        ) : results.length === 0 && checkServiceability.isSuccess ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-amber-600">
-              <XCircle className="h-5 w-5" />
-              <span className="font-medium">No partners available in this area</span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Service coverage exists for this location, but no partner centers are currently operational.
-            </div>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+          ) : coverageResults.length > 0 ? (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-blue-800 font-medium">
+                      Available in your area – partners onboarding
+                    </p>
+                    <p className="text-blue-700 text-sm mt-1">
+                      This location is within our service area. Partners are being onboarded and will be available soon.
+                    </p>
+                    {coverageResults[0]?.geofence_name && (
+                      <p className="text-sm text-blue-600 mt-2">
+                        Area: {coverageResults[0].geofence_name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
+                  <div>
+                    <p className="text-orange-800 font-medium">
+                      Out of service area
+                    </p>
+                    <p className="text-orange-700 text-sm mt-1">
+                      This location is not currently covered by our service areas.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Fee Preview for Delivery */}
+          {feePreview && serviceType === 'delivery' && (
+            <Card className="border-purple-200 bg-purple-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-800 font-medium">Delivery Fee Preview</p>
+                    <p className="text-purple-700 text-sm">
+                      Distance: {feePreview.distance_km} km from {feePreview.geofence_name}
+                    </p>
+                  </div>
+                  <Badge className="bg-purple-100 text-purple-800 border-purple-300">
+                    ₹{feePreview.fee}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
