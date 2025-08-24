@@ -36,11 +36,7 @@ export const useGeofences = (serviceType?: string) => {
     queryFn: async () => {
       let query = supabase
         .from('geofences')
-        .select(`
-          *,
-          diagnostic_centers(name),
-          stores(name)
-        `)
+        .select('*')
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -51,11 +47,7 @@ export const useGeofences = (serviceType?: string) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      return data.map(item => ({
-        ...item,
-        center_name: item.diagnostic_centers?.[0]?.name || null,
-        store_name: item.stores?.[0]?.name || null,
-      }));
+      return data || [];
     },
   });
 };
