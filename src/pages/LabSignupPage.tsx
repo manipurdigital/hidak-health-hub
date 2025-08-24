@@ -14,7 +14,7 @@ import Footer from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapLocationPicker } from '@/components/MapLocationPicker';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
-import { supabase } from '@/integrations/supabase/client';
+import { publicSupabase } from '@/integrations/supabase/public-client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const LabSignupPage = () => {
@@ -124,6 +124,12 @@ const LabSignupPage = () => {
     }
 
     try {
+      console.log('📝 Submitting lab application...', { 
+        user_id: user?.id, 
+        email: formData.email,
+        center_name: formData.centerName 
+      });
+
       const applicationData = {
         user_id: user?.id,
         center_name: formData.centerName,
@@ -148,14 +154,22 @@ const LabSignupPage = () => {
         status: 'pending'
       };
 
-      const { error } = await supabase
+      const { error } = await publicSupabase
         .from('lab_applications')
         .insert([applicationData]);
 
       if (error) {
-        console.error('Lab application insert error:', error);
+        console.error('❌ Lab application insert error:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
+
+      console.log('✅ Lab application submitted successfully');
 
       toast({
         title: "Application Submitted!",
@@ -166,10 +180,15 @@ const LabSignupPage = () => {
       navigate('/');
       
     } catch (error: any) {
-      console.error('Lab application submission error:', error);
+      console.error('💥 Lab form submission failed:', error);
+      
+      const errorMessage = error?.message?.includes('violates row-level security') 
+        ? 'There was a permission issue. Please refresh the page and try again.'
+        : error?.message || 'An unexpected error occurred. Please try again.';
+      
       toast({
         title: "Submission Failed",
-        description: "An error occurred while submitting your application. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

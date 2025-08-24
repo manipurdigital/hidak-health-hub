@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { publicSupabase } from '@/integrations/supabase/public-client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const DeliveryPartnerSignupPage = () => {
@@ -148,6 +148,12 @@ const DeliveryPartnerSignupPage = () => {
     setLoading(true);
 
     try {
+      console.log('📝 Submitting delivery partner application...', { 
+        user_id: user?.id, 
+        email: formData.email,
+        full_name: formData.fullName 
+      });
+
       const applicationData = {
         user_id: user?.id,
         full_name: formData.fullName,
@@ -167,14 +173,22 @@ const DeliveryPartnerSignupPage = () => {
         status: 'pending'
       };
 
-      const { error } = await supabase
+      const { error } = await publicSupabase
         .from('delivery_partner_applications')
         .insert([applicationData]);
 
       if (error) {
-        console.error('Delivery partner application insert error:', error);
+        console.error('❌ Delivery partner application insert error:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
+
+      console.log('✅ Delivery partner application submitted successfully');
 
       toast({
         title: "Application Submitted Successfully!",
@@ -187,11 +201,16 @@ const DeliveryPartnerSignupPage = () => {
         navigate('/');
       }, 2000);
 
-    } catch (error) {
-      console.error('Error submitting form:', error);
+    } catch (error: any) {
+      console.error('💥 Delivery partner form submission failed:', error);
+      
+      const errorMessage = error?.message?.includes('violates row-level security') 
+        ? 'There was a permission issue. Please refresh the page and try again.'
+        : error?.message || 'An unexpected error occurred. Please try again.';
+      
       toast({
         title: "Submission Failed",
-        description: "There was an error submitting your application. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
