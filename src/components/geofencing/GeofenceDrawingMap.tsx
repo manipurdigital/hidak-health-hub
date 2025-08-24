@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useCreateGeofence } from '@/hooks/geofencing-hooks';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Trash2, Hand, Undo2, Map } from 'lucide-react';
+import { Save, Trash2, Hand, Undo2, Map, Maximize2, Minimize2 } from 'lucide-react';
 import { latLngsToGeoJSONPolygon, normalizeService } from '@/utils/geo';
 import { supabase } from '@/integrations/supabase/client';
 import { AreaSearchBar } from './AreaSearchBar';
@@ -16,6 +16,11 @@ import { AreaSearchBar } from './AreaSearchBar';
 const mapContainerStyle = {
   width: '100%',
   height: '500px',
+};
+
+const maximizedMapStyle = {
+  width: '100vw',
+  height: '100vh',
 };
 
 const defaultCenter = {
@@ -46,6 +51,7 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
   const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPanMode, setIsPanMode] = useState(false);
+  const [isMapMaximized, setIsMapMaximized] = useState(false);
   
   // Form state
   const [geofenceName, setGeofenceName] = useState('');
@@ -284,22 +290,32 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
           {/* Drawing Tools */}
           <div className="space-y-4">
             {/* Primary Drawing Controls */}
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap justify-between">
+              <div className="flex gap-2 flex-wrap">
+                <Button 
+                  onClick={startDrawing} 
+                  variant={isDrawing ? "default" : "outline"} 
+                  size="sm"
+                >
+                  <Map className="h-4 w-4 mr-2" />
+                  {isDrawing ? 'Drawing...' : 'Draw Area'}
+                </Button>
+                <Button 
+                  onClick={enablePanMode} 
+                  variant={isPanMode ? "default" : "outline"} 
+                  size="sm"
+                >
+                  <Hand className="h-4 w-4 mr-2" />
+                  Hand Tool
+                </Button>
+              </div>
               <Button 
-                onClick={startDrawing} 
-                variant={isDrawing ? "default" : "outline"} 
+                onClick={() => setIsMapMaximized(!isMapMaximized)} 
+                variant="outline" 
                 size="sm"
+                title={isMapMaximized ? "Exit fullscreen" : "Maximize map"}
               >
-                <Map className="h-4 w-4 mr-2" />
-                {isDrawing ? 'Drawing...' : 'Draw Area'}
-              </Button>
-              <Button 
-                onClick={enablePanMode} 
-                variant={isPanMode ? "default" : "outline"} 
-                size="sm"
-              >
-                <Hand className="h-4 w-4 mr-2" />
-                Hand Tool
+                {isMapMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </Button>
             </div>
 
@@ -347,9 +363,22 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
           </div>
 
           {/* Map Container */}
-          <div className="border rounded-lg overflow-hidden">
+          <div className={`border rounded-lg overflow-hidden ${isMapMaximized ? 'fixed inset-0 z-50 bg-background' : ''}`}>
+            {isMapMaximized && (
+              <div className="absolute top-4 right-4 z-10">
+                <Button 
+                  onClick={() => setIsMapMaximized(false)} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-background/80 backdrop-blur"
+                >
+                  <Minimize2 className="h-4 w-4 mr-2" />
+                  Exit Fullscreen
+                </Button>
+              </div>
+            )}
             <GoogleMap
-              mapContainerStyle={mapContainerStyle}
+              mapContainerStyle={isMapMaximized ? maximizedMapStyle : mapContainerStyle}
               center={defaultCenter}
               zoom={11}
               onLoad={onMapLoad}
