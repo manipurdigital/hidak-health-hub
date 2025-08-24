@@ -7,8 +7,19 @@ import ConsultationsSection from "@/components/ConsultationsSection";
 import { TrendingMedicinesCarousel } from "@/components/TrendingMedicinesCarousel";
 import Footer from "@/components/Footer";
 import { FeatureGuard } from "@/components/FeatureGuard";
+import { useServiceability } from "@/contexts/ServiceabilityContext";
+import { useEffect } from "react";
 
 const Index = () => {
+  const { autoDetect, location } = useServiceability();
+
+  useEffect(() => {
+    // Auto-detect location on first visit if not cached
+    if (!location) {
+      autoDetect();
+    }
+  }, [location, autoDetect]);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />

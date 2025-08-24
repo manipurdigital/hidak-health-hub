@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUrlFilters } from '@/hooks/use-url-filters';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { useServiceability } from '@/contexts/ServiceabilityContext';
 
 interface LabTest {
   id: string;
@@ -38,6 +39,7 @@ const LabTestsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { filters, updateFilters, clearFilters } = useUrlFilters();
+  const { visibleLabs, topLabCenter } = useServiceability();
 
   const page = filters.page || 1;
   const pageSize = 12;
@@ -156,6 +158,21 @@ const LabTestsPage = () => {
               Book lab tests with convenient home sample collection. Our certified phlebotomists will visit your home to collect samples safely.
             </p>
           </div>
+
+          {/* Lab coverage banner */}
+          {visibleLabs.length > 0 ? (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-700 text-sm">
+                Home collection available by <span className="font-medium">{topLabCenter?.center_name}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-amber-700 text-sm">
+                Home collection is not available in your location. You can still browse tests for clinic visits.
+              </p>
+            </div>
+          )}
 
           {/* Search and Filters */}
           <div className="bg-card p-6 rounded-xl shadow-sm border mb-12">

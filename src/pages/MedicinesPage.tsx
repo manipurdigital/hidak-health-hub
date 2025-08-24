@@ -21,6 +21,7 @@ import { useMedicines, useMedicineCategories } from '@/hooks/api-hooks';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { useServiceability } from '@/contexts/ServiceabilityContext';
 
 interface Medicine {
   id: string;
@@ -58,6 +59,7 @@ const MedicinesPage = () => {
   const { addItem } = useCart();
   const { user } = useAuth();
   const { filters, updateFilters, clearFilters } = useUrlFilters();
+  const { topStore, visibleStores } = useServiceability();
 
   const page = filters.page || 1;
   const pageSize = 12;
@@ -307,6 +309,15 @@ const MedicinesPage = () => {
             </p>
           </div>
 
+          {/* Delivery coverage banner */}
+          {visibleStores.length === 0 && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-amber-700 text-sm">
+                Delivery is not available in your location. You can still browse and order for pickup.
+              </p>
+            </div>
+          )}
+
           {/* Trending medicines carousel */}
           <TrendingMedicinesCarousel className="mb-12" />
 
@@ -506,6 +517,11 @@ const MedicinesPage = () => {
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">{medicine.brand}</p>
                       <p className="text-xs text-muted-foreground">{medicine.pack_size}</p>
+                      {topStore && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Fulfilled by <span className="font-medium text-primary">{topStore.store_name}</span>
+                        </div>
+                      )}
                     </CardHeader>
                     
                     <CardContent className="space-y-4">

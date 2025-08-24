@@ -8,7 +8,9 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useServiceability } from "@/contexts/ServiceabilityContext";
 import { useNavigate, useLocation } from "react-router-dom";
+import { QuickLocationInput } from "@/components/QuickLocationInput";
 import { SearchBar } from "./SearchBar";
 import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
@@ -18,9 +20,11 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isLocationOpen, setIsLocationOpen] = useState(false);
   const { toast } = useToast();
   const { itemCount, state, updateQuantity, removeItem } = useCart();
   const { user, userRole } = useAuth();
+  const { topStore, topLabCenter, setManualLocation } = useServiceability();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -342,10 +346,28 @@ const Header = () => {
             </Button> */}
           </nav>
           
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">📍</span>
-            <span className="text-sm">Select Location</span>
-          </div>
+          <Popover open={isLocationOpen} onOpenChange={setIsLocationOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">📍</span>
+                <span className="text-sm">
+                  {topStore ? `Fulfilled by ${topStore.store_name}` : 
+                   topLabCenter ? `Lab collection by ${topLabCenter.center_name}` : 
+                   'Set location'}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4">
+              <QuickLocationInput
+                onLocationSelect={async ({ latitude, longitude, address }) => {
+                  await setManualLocation({ lat: latitude, lng: longitude, address });
+                  setIsLocationOpen(false);
+                }}
+                title="Set Your Location"
+                description="Set your location to see delivery and lab services available in your area"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
     </header>

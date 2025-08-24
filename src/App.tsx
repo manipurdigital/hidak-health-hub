@@ -7,6 +7,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
+import { ServiceabilityProvider } from "@/contexts/ServiceabilityContext";
 import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
 import { AdminLayout } from "@/components/AdminLayout";
 import { CenterLayout } from "@/components/CenterLayout";
@@ -68,11 +69,12 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <SubscriptionProvider>
-        <CartProvider>
-        <TooltipProvider>
-          <GoogleMapsProvider>
+    <TooltipProvider>
+      <GoogleMapsProvider>
+        <ServiceabilityProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <CartProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -161,11 +163,12 @@ const App = () => (
             </Routes>
             </div>
           </BrowserRouter>
-          </GoogleMapsProvider>
-        </TooltipProvider>
-        </CartProvider>
-      </SubscriptionProvider>
-    </AuthProvider>
+              </CartProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
+        </ServiceabilityProvider>
+      </GoogleMapsProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
