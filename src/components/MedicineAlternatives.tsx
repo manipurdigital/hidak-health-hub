@@ -81,8 +81,6 @@ export function MedicineAlternatives({ medicineId, medicineName, originalPrice }
     const difference = alternativePrice - originalPrice;
     const percentageDiff = Math.abs((difference / originalPrice) * 100);
     
-    console.log('Price comparison:', { originalPrice, alternativePrice, difference, percentageDiff });
-    
     if (Math.abs(difference) < 0.01) {
       return { type: 'same', label: 'Same price', color: 'text-muted-foreground' };
     } else if (difference < 0) {
@@ -239,7 +237,6 @@ export function MedicineAlternatives({ medicineId, medicineName, originalPrice }
                         </div>
                         {(() => {
                           const comparison = getPriceComparison(medicine.price);
-                          console.log('Rendering comparison for', medicine.name, comparison);
                           return comparison ? (
                             <div className={`text-xs font-medium ${comparison.color}`}>
                               {comparison.label}
@@ -247,11 +244,7 @@ export function MedicineAlternatives({ medicineId, medicineName, originalPrice }
                                 <span className="ml-1">({comparison.percentage}% {comparison.type === 'cheaper' ? 'less' : 'more'})</span>
                               )}
                             </div>
-                          ) : (
-                            <div className="text-xs text-muted-foreground">
-                              {originalPrice ? `vs ₹${originalPrice}` : 'No price comparison available'}
-                            </div>
-                          );
+                          ) : null;
                         })()}
                       </div>
                     </div>
