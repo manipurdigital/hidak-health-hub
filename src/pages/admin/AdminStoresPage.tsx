@@ -292,12 +292,19 @@ export default function AdminStoresPage() {
                   description="Select exact location for this store using map"
                 />
                 {selectedLocation ? (
-                  <div className="text-sm text-green-600 flex items-center gap-1 bg-green-50 p-2 rounded">
-                    <MapPin className="h-3 w-3" />
-                    <span>
-                      Location selected: {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
-                      {selectedLocation.address && ` - ${selectedLocation.address}`}
-                    </span>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <LatLngDisplay
+                      latitude={selectedLocation.latitude}
+                      longitude={selectedLocation.longitude}
+                      variant="detailed"
+                      showCopyButton={true}
+                      className="text-green-800"
+                    />
+                    {selectedLocation.address && (
+                      <div className="mt-2 text-sm text-green-700">
+                        Address: {selectedLocation.address}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
