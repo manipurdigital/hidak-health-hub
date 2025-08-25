@@ -122,6 +122,11 @@ export function SupportChatWidget() {
     }
   };
 
+  // Only show chat for authenticated users
+  if (!user) {
+    return null;
+  }
+
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
       <DrawerTrigger asChild>
