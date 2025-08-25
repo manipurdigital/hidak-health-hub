@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { TestTube, MapPin, Edit, Trash2 } from 'lucide-react';
+import { TestTube, MapPin, Edit, Trash2, MapPinned } from 'lucide-react';
+import GeofenceSelector from '@/components/admin/GeofenceSelector';
 
 interface LabForm {
   id?: string;
@@ -31,6 +32,7 @@ export default function Labs() {
   });
   
   const [editingLab, setEditingLab] = useState<string | null>(null);
+  const [selectedGeofences, setSelectedGeofences] = useState<string[]>([]);
   
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
@@ -88,6 +90,30 @@ export default function Labs() {
     }
   });
 
+  // Save geofences mutation
+  const saveGeofencesMutation = useMutation({
+    mutationFn: async ({ centerId, geofenceIds }: { centerId: string; geofenceIds: string[] }) => {
+      const { error } = await supabase.rpc('admin_set_lab_geofences' as any, {
+        p_center_id: centerId,
+        p_geofence_ids: geofenceIds
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Service areas updated successfully"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update service areas",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Delete lab mutation
   const deleteLabMutation = useMutation({
     mutationFn: async (labId: string) => {
@@ -135,7 +161,7 @@ export default function Labs() {
     saveLabMutation.mutate(labData);
   };
 
-  const handleEdit = (lab: any) => {
+  const handleEdit = async (lab: any) => {
     setForm({
       id: lab.id,
       code: lab.code || '',
@@ -146,11 +172,22 @@ export default function Labs() {
     setEditingLab(lab.id);
     // Reset location when editing
     setSelectedLocation(null);
+    
+    // Fetch current geofence assignments
+    const { data } = await supabase
+      .from('geofence_lab_links' as any)
+      .select('geofence_id')
+      .eq('center_id', lab.id);
+    
+    if (data) {
+      setSelectedGeofences(data.map((link: any) => link.geofence_id));
+    }
   };
 
   const handleCancelEdit = () => {
     setForm({ code: '', name: '', is_active: true });
     setSelectedLocation(null);
+    setSelectedGeofences([]);
     setEditingLab(null);
   };
 
@@ -163,6 +200,14 @@ export default function Labs() {
     if (location.address) {
       setForm(prev => ({ ...prev, address: location.address }));
     }
+  };
+
+  const handleSaveGeofences = () => {
+    if (!editingLab) return;
+    saveGeofencesMutation.mutate({
+      centerId: editingLab,
+      geofenceIds: selectedGeofences
+    });
   };
 
   return (
@@ -262,6 +307,33 @@ export default function Labs() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Service Areas - Only show when editing */}
+        {editingLab && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPinned className="h-5 w-5" />
+                Service Areas (Lab Collection)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <GeofenceSelector
+                serviceType="lab_collection"
+                value={selectedGeofences}
+                onChange={setSelectedGeofences}
+                disabled={saveGeofencesMutation.isPending}
+              />
+              <Button 
+                onClick={handleSaveGeofences}
+                disabled={saveGeofencesMutation.isPending}
+                className="w-full"
+              >
+                {saveGeofencesMutation.isPending ? 'Saving...' : 'Save Service Areas'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Labs List */}
         <Card>

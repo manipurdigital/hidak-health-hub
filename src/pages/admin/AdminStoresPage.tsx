@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Store, MapPin, Edit, Trash2 } from 'lucide-react';
+import { Store, MapPin, Edit, Trash2, MapPinned } from 'lucide-react';
+import GeofenceSelector from '@/components/admin/GeofenceSelector';
 
 interface StoreForm {
   id?: string;
@@ -31,6 +32,7 @@ export default function AdminStoresPage() {
   });
   
   const [editingStore, setEditingStore] = useState<string | null>(null);
+  const [selectedGeofences, setSelectedGeofences] = useState<string[]>([]);
   
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
@@ -88,6 +90,30 @@ export default function AdminStoresPage() {
     }
   });
 
+  // Save geofences mutation
+  const saveGeofencesMutation = useMutation({
+    mutationFn: async ({ storeId, geofenceIds }: { storeId: string; geofenceIds: string[] }) => {
+      const { error } = await supabase.rpc('admin_set_store_geofences' as any, {
+        p_store_id: storeId,
+        p_geofence_ids: geofenceIds
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Service areas updated successfully"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update service areas",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Delete store mutation
   const deleteStoreMutation = useMutation({
     mutationFn: async (storeId: string) => {
@@ -133,7 +159,7 @@ export default function AdminStoresPage() {
     saveStoreMutation.mutate(storeData);
   };
 
-  const handleEdit = (store: any) => {
+  const handleEdit = async (store: any) => {
     setForm({
       id: store.id,
       code: store.code,
@@ -144,11 +170,22 @@ export default function AdminStoresPage() {
     setEditingStore(store.id);
     // Reset location when editing
     setSelectedLocation(null);
+    
+    // Fetch current geofence assignments
+    const { data } = await supabase
+      .from('geofence_store_links' as any)
+      .select('geofence_id')
+      .eq('store_id', store.id);
+    
+    if (data) {
+      setSelectedGeofences(data.map((link: any) => link.geofence_id));
+    }
   };
 
   const handleCancelEdit = () => {
     setForm({ code: '', name: '', is_active: true });
     setSelectedLocation(null);
+    setSelectedGeofences([]);
     setEditingStore(null);
   };
 
@@ -161,6 +198,14 @@ export default function AdminStoresPage() {
     if (location.address) {
       setForm(prev => ({ ...prev, address: location.address }));
     }
+  };
+
+  const handleSaveGeofences = () => {
+    if (!editingStore) return;
+    saveGeofencesMutation.mutate({
+      storeId: editingStore,
+      geofenceIds: selectedGeofences
+    });
   };
 
   return (
@@ -260,6 +305,33 @@ export default function AdminStoresPage() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Service Areas - Only show when editing */}
+        {editingStore && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPinned className="h-5 w-5" />
+                Service Areas (Delivery)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <GeofenceSelector
+                serviceType="delivery"
+                value={selectedGeofences}
+                onChange={setSelectedGeofences}
+                disabled={saveGeofencesMutation.isPending}
+              />
+              <Button 
+                onClick={handleSaveGeofences}
+                disabled={saveGeofencesMutation.isPending}
+                className="w-full"
+              >
+                {saveGeofencesMutation.isPending ? 'Saving...' : 'Save Service Areas'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Stores List */}
         <Card>
