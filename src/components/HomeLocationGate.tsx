@@ -19,9 +19,11 @@ export const HomeLocationGate = ({ onLocationConfirmed }: HomeLocationGateProps)
 
   // Check serviceability when location changes
   useEffect(() => {
-    if (location && !isCheckingServiceability) {
+    if (location) {
       setIsCheckingServiceability(true);
       setServiceabilityError(null);
+      
+      console.debug('[HomeLocationGate] location change', { location, loading, deliveryCoverage, labCoverage });
       
       // Hard timeout to prevent infinite loading
       const hardTimeout = setTimeout(() => {
@@ -32,7 +34,7 @@ export const HomeLocationGate = ({ onLocationConfirmed }: HomeLocationGateProps)
       // Wait for serviceability context to finish loading
       const checkServiceability = () => {
         // Only proceed when loading is false and coverage values are determined
-        if (!loading && deliveryCoverage !== null && labCoverage !== null) {
+        if (!loading && deliveryCoverage != null && labCoverage != null) {
           clearTimeout(hardTimeout);
           
           if (deliveryCoverage === 'out_of_area' && labCoverage === 'out_of_area') {
@@ -136,6 +138,12 @@ export const HomeLocationGate = ({ onLocationConfirmed }: HomeLocationGateProps)
               </Button>
             </div>
 
+            {(serviceabilityError || isCheckingServiceability) && (
+              <Button variant="ghost" className="w-full" onClick={onLocationConfirmed}>
+                Continue without checking
+              </Button>
+            )}
+ 
             <div className="text-xs text-muted-foreground text-center mt-4">
               <p>Location access is required to use our services.</p>
               <p>Please ensure location is enabled on your device.</p>
