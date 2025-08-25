@@ -13,17 +13,34 @@ const ServerSchemaDump = () => {
     try {
       setIsExporting(true);
       
-      const { data, error } = await supabase.functions.invoke('schema-dump');
-      
-      if (error) {
-        console.error('Schema dump error:', error);
-        toast.error(`Failed to export schema: ${error.message}`);
-        return;
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
       }
 
-      // The response should be a blob containing the SQL file
-      if (data instanceof Blob) {
-        const url = URL.createObjectURL(data);
+      // Call the edge function with proper headers
+      const response = await fetch(`https://qaqmlmshpifwdnrvfkao.supabase.co/functions/v1/schema-dump`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Check if response is SQL content
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/sql') || contentType?.includes('text/plain')) {
+        const sqlContent = await response.text();
+        
+        // Create blob and download
+        const blob = new Blob([sqlContent], { type: 'application/sql' });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = `schema_${new Date().toISOString().replace(/[:.]/g, '-')}.sql`;
@@ -39,7 +56,7 @@ const ServerSchemaDump = () => {
 
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error("Failed to export schema. Please try again.");
+      toast.error(`Failed to export schema: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsExporting(false);
     }
