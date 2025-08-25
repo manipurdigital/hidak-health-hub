@@ -114,7 +114,7 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar className="top-14">
       <SidebarContent>
         <SidebarMenu>
           {adminSidebarGroups.map((group) => (

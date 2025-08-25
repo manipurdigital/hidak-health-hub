@@ -31,7 +31,7 @@ export function CenterSidebar() {
     isActive ? "bg-muted text-primary font-medium" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground";
 
   return (
-    <Sidebar>
+    <Sidebar className="top-14">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Center Console</SidebarGroupLabel>
