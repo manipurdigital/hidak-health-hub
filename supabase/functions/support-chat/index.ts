@@ -43,7 +43,7 @@ serve(async (req) => {
     const { messages, user, topic } = await req.json();
     
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.warn('OpenAI API key not configured; OpenAI provider will be skipped.');
     }
 
     // Prepare messages for OpenAI
