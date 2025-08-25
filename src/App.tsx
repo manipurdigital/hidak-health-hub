@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -68,6 +69,7 @@ import AdminStoresPage from "./pages/admin/AdminStoresPage";
 import Labs from "./pages/admin/Labs";
 import AdminSchemaExportPage from "./pages/admin/AdminSchemaExportPage";
 import AdminCodeExportPage from "./pages/admin/AdminCodeExportPage";
+import AdminBackupRestorePage from "./pages/admin/AdminBackupRestorePage";
 
 const queryClient = new QueryClient();
 
@@ -147,6 +149,7 @@ const App = () => (
                 <Route path="labs" element={<Labs />} />
                 <Route path="schema-export" element={<AdminSchemaExportPage />} />
                 <Route path="code-export" element={<AdminCodeExportPage />} />
+                <Route path="backup-restore" element={<AdminBackupRestorePage />} />
               </Route>
               
               {/* Lab Routes - Lab role required */}

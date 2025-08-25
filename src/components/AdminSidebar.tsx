@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
@@ -17,7 +18,8 @@ import {
   Store,
   ChevronDown,
   Database,
-  Download
+  Download,
+  HardDrive
 } from 'lucide-react';
 
 import {
@@ -97,6 +99,7 @@ const adminSidebarGroups = [
     items: [
       { title: "Schema Export", url: "/admin/schema-export", icon: Database },
       { title: "Code Export", url: "/admin/code-export", icon: Download },
+      { title: "Backup & Restore", url: "/admin/backup-restore", icon: HardDrive },
     ]
   },
 ];

@@ -3337,6 +3337,10 @@ export type Database = {
           priority: number
         }[]
       }
+      get_table_columns_for_backup: {
+        Args: { p_table: string }
+        Returns: string
+      }
       get_user_center_access: {
         Args: { user_id_param: string }
         Returns: {
@@ -3501,6 +3505,10 @@ export type Database = {
           lab_revenue: number
           total_bookings: number
         }[]
+      }
+      list_backup_tables: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
       }
       longtransactionsenabled: {
         Args: Record<PropertyKey, never>
@@ -3801,6 +3809,14 @@ export type Database = {
       }
       refresh_medicine_recommendations: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      restore_insert_rows: {
+        Args: { p_rows: Json; p_table: string }
+        Returns: number
+      }
+      restore_truncate_tables: {
+        Args: { p_tables: string[] }
         Returns: undefined
       }
       revenue_breakdown: {
