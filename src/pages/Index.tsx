@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import ServicesSection from "@/components/ServicesSection";
@@ -7,18 +8,19 @@ import ConsultationsSection from "@/components/ConsultationsSection";
 import { TrendingMedicinesCarousel } from "@/components/TrendingMedicinesCarousel";
 import Footer from "@/components/Footer";
 import { FeatureGuard } from "@/components/FeatureGuard";
-import { useServiceability } from "@/contexts/ServiceabilityContext";
-import { useEffect } from "react";
+import { HomeLocationGate } from "@/components/HomeLocationGate";
 
 const Index = () => {
-  const { autoDetect, location } = useServiceability();
+  const [isLocationConfirmed, setIsLocationConfirmed] = useState(false);
 
-  useEffect(() => {
-    // Auto-detect location on first visit if not cached
-    if (!location) {
-      autoDetect();
-    }
-  }, [location, autoDetect]);
+  const handleLocationConfirmed = () => {
+    setIsLocationConfirmed(true);
+  };
+
+  // Always show location gate on homepage visit
+  if (!isLocationConfirmed) {
+    return <HomeLocationGate onLocationConfirmed={handleLocationConfirmed} />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
