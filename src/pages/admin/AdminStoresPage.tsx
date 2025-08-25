@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { QuickLocationInput } from '@/components/QuickLocationInput';
@@ -153,7 +153,7 @@ export default function AdminStoresPage() {
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!form.name.trim()) {
@@ -172,6 +172,28 @@ export default function AdminStoresPage() {
         variant: "destructive"
       });
       return;
+    }
+
+    // Optional validation - check if selected geofences cover the pin
+    if (selectedGeofences.length > 0) {
+      try {
+        const { data: coverage } = await supabase.rpc('check_point_serviceability', {
+          lat: selectedLocation.latitude,
+          lng: selectedLocation.longitude,
+          service_type: 'delivery'
+        });
+        const coverageIds = new Set((coverage ?? []).map((r: any) => r.geofence_id));
+        const outsideChosen = selectedGeofences.filter(id => !coverageIds.has(id));
+        if (outsideChosen.length > 0) {
+          toast({ 
+            title: "Warning", 
+            description: `${outsideChosen.length} selected areas don't cover this location`, 
+            variant: "default" 
+          });
+        }
+      } catch (error) {
+        console.warn("Coverage check failed:", error);
+      }
     }
 
     // Auto-generate store code if creating new store
@@ -228,8 +250,52 @@ export default function AdminStoresPage() {
     }
   };
 
-  const handleSaveGeofences = () => {
+  // Auto-preselect geofences when location changes
+  useEffect(() => {
+    if (!selectedLocation) return;
+    
+    const preSelectGeofences = async () => {
+      try {
+        const { data: coverage } = await supabase.rpc('check_point_serviceability', {
+          lat: selectedLocation.latitude,
+          lng: selectedLocation.longitude,
+          service_type: 'delivery'
+        });
+        const geofenceIds = (coverage ?? []).map((r: any) => r.geofence_id);
+        setSelectedGeofences(geofenceIds);
+      } catch (error) {
+        console.warn("Failed to auto-select geofences:", error);
+      }
+    };
+
+    preSelectGeofences();
+  }, [selectedLocation]);
+
+  const handleSaveGeofences = async () => {
     if (!editingStore) return;
+
+    // Optional validation - check if selected geofences cover the pin
+    if (selectedLocation && selectedGeofences.length > 0) {
+      try {
+        const { data: coverage } = await supabase.rpc('check_point_serviceability', {
+          lat: selectedLocation.latitude,
+          lng: selectedLocation.longitude,
+          service_type: 'delivery'
+        });
+        const coverageIds = new Set((coverage ?? []).map((r: any) => r.geofence_id));
+        const outsideChosen = selectedGeofences.filter(id => !coverageIds.has(id));
+        if (outsideChosen.length > 0) {
+          toast({ 
+            title: "Warning", 
+            description: `${outsideChosen.length} selected areas don't cover this location`, 
+            variant: "default" 
+          });
+        }
+      } catch (error) {
+        console.warn("Coverage check failed:", error);
+      }
+    }
+
     saveGeofencesMutation.mutate({
       storeId: editingStore,
       geofenceIds: selectedGeofences

@@ -20,11 +20,18 @@ export default function GeofenceSelector({ serviceType, value, onChange, disable
     (async () => {
       const { data, error } = await supabase
         .from("geofences")
-        .select("id,name,priority,is_active")
+        .select("id,name,priority,is_active,created_at")
         .eq("service_type", serviceType)
-        .order("priority", { ascending: false });
+        .order("priority", { ascending: false })
+        .order("created_at", { ascending: true });
       if (!mounted) return;
-      if (!error) setAll(data || []);
+      if (!error) {
+        // Sort and dedupe the list
+        const rows = (data ?? []).filter((g, i, a) =>
+          a.findIndex(x => x.name === g.name && x.id === g.id) === i
+        );
+        setAll(rows);
+      }
       // optional: toast on error
     })();
     return () => { mounted = false; };
@@ -59,15 +66,15 @@ export default function GeofenceSelector({ serviceType, value, onChange, disable
                 id={g.id}
                 checked={checked}
                 onCheckedChange={() => toggle(g.id)}
-                disabled={disabled}
+                disabled={disabled || !g.is_active}
               />
               <Label 
                 htmlFor={g.id} 
-                className="flex-1 cursor-pointer text-sm"
+                className={`flex-1 text-sm ${!g.is_active ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <div className="font-medium">{g.name}</div>
                 <div className="text-xs text-muted-foreground">
-                  Priority {g.priority}{g.is_active ? "" : " • inactive"}
+                  Priority {g.priority}{!g.is_active && " • inactive"}
                 </div>
               </Label>
             </div>
