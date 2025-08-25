@@ -346,6 +346,13 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "courier_locations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "v_order_delivery_assignment"
+            referencedColumns: ["order_id"]
+          },
         ]
       }
       data_deletion_requests: {
@@ -383,6 +390,70 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      delivery_assignments: {
+        Row: {
+          assigned_at: string | null
+          cancel_reason: string | null
+          created_at: string
+          delivered_at: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          picked_up_at: string | null
+          rider_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          cancel_reason?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          picked_up_at?: string | null
+          rider_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          cancel_reason?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          picked_up_at?: string | null
+          rider_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_assignments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "v_order_delivery_assignment"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_partner_applications: {
         Row: {
@@ -1543,6 +1614,13 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "v_order_delivery_assignment"
+            referencedColumns: ["order_id"]
+          },
         ]
       }
       orders: {
@@ -2029,6 +2107,39 @@ export type Database = {
         }
         Relationships: []
       }
+      riders: {
+        Row: {
+          code: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_active: boolean
+          phone: string
+          updated_at: string
+          vehicle_type: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          phone: string
+          updated_at?: string
+          vehicle_type?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          phone?: string
+          updated_at?: string
+          vehicle_type?: string | null
+        }
+        Relationships: []
+      }
       service_areas: {
         Row: {
           active: boolean | null
@@ -2487,6 +2598,27 @@ export type Database = {
         }
         Relationships: []
       }
+      v_order_delivery_assignment: {
+        Row: {
+          assigned_at: string | null
+          order_id: string | null
+          order_number: string | null
+          rider_code: string | null
+          rider_id: string | null
+          rider_name: string | null
+          rider_phone: string | null
+          vehicle_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_assignments_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _postgis_deprecate: {
@@ -2638,6 +2770,14 @@ export type Database = {
             }
         Returns: string
       }
+      admin_assign_rider: {
+        Args: { p_order_id: string; p_rider_id: string }
+        Returns: undefined
+      }
+      admin_build_maps_message: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       admin_kpi_overview: {
         Args: { end_date: string; start_date: string }
         Returns: {
@@ -2679,6 +2819,10 @@ export type Database = {
           total_revenue: number
           unique_customers: number
         }[]
+      }
+      admin_update_delivery_status: {
+        Args: { p_order_id: string; p_status: string }
+        Returns: undefined
       }
       apply_distance_fee_to_order: {
         Args: { p_order_id: string; p_service: string }
@@ -3417,7 +3561,11 @@ export type Database = {
         Returns: number
       }
       is_admin: {
-        Args: { _user_id?: string }
+        Args: Record<PropertyKey, never> | { _user_id?: string }
+        Returns: boolean
+      }
+      is_admin_claim: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_location_serviceable: {
