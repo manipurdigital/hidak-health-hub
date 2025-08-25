@@ -49,6 +49,16 @@ export function SupportChatWidget() {
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+    
+    // Limit to 5 messages to prevent quota exhaustion
+    if (messages.length >= 11) { // 6 user messages + 5 bot responses + 1 initial message
+      toast({
+        title: 'Chat Limit Reached',
+        description: 'You\'ve reached the chat limit. Please contact support for further assistance.',
+        variant: 'default'
+      });
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
