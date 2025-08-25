@@ -40,7 +40,7 @@ const HeroSection = () => {
           >
             <Button 
               size="lg" 
-              className="bg-[#25D366] hover:bg-[#20BA5A] text-white border-0 text-lg px-8 py-3 hover:scale-105 transition-all duration-200 shadow-lg"
+              className="bg-[#25D366] hover:bg-[#20BA5A] text-white border-0 text-lg px-8 py-3 hover:scale-105 transition-all duration-200 shadow-lg animate-pulse"
             >
               <MessageCircle className="w-5 h-5 mr-2" />
               Order via WhatsApp
