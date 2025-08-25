@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { Store, MapPin, Edit, Trash2, MapPinned } from 'lucide-react';
 import GeofenceSelector from '@/components/admin/GeofenceSelector';
+import { LatLngDisplay } from '@/components/LatLngDisplay';
 
 interface StoreForm {
   id?: string;
@@ -396,6 +397,15 @@ export default function AdminStoresPage() {
                         <p className="text-sm text-muted-foreground">Code: {store.code}</p>
                         {store.address && (
                           <p className="text-xs text-muted-foreground">{store.address}</p>
+                        )}
+                        {(store.lat && store.lng) && (
+                          <LatLngDisplay 
+                            latitude={store.lat} 
+                            longitude={store.lng} 
+                            variant="compact"
+                            showCopyButton={true}
+                            className="mt-1"
+                          />
                         )}
                       </div>
                       <div className="flex items-center gap-2">

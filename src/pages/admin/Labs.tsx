@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Building2, Edit, Trash2, MapPinned, MapPin } from 'lucide-react';
 import GeofenceSelector from '@/components/admin/GeofenceSelector';
 import { QuickLocationInput } from '@/components/QuickLocationInput';
+import { LatLngDisplay } from '@/components/LatLngDisplay';
 
 interface LabForm {
   id?: string;
