@@ -10,18 +10,7 @@ import Footer from "@/components/Footer";
 import { FeatureGuard } from "@/components/FeatureGuard";
 import { HomeLocationGate } from "@/components/HomeLocationGate";
 
-const Index = () => {
-  const [isLocationConfirmed, setIsLocationConfirmed] = useState(false);
-
-  const handleLocationConfirmed = () => {
-    setIsLocationConfirmed(true);
-  };
-
-  // Always show location gate on homepage visit
-  if (!isLocationConfirmed) {
-    return <HomeLocationGate onLocationConfirmed={handleLocationConfirmed} />;
-  }
-
+const HomePage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -39,6 +28,25 @@ const Index = () => {
       </main>
       <Footer />
     </div>
+  );
+};
+
+const Index = () => {
+  const [isLocationConfirmed, setIsLocationConfirmed] = useState(false);
+
+  const handleLocationConfirmed = () => {
+    setIsLocationConfirmed(true);
+  };
+
+  // Show location gate only if feature is enabled, otherwise show normal homepage
+  return (
+    <FeatureGuard feature="ENABLE_LOCATION_GATE" fallback={<HomePage />}>
+      {!isLocationConfirmed ? (
+        <HomeLocationGate onLocationConfirmed={handleLocationConfirmed} />
+      ) : (
+        <HomePage />
+      )}
+    </FeatureGuard>
   );
 };
 
