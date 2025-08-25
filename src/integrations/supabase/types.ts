@@ -3561,7 +3561,7 @@ export type Database = {
         Returns: number
       }
       is_admin: {
-        Args: Record<PropertyKey, never> | { _user_id?: string }
+        Args: Record<PropertyKey, never> | { _user_id: string }
         Returns: boolean
       }
       is_admin_claim: {
