@@ -15,7 +15,7 @@ export const HomeLocationGate = ({ onLocationConfirmed }: HomeLocationGateProps)
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [isCheckingServiceability, setIsCheckingServiceability] = useState(false);
   const [serviceabilityError, setServiceabilityError] = useState<string | null>(null);
-  const { setManualLocation, deliveryCoverage, labCoverage, location } = useServiceability();
+  const { setManualLocation, deliveryCoverage, labCoverage, location, loading } = useServiceability();
 
   // Check serviceability when location changes
   useEffect(() => {
@@ -25,18 +25,27 @@ export const HomeLocationGate = ({ onLocationConfirmed }: HomeLocationGateProps)
       
       // Wait a bit for serviceability context to update
       const timer = setTimeout(() => {
-        if (!deliveryCoverage && !labCoverage) {
+        // Check if serviceability context has finished loading
+        if (loading) {
+          // Still loading, check again later
+          setIsCheckingServiceability(false);
+          return;
+        }
+        
+        if (deliveryCoverage === 'out_of_area' && labCoverage === 'out_of_area') {
           setServiceabilityError("No service available in your area. Please try a different location.");
-        } else {
+        } else if (deliveryCoverage || labCoverage) {
           // Location is serviceable, allow access
           onLocationConfirmed();
+        } else {
+          setServiceabilityError("Unable to check service availability. Please try again.");
         }
         setIsCheckingServiceability(false);
       }, 2000);
 
       return () => clearTimeout(timer);
     }
-  }, [location, deliveryCoverage, labCoverage, onLocationConfirmed, isCheckingServiceability]);
+  }, [location, deliveryCoverage, labCoverage, onLocationConfirmed, isCheckingServiceability, loading]);
 
   const handleLocationSelect = (locationData: any) => {
     setIsCheckingServiceability(true);
