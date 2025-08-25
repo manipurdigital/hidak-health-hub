@@ -11,9 +11,10 @@ import { useToast } from '@/hooks/use-toast';
 interface MedicineAlternativesProps {
   medicineId: string;
   medicineName: string;
+  originalPrice?: number;
 }
 
-export function MedicineAlternatives({ medicineId, medicineName }: MedicineAlternativesProps) {
+export function MedicineAlternatives({ medicineId, medicineName, originalPrice }: MedicineAlternativesProps) {
   const { addItem } = useCart();
   const { toast } = useToast();
   
@@ -72,6 +73,31 @@ export function MedicineAlternatives({ medicineId, medicineName }: MedicineAlter
 
   const formatPrice = (price: number) => {
     return `₹${price.toFixed(2)}`;
+  };
+
+  const getPriceComparison = (alternativePrice: number) => {
+    if (!originalPrice) return null;
+    
+    const difference = alternativePrice - originalPrice;
+    const percentageDiff = Math.abs((difference / originalPrice) * 100);
+    
+    if (Math.abs(difference) < 0.01) {
+      return { type: 'same', label: 'Same price', color: 'text-muted-foreground' };
+    } else if (difference < 0) {
+      return { 
+        type: 'cheaper', 
+        label: `₹${Math.abs(difference).toFixed(2)} cheaper`,
+        color: 'text-green-600',
+        percentage: percentageDiff.toFixed(0)
+      };
+    } else {
+      return { 
+        type: 'costlier', 
+        label: `₹${difference.toFixed(2)} costlier`,
+        color: 'text-red-600',
+        percentage: percentageDiff.toFixed(0)
+      };
+    }
   };
 
   if (isLoading) {
@@ -194,19 +220,32 @@ export function MedicineAlternatives({ medicineId, medicineName }: MedicineAlter
                         )}
                       </div>
                       
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-primary">
-                          {formatPrice(medicine.price)}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAddToCart(medicine)}
-                          className="ml-2"
-                        >
-                          <ShoppingCart className="w-3 h-3 mr-1" />
-                          Add
-                        </Button>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-primary">
+                            {formatPrice(medicine.price)}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAddToCart(medicine)}
+                            className="ml-2"
+                          >
+                            <ShoppingCart className="w-3 h-3 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                        {(() => {
+                          const comparison = getPriceComparison(medicine.price);
+                          return comparison ? (
+                            <div className={`text-xs font-medium ${comparison.color}`}>
+                              {comparison.label}
+                              {comparison.percentage && (
+                                <span className="ml-1">({comparison.percentage}% {comparison.type === 'cheaper' ? 'less' : 'more'})</span>
+                              )}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                   </div>

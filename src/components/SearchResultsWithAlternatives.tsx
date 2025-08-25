@@ -8,12 +8,14 @@ interface SearchResultsWithAlternativesProps {
   results: SearchResult[];
   isLoading: boolean;
   query: string;
+  originalPrice?: number;
 }
 
 export function SearchResultsWithAlternatives({ 
   results, 
   isLoading, 
-  query 
+  query,
+  originalPrice 
 }: SearchResultsWithAlternativesProps) {
   if (isLoading) {
     return (
@@ -74,6 +76,31 @@ export function SearchResultsWithAlternatives({
     return `₹${price.toFixed(2)}`;
   };
 
+  const getPriceComparison = (resultPrice: number | null) => {
+    if (!originalPrice || !resultPrice) return null;
+    
+    const difference = resultPrice - originalPrice;
+    const percentageDiff = Math.abs((difference / originalPrice) * 100);
+    
+    if (Math.abs(difference) < 0.01) {
+      return { type: 'same', label: 'Same price', color: 'text-muted-foreground' };
+    } else if (difference < 0) {
+      return { 
+        type: 'cheaper', 
+        label: `₹${Math.abs(difference).toFixed(2)} cheaper`,
+        color: 'text-green-600',
+        percentage: percentageDiff.toFixed(0)
+      };
+    } else {
+      return { 
+        type: 'costlier', 
+        label: `₹${difference.toFixed(2)} costlier`,
+        color: 'text-red-600',
+        percentage: percentageDiff.toFixed(0)
+      };
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Main Results */}
@@ -110,10 +137,20 @@ export function SearchResultsWithAlternatives({
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="font-medium text-sm">
-                            {formatPrice(result.price)}
-                          </p>
-                          {getMatchTypeBadge(result.composition_match_type)}
+                          <div className="space-y-1">
+                            <p className="font-medium text-sm">
+                              {formatPrice(result.price)}
+                            </p>
+                            {(() => {
+                              const comparison = getPriceComparison(result.price);
+                              return comparison ? (
+                                <div className={`text-xs font-medium ${comparison.color}`}>
+                                  {comparison.label}
+                                </div>
+                              ) : null;
+                            })()}
+                            {getMatchTypeBadge(result.composition_match_type)}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -161,10 +198,20 @@ export function SearchResultsWithAlternatives({
                             )}
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className="font-medium text-sm">
-                              {formatPrice(result.price)}
-                            </p>
-                            {getMatchTypeBadge(result.composition_match_type)}
+                            <div className="space-y-1">
+                              <p className="font-medium text-sm">
+                                {formatPrice(result.price)}
+                              </p>
+                              {(() => {
+                                const comparison = getPriceComparison(result.price);
+                                return comparison ? (
+                                  <div className={`text-xs font-medium ${comparison.color}`}>
+                                    {comparison.label}
+                                  </div>
+                                ) : null;
+                              })()}
+                              {getMatchTypeBadge(result.composition_match_type)}
+                            </div>
                           </div>
                         </div>
                       </div>

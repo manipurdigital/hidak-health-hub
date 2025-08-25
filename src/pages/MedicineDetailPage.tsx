@@ -275,6 +275,7 @@ export function MedicineDetailPage() {
           <MedicineAlternatives 
             medicineId={medicine.id} 
             medicineName={medicine.name}
+            originalPrice={medicine.price}
           />
         </div>
       </div>
