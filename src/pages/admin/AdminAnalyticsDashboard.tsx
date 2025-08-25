@@ -26,20 +26,29 @@ import {
 
 export function AdminAnalyticsDashboard() {
   const [selectedRange, setSelectedRange] = useState<DateRange>('28d');
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
 
   // Data hooks
-  const { data: kpiData, isLoading: kpiLoading } = useKPIData(selectedRange);
-  const { data: revenueTimeseries, isLoading: revenueLoading } = useTimeseriesData('revenue', 'day', selectedRange);
-  const { data: ordersTimeseries, isLoading: ordersLoading } = useTimeseriesData('orders', 'day', selectedRange);
-  const { data: paymentBreakdown, isLoading: paymentLoading } = useRevenueBreakdown('payment_method', selectedRange);
-  const { data: topMedicines, isLoading: medicinesLoading } = useTopMedicines(selectedRange);
+  const { data: kpiData, isLoading: kpiLoading } = useKPIData(selectedRange, customStartDate, customEndDate);
+  const { data: revenueTimeseries, isLoading: revenueLoading } = useTimeseriesData('revenue', 'day', selectedRange, customStartDate, customEndDate);
+  const { data: ordersTimeseries, isLoading: ordersLoading } = useTimeseriesData('orders', 'day', selectedRange, customStartDate, customEndDate);
+  const { data: paymentBreakdown, isLoading: paymentLoading } = useRevenueBreakdown('payment_method', selectedRange, customStartDate, customEndDate);
+  const { data: topMedicines, isLoading: medicinesLoading } = useTopMedicines(selectedRange, customStartDate, customEndDate);
 
   const handleRangeChange = (range: DateRange) => {
     setSelectedRange(range);
   };
 
+  const handleCustomDateChange = (startDate: Date | undefined, endDate: Date | undefined) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+  };
+
   const handleResetFilters = () => {
     setSelectedRange('28d');
+    setCustomStartDate(undefined);
+    setCustomEndDate(undefined);
   };
 
   const kpiCards = [
@@ -102,6 +111,9 @@ export function AdminAnalyticsDashboard() {
         selectedRange={selectedRange}
         onRangeChange={handleRangeChange}
         onResetFilters={handleResetFilters}
+        customStartDate={customStartDate}
+        customEndDate={customEndDate}
+        onCustomDateChange={handleCustomDateChange}
       />
 
       {/* KPI Cards */}
