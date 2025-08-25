@@ -7,7 +7,7 @@ import { Search, Filter, Star, Clock, Truck, Upload, ShoppingCart } from 'lucide
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Medicine {
@@ -325,65 +325,73 @@ const PharmacySection = () => {
                   key={medicine.id} 
                   className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 hover:border-primary/20 cursor-pointer"
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant={medicine.requires_prescription ? "destructive" : "secondary"} className="text-xs">
-                        {medicine.requires_prescription ? "Prescription Required" : "No Prescription"}
-                      </Badge>
-                      {medicine.fast_delivery && (
-                        <div className="flex items-center gap-1 text-xs text-success">
-                          <Truck className="w-3 h-3" />
-                          Fast
-                        </div>
-                      )}
-                    </div>
-                    <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
-                      {medicine.name}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">{medicine.brand}</p>
-                    <p className="text-xs text-muted-foreground">{medicine.pack_size}</p>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-4">
-                    {/* Rating */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium">{medicine.rating}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">({medicine.review_count} reviews)</span>
-                    </div>
-
-                    {/* Price */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-foreground">
-                          {formatPrice(medicine.price)}
-                        </span>
-                        {medicine.original_price && medicine.original_price > medicine.price && (
-                          <span className="text-sm text-muted-foreground line-through">
-                            {formatPrice(medicine.original_price)}
-                          </span>
+                  <Link to={`/medicines/${medicine.id}`} className="block">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <Badge variant={medicine.requires_prescription ? "destructive" : "secondary"} className="text-xs">
+                          {medicine.requires_prescription ? "Prescription Required" : "No Prescription"}
+                        </Badge>
+                        {medicine.fast_delivery && (
+                          <div className="flex items-center gap-1 text-xs text-success">
+                            <Truck className="w-3 h-3" />
+                            Fast
+                          </div>
                         )}
                       </div>
-                      {medicine.discount_percentage > 0 && (
-                        <Badge variant="outline" className="text-xs text-success border-success">
-                          {medicine.discount_percentage}% OFF
+                      <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
+                        {medicine.name}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">{medicine.brand}</p>
+                      <p className="text-xs text-muted-foreground">{medicine.pack_size}</p>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      {/* Rating */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">{medicine.rating}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">({medicine.review_count} reviews)</span>
+                      </div>
+
+                      {/* Price */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-foreground">
+                            {formatPrice(medicine.price)}
+                          </span>
+                          {medicine.original_price && medicine.original_price > medicine.price && (
+                            <span className="text-sm text-muted-foreground line-through">
+                              {formatPrice(medicine.original_price)}
+                            </span>
+                          )}
+                        </div>
+                        {medicine.discount_percentage > 0 && (
+                          <Badge variant="outline" className="text-xs text-success border-success">
+                            {medicine.discount_percentage}% OFF
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Stock status */}
+                      {medicine.stock_quantity <= 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          Out of Stock
                         </Badge>
                       )}
-                    </div>
-
-                    {/* Stock status */}
-                    {medicine.stock_quantity <= 0 && (
-                      <Badge variant="destructive" className="text-xs">
-                        Out of Stock
-                      </Badge>
-                    )}
-
-                    {/* Add to cart */}
+                    </CardContent>
+                  </Link>
+                  
+                  {/* Add to cart button positioned outside the Link */}
+                  <CardContent className="pt-0 pb-4">
                     <Button 
                       className="w-full group-hover:scale-105 transition-transform duration-200"
-                      onClick={() => handleAddToCart(medicine)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddToCart(medicine);
+                      }}
                       disabled={medicine.stock_quantity <= 0}
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
