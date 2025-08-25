@@ -279,8 +279,8 @@ const Header = () => {
               Lab Tests
             </Button>
             
-            {/* Partner Signup Links */}
-            <div className="flex items-center gap-2">
+            {/* Partner Signup Links - Hidden for now */}
+            {/* <div className="flex items-center gap-2">
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -307,7 +307,7 @@ const Header = () => {
               >
                 Join as Delivery Partner
               </Button>
-            </div>
+            </div> */}
             
             <FeatureGuard feature="ENABLE_CONSULTATIONS">
               <Button 
