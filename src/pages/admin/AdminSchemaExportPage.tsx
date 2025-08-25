@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, Database, FileText, Package } from "lucide-react";
+import ServerSchemaDump from "@/components/admin/ServerSchemaDump";
 
 interface SchemaStats {
   tables: number;
@@ -302,105 +302,107 @@ The database uses Row Level Security (RLS) extensively to ensure data privacy an
 
   return (
     <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Schema Export</h1>
-          <p className="text-muted-foreground">
-            Export the complete database schema including tables, policies, and documentation.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Schema Export</h1>
+        <p className="text-muted-foreground">
+          Export the complete database schema including tables, policies, and documentation.
+        </p>
+      </div>
 
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Database Schema Export
-              </CardTitle>
-              <CardDescription>
-                Generate a complete export of your database schema including DDL statements, RLS policies, and comprehensive documentation.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {schemaStats && (
-                <div className="grid grid-cols-5 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{schemaStats.tables}</div>
-                    <div className="text-sm text-muted-foreground">Tables</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-accent">{schemaStats.views}</div>
-                    <div className="text-sm text-muted-foreground">Views</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-success">{schemaStats.functions}</div>
-                    <div className="text-sm text-muted-foreground">Functions</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-warning">{schemaStats.policies}</div>
-                    <div className="text-sm text-muted-foreground">RLS Policies</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-medical-teal">{schemaStats.triggers}</div>
-                    <div className="text-sm text-muted-foreground">Triggers</div>
-                  </div>
+      <div className="grid gap-6">
+        <ServerSchemaDump />
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Client-side Schema Export
+            </CardTitle>
+            <CardDescription>
+              Generate a complete export of your database schema including DDL statements, RLS policies, and comprehensive documentation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {schemaStats && (
+              <div className="grid grid-cols-5 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{schemaStats.tables}</div>
+                  <div className="text-sm text-muted-foreground">Tables</div>
                 </div>
-              )}
-
-              {isExporting && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{exportStatus}</span>
-                    <span className="text-sm text-muted-foreground">{progress}%</span>
-                  </div>
-                  <Progress value={progress} className="w-full" />
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-accent">{schemaStats.views}</div>
+                  <div className="text-sm text-muted-foreground">Views</div>
                 </div>
-              )}
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Export Contents</h3>
-                <div className="grid gap-3">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <div className="font-medium">schema.sql</div>
-                      <div className="text-sm text-muted-foreground">Complete DDL with CREATE statements, policies, and triggers</div>
-                    </div>
-                    <Badge variant="secondary">SQL</Badge>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <FileText className="h-5 w-5 text-accent" />
-                    <div className="flex-1">
-                      <div className="font-medium">schema.md</div>
-                      <div className="text-sm text-muted-foreground">Human-readable documentation and entity relationships</div>
-                    </div>
-                    <Badge variant="secondary">Markdown</Badge>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <Package className="h-5 w-5 text-success" />
-                    <div className="flex-1">
-                      <div className="font-medium">schema_info.json</div>
-                      <div className="text-sm text-muted-foreground">Metadata and statistics about the export</div>
-                    </div>
-                    <Badge variant="secondary">JSON</Badge>
-                  </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-success">{schemaStats.functions}</div>
+                  <div className="text-sm text-muted-foreground">Functions</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-warning">{schemaStats.policies}</div>
+                  <div className="text-sm text-muted-foreground">RLS Policies</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-medical-teal">{schemaStats.triggers}</div>
+                  <div className="text-sm text-muted-foreground">Triggers</div>
                 </div>
               </div>
+            )}
 
-              <Button 
-                onClick={exportSchema} 
-                disabled={isExporting}
-                size="lg"
-                className="w-full"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {isExporting ? "Exporting..." : "Export Schema"}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            {isExporting && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{exportStatus}</span>
+                  <span className="text-sm text-muted-foreground">{progress}%</span>
+                </div>
+                <Progress value={progress} className="w-full" />
+              </div>
+            )}
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Export Contents</h3>
+              <div className="grid gap-3">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <div className="font-medium">schema.sql</div>
+                    <div className="text-sm text-muted-foreground">Complete DDL with CREATE statements, policies, and triggers</div>
+                  </div>
+                  <Badge variant="secondary">SQL</Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <FileText className="h-5 w-5 text-accent" />
+                  <div className="flex-1">
+                    <div className="font-medium">schema.md</div>
+                    <div className="text-sm text-muted-foreground">Human-readable documentation and entity relationships</div>
+                  </div>
+                  <Badge variant="secondary">Markdown</Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <Package className="h-5 w-5 text-success" />
+                  <div className="flex-1">
+                    <div className="font-medium">schema_info.json</div>
+                    <div className="text-sm text-muted-foreground">Metadata and statistics about the export</div>
+                  </div>
+                  <Badge variant="secondary">JSON</Badge>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              onClick={exportSchema} 
+              disabled={isExporting}
+              size="lg"
+              className="w-full"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isExporting ? "Exporting..." : "Export Schema"}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+    </div>
   );
 };
 

@@ -2955,6 +2955,10 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
       }
+      export_schema_sql: {
+        Args: { p_requester: string }
+        Returns: string
+      }
       generate_composition_family_key: {
         Args: { composition: string }
         Returns: string
