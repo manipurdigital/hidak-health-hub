@@ -107,6 +107,8 @@ const AdminMedicinesPage = () => {
   const [refetchingMedicines, setRefetchingMedicines] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedEditCategory, setSelectedEditCategory] = useState<string>('');
+  const [selectedMedicines, setSelectedMedicines] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   // Fetch medicine categories
   const { data: medicineCategories, isLoading: categoriesLoading } = useMedicineCategories();
@@ -267,6 +269,65 @@ const AdminMedicinesPage = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleBulkStatusUpdate = async (status: boolean) => {
+    if (selectedMedicines.size === 0) {
+      toast({
+        title: "Error",
+        description: "Please select medicines to update",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to ${status ? 'activate' : 'deactivate'} ${selectedMedicines.size} medicine(s)?`)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('medicines')
+        .update({ is_active: status })
+        .in('id', Array.from(selectedMedicines));
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedMedicines.size} medicine(s) ${status ? 'activated' : 'deactivated'} successfully`
+      });
+
+      setSelectedMedicines(new Set());
+      fetchMedicines();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${status ? 'activate' : 'deactivate'} medicines`,
+        variant: "destructive"
+      });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedMedicines.size === filteredMedicines.length) {
+      setSelectedMedicines(new Set());
+    } else {
+      setSelectedMedicines(new Set(filteredMedicines.map(m => m.id)));
+    }
+  };
+
+  const handleSelectMedicine = (medicineId: string) => {
+    const newSelected = new Set(selectedMedicines);
+    if (newSelected.has(medicineId)) {
+      newSelected.delete(medicineId);
+    } else {
+      newSelected.add(medicineId);
+    }
+    setSelectedMedicines(newSelected);
   };
 
   const handleRefetchMedicine = async (medicine: Medicine, overwriteManualChanges = false) => {
@@ -544,8 +605,31 @@ const AdminMedicinesPage = () => {
 
             {/* Medicines Table */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle>All Medicines ({filteredMedicines.length})</CardTitle>
+                {selectedMedicines.size > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {selectedMedicines.size} selected
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkStatusUpdate(true)}
+                      disabled={bulkActionLoading}
+                    >
+                      Activate Selected
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkStatusUpdate(false)}
+                      disabled={bulkActionLoading}
+                    >
+                      Deactivate Selected
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -555,6 +639,14 @@ const AdminMedicinesPage = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b text-left">
+                          <th className="pb-3 text-sm font-medium text-muted-foreground w-12">
+                            <input
+                              type="checkbox"
+                              checked={filteredMedicines.length > 0 && selectedMedicines.size === filteredMedicines.length}
+                              onChange={handleSelectAll}
+                              className="rounded border-gray-300"
+                            />
+                          </th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Brand / Trade Name</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Salt Composition</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Price</th>
@@ -567,6 +659,14 @@ const AdminMedicinesPage = () => {
                       <tbody>
                         {filteredMedicines.map((medicine) => (
                           <tr key={medicine.id} className="border-b hover:bg-muted/30 transition-colors">
+                            <td className="py-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedMedicines.has(medicine.id)}
+                                onChange={() => handleSelectMedicine(medicine.id)}
+                                className="rounded border-gray-300"
+                              />
+                            </td>
                             <td className="py-4 font-medium">{medicine.name}</td>
                             <td className="py-4 text-muted-foreground">{medicine.composition_text || 'N/A'}</td>
                             <td className="py-4">₹{medicine.price}</td>

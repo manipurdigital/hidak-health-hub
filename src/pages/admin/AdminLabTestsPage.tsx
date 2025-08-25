@@ -44,6 +44,8 @@ const AdminLabTestsPage = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingLabTest, setEditingLabTest] = useState<LabTest | null>(null);
+  const [selectedLabTests, setSelectedLabTests] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   // Check if user is admin
   if (userRole !== 'admin') {
@@ -157,6 +159,65 @@ const AdminLabTestsPage = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleBulkStatusUpdate = async (status: boolean) => {
+    if (selectedLabTests.size === 0) {
+      toast({
+        title: "Error",
+        description: "Please select lab tests to update",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to ${status ? 'activate' : 'deactivate'} ${selectedLabTests.size} lab test(s)?`)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('lab_tests')
+        .update({ is_active: status })
+        .in('id', Array.from(selectedLabTests));
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedLabTests.size} lab test(s) ${status ? 'activated' : 'deactivated'} successfully`
+      });
+
+      setSelectedLabTests(new Set());
+      fetchLabTests();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${status ? 'activate' : 'deactivate'} lab tests`,
+        variant: "destructive"
+      });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedLabTests.size === filteredLabTests.length) {
+      setSelectedLabTests(new Set());
+    } else {
+      setSelectedLabTests(new Set(filteredLabTests.map(t => t.id)));
+    }
+  };
+
+  const handleSelectLabTest = (labTestId: string) => {
+    const newSelected = new Set(selectedLabTests);
+    if (newSelected.has(labTestId)) {
+      newSelected.delete(labTestId);
+    } else {
+      newSelected.add(labTestId);
+    }
+    setSelectedLabTests(newSelected);
   };
 
   const handleDeleteLabTest = async (labTestId: string) => {
@@ -323,8 +384,31 @@ const AdminLabTestsPage = () => {
 
             {/* Lab Tests Table */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle>All Lab Tests ({filteredLabTests.length})</CardTitle>
+                {selectedLabTests.size > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {selectedLabTests.size} selected
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkStatusUpdate(true)}
+                      disabled={bulkActionLoading}
+                    >
+                      Activate Selected
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkStatusUpdate(false)}
+                      disabled={bulkActionLoading}
+                    >
+                      Deactivate Selected
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -334,6 +418,14 @@ const AdminLabTestsPage = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b text-left">
+                          <th className="pb-3 text-sm font-medium text-muted-foreground w-12">
+                            <input
+                              type="checkbox"
+                              checked={filteredLabTests.length > 0 && selectedLabTests.size === filteredLabTests.length}
+                              onChange={handleSelectAll}
+                              className="rounded border-gray-300"
+                            />
+                          </th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Test Name</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Category</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Price</th>
@@ -347,6 +439,14 @@ const AdminLabTestsPage = () => {
                       <tbody>
                         {filteredLabTests.map((test) => (
                           <tr key={test.id} className="border-b hover:bg-muted/30 transition-colors">
+                            <td className="py-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedLabTests.has(test.id)}
+                                onChange={() => handleSelectLabTest(test.id)}
+                                className="rounded border-gray-300"
+                              />
+                            </td>
                             <td className="py-4 font-medium">{test.name}</td>
                             <td className="py-4 text-muted-foreground">{test.category || 'N/A'}</td>
                             <td className="py-4">₹{test.price}</td>
