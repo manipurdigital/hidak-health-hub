@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { QuickLocationInput } from '@/components/QuickLocationInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { TestTube, MapPin, Edit, Trash2, MapPinned } from 'lucide-react';
+import { Building2, Edit, Trash2, MapPinned, MapPin } from 'lucide-react';
 import GeofenceSelector from '@/components/admin/GeofenceSelector';
+import { QuickLocationInput } from '@/components/QuickLocationInput';
 
 interface LabForm {
   id?: string;
@@ -26,6 +26,7 @@ export default function Labs() {
   
   const [form, setForm] = useState<LabForm>({ 
     name: '', 
+    address: '',
     is_active: true 
   });
   
@@ -88,7 +89,7 @@ export default function Labs() {
         title: "Success",
         description: editingLab ? "Diagnostic center updated successfully" : "Diagnostic center created successfully"
       });
-      setForm({ name: '', is_active: true });
+      setForm({ name: '', address: '', is_active: true });
       setSelectedLocation(null);
       setSelectedGeofences([]);
       setEditingLab(null);
@@ -158,7 +159,16 @@ export default function Labs() {
     if (!form.name.trim()) {
       toast({
         title: "Validation Error",
-        description: "Name is required",
+        description: "Center name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedLocation) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a location on the map", 
         variant: "destructive"
       });
       return;
@@ -170,9 +180,9 @@ export default function Labs() {
     const labData = {
       ...form,
       code: centerCode,
-      address: selectedLocation?.address || form.address,
-      lat: selectedLocation?.latitude,
-      lng: selectedLocation?.longitude
+      address: selectedLocation.address || form.address,
+      lat: selectedLocation.latitude,
+      lng: selectedLocation.longitude
     };
 
     saveLabMutation.mutate(labData);
@@ -201,14 +211,10 @@ export default function Labs() {
   };
 
   const handleCancelEdit = () => {
-    setForm({ name: '', is_active: true });
+    setForm({ name: '', address: '', is_active: true });
     setSelectedLocation(null);
     setSelectedGeofences([]);
     setEditingLab(null);
-  };
-
-  const handleDelete = (labId: string) => {
-    deleteLabMutation.mutate(labId);
   };
 
   const handleLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
@@ -216,6 +222,10 @@ export default function Labs() {
     if (location.address) {
       setForm(prev => ({ ...prev, address: location.address }));
     }
+  };
+
+  const handleDelete = (labId: string) => {
+    deleteLabMutation.mutate(labId);
   };
 
   const handleSaveGeofences = () => {
@@ -229,7 +239,7 @@ export default function Labs() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <TestTube className="h-6 w-6" />
+        <Building2 className="h-6 w-6" />
         <h1 className="text-2xl font-bold">Diagnostic Centers Management</h1>
       </div>
 
@@ -261,32 +271,40 @@ export default function Labs() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  placeholder="Enter center address (optional)"
-                  value={form.address || ''}
-                  onChange={(e) => setForm(prev => ({ ...prev, address: e.target.value }))}
-                />
-              </div>
 
               <div className="space-y-2">
-                <Label>Location (Optional)</Label>
+                <Label className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  Center Location *
+                </Label>
                 <QuickLocationInput
                   onLocationSelect={handleLocationSelect}
                   title="Center Location"
-                  description="Select location for this diagnostic center"
+                  description="Select exact location for this center using map"
                 />
-                {selectedLocation && (
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                {selectedLocation ? (
+                  <div className="text-sm text-green-600 flex items-center gap-1 bg-green-50 p-2 rounded">
                     <MapPin className="h-3 w-3" />
                     <span>
-                      Lat: {selectedLocation.latitude.toFixed(6)}, 
-                      Lng: {selectedLocation.longitude.toFixed(6)}
+                      Location selected: {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
+                      {selectedLocation.address && ` - ${selectedLocation.address}`}
                     </span>
                   </div>
+                ) : (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    Please select a location on the map - this is required
+                  </div>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Address Details (Optional)</Label>
+                <Input
+                  id="address"
+                  placeholder="Additional address details"
+                  value={form.address || ''}
+                  onChange={(e) => setForm(prev => ({ ...prev, address: e.target.value }))}
+                />
               </div>
 
               <div className="flex items-center space-x-2">

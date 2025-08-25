@@ -158,7 +158,16 @@ export default function AdminStoresPage() {
     if (!form.name.trim()) {
       toast({
         title: "Validation Error",
-        description: "Name is required",
+        description: "Store name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedLocation) {
+      toast({
+        title: "Validation Error", 
+        description: "Please select a location on the map",
         variant: "destructive"
       });
       return;
@@ -170,7 +179,9 @@ export default function AdminStoresPage() {
     const storeData = {
       ...form,
       code: storeCode,
-      address: selectedLocation?.address || form.address
+      address: selectedLocation.address || form.address,
+      lat: selectedLocation.latitude,
+      lng: selectedLocation.longitude
     };
 
     saveStoreMutation.mutate(storeData);
@@ -270,19 +281,26 @@ export default function AdminStoresPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Location (Optional)</Label>
+                <Label className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  Store Location *
+                </Label>
                 <QuickLocationInput
                   onLocationSelect={handleLocationSelect}
                   title="Store Location"
-                  description="Select location for this store"
+                  description="Select exact location for this store using map"
                 />
-                {selectedLocation && (
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                {selectedLocation ? (
+                  <div className="text-sm text-green-600 flex items-center gap-1 bg-green-50 p-2 rounded">
                     <MapPin className="h-3 w-3" />
                     <span>
-                      Lat: {selectedLocation.latitude.toFixed(6)}, 
-                      Lng: {selectedLocation.longitude.toFixed(6)}
+                      Location selected: {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
+                      {selectedLocation.address && ` - ${selectedLocation.address}`}
                     </span>
+                  </div>
+                ) : (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    Please select a location on the map - this is required
                   </div>
                 )}
               </div>
