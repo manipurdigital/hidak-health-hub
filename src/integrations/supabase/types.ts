@@ -748,6 +748,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           created_by: string | null
+          geom: unknown | null
           id: string
           is_active: boolean | null
           min_order_value: number | null
@@ -769,6 +770,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
+          geom?: unknown | null
           id?: string
           is_active?: boolean | null
           min_order_value?: number | null
@@ -790,6 +792,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           created_by?: string | null
+          geom?: unknown | null
           id?: string
           is_active?: boolean | null
           min_order_value?: number | null
@@ -3325,7 +3328,9 @@ export type Database = {
         }[]
       }
       get_service_coverage: {
-        Args: { lat: number; lng: number; service_type: string }
+        Args:
+          | { lat: number; lng: number; service_type: string }
+          | { lat: number; lng: number; service_type: string }
         Returns: {
           geofence_id: string
           geofence_name: string
