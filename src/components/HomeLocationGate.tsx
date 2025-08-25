@@ -23,37 +23,55 @@ export const HomeLocationGate = ({ onLocationConfirmed }: HomeLocationGateProps)
       setIsCheckingServiceability(true);
       setServiceabilityError(null);
       
-      // Wait a bit for serviceability context to update
-      const timer = setTimeout(() => {
-        // Check if serviceability context has finished loading
-        if (loading) {
-          // Still loading, check again later
-          setIsCheckingServiceability(false);
-          return;
-        }
-        
-        if (deliveryCoverage === 'out_of_area' && labCoverage === 'out_of_area') {
-          setServiceabilityError("No service available in your area. Please try a different location.");
-        } else if (deliveryCoverage || labCoverage) {
-          // Location is serviceable, allow access
-          onLocationConfirmed();
-        } else {
-          setServiceabilityError("Unable to check service availability. Please try again.");
-        }
+      // Hard timeout to prevent infinite loading
+      const hardTimeout = setTimeout(() => {
+        setServiceabilityError("Service check timed out. Please try again.");
         setIsCheckingServiceability(false);
-      }, 2000);
+      }, 10000);
+      
+      // Wait for serviceability context to finish loading
+      const checkServiceability = () => {
+        // Only proceed when loading is false and coverage values are determined
+        if (!loading && deliveryCoverage !== null && labCoverage !== null) {
+          clearTimeout(hardTimeout);
+          
+          if (deliveryCoverage === 'out_of_area' && labCoverage === 'out_of_area') {
+            setServiceabilityError("No service available in your area. Please try a different location.");
+          } else if (deliveryCoverage !== 'out_of_area' || labCoverage !== 'out_of_area') {
+            // Location is serviceable, allow access
+            onLocationConfirmed();
+          } else {
+            setServiceabilityError("Unable to check service availability. Please try again.");
+          }
+          setIsCheckingServiceability(false);
+        } else if (!loading) {
+          // Loading finished but no coverage data - retry once more
+          setTimeout(checkServiceability, 1000);
+        }
+      };
+      
+      // Start checking after a short delay
+      const timer = setTimeout(checkServiceability, 1000);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(hardTimeout);
+      };
     }
   }, [location, deliveryCoverage, labCoverage, onLocationConfirmed, isCheckingServiceability, loading]);
 
   const handleLocationSelect = (locationData: any) => {
     setIsCheckingServiceability(true);
     setServiceabilityError(null);
+    
+    // Normalize coordinates - handle both {lat, lng} and {latitude, longitude}
+    const lat = locationData.lat || locationData.latitude;
+    const lng = locationData.lng || locationData.longitude;
+    
     setManualLocation({
-      lat: locationData.lat,
-      lng: locationData.lng,
-      address: locationData.address || `${locationData.lat}, ${locationData.lng}`
+      lat,
+      lng,
+      address: locationData.address || `${lat}, ${lng}`
     });
   };
 
