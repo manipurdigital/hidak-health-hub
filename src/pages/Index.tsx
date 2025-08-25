@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import ServicesSection from "@/components/ServicesSection";
@@ -15,9 +15,19 @@ const Index = () => {
 
   const handleLocationConfirmed = () => {
     setIsLocationConfirmed(true);
+    // Store in session storage so it persists for the session
+    sessionStorage.setItem('location-confirmed', 'true');
   };
 
-  // Always show location gate on homepage visit
+  // Check if location was already confirmed in this session
+  useEffect(() => {
+    const confirmed = sessionStorage.getItem('location-confirmed');
+    if (confirmed === 'true') {
+      setIsLocationConfirmed(true);
+    }
+  }, []);
+
+  // Only show location gate on homepage and if not confirmed
   if (!isLocationConfirmed) {
     return <HomeLocationGate onLocationConfirmed={handleLocationConfirmed} />;
   }
