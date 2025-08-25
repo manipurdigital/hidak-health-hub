@@ -15,7 +15,8 @@ import {
   Tags,
   FileText,
   Store,
-  ChevronDown
+  ChevronDown,
+  Database
 } from 'lucide-react';
 
 import {
@@ -88,6 +89,12 @@ const adminSidebarGroups = [
     label: "Finance",
     items: [
       { title: "Payment Reconciliation", url: "/admin/reports/reconciliation", icon: DollarSign },
+    ]
+  },
+  {
+    label: "Development",
+    items: [
+      { title: "Schema Export", url: "/admin/schema-export", icon: Database },
     ]
   },
 ];

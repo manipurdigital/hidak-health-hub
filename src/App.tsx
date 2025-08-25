@@ -66,6 +66,7 @@ import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
 import AdminPartnerApplicationsPage from "./pages/admin/AdminPartnerApplicationsPage";
 import AdminStoresPage from "./pages/admin/AdminStoresPage";
 import Labs from "./pages/admin/Labs";
+import AdminSchemaExportPage from "./pages/admin/AdminSchemaExportPage";
 
 const queryClient = new QueryClient();
 
@@ -143,6 +144,7 @@ const App = () => (
                 <Route path="partner-applications" element={<AdminPartnerApplicationsPage />} />
                 <Route path="stores" element={<AdminStoresPage />} />
                 <Route path="labs" element={<Labs />} />
+                <Route path="schema-export" element={<AdminSchemaExportPage />} />
               </Route>
               
               {/* Lab Routes - Lab role required */}
