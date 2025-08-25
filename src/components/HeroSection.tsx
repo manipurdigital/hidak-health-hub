@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Shield, Truck, Clock, Users } from "lucide-react";
+import { Shield, Truck, Clock, Users, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/healthcare-hero.jpg";
@@ -30,6 +30,23 @@ const HeroSection = () => {
   return (
     <section className="relative bg-gradient-to-br from-primary/5 via-background to-accent/5 py-16 overflow-hidden">
       <div className="container mx-auto px-4">
+        {/* WhatsApp Button */}
+        <div className="flex justify-center mb-8">
+          <a 
+            href="https://wa.me/918794265302?text=Welcome%20to%20Hak%20Shel.%20Kindly%20upload%20your%20prescription%20to%20proceed%20with%20order%20confirmation."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block"
+          >
+            <Button 
+              size="lg" 
+              className="bg-[#25D366] hover:bg-[#20BA5A] text-white border-0 text-lg px-8 py-3 hover:scale-105 transition-all duration-200 shadow-lg"
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Order via WhatsApp
+            </Button>
+          </a>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left content */}
           <div className="space-y-8 animate-fade-in">
