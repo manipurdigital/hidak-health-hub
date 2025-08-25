@@ -61,13 +61,72 @@ serve(async (req) => {
       chatMessages[0].content += `\n\nUser selected topic: ${topic}`;
     }
 
-    console.log('Calling OpenAI API...');
+    console.log('Starting support chat request...');
 
-    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
-    // Helpers for providers
+    // Rules-based fallback for common questions
+    const getRulesBasedResponse = (userMessage: string): string => {
+      const message = userMessage.toLowerCase();
+      
+      if (message.includes('order') && (message.includes('track') || message.includes('status'))) {
+        return "To track your order, you can find your order status in the 'My Orders' section of your account. If you need immediate assistance with a specific order, please contact our support team with your order number.";
+      }
+      
+      if (message.includes('lab') && (message.includes('test') || message.includes('book'))) {
+        return "You can book lab tests through our platform by browsing available tests and selecting home collection. Our team will contact you to schedule the sample collection at your convenience.";
+      }
+      
+      if (message.includes('medicine') && (message.includes('deliver') || message.includes('order'))) {
+        return "We deliver medicines to your doorstep. You can upload prescriptions or browse OTC medications. Our pharmacists verify all prescriptions before dispatch.";
+      }
+      
+      if (message.includes('payment') || message.includes('refund')) {
+        return "We accept various payment methods including cards, UPI, and wallets. For refunds, please check your order status or contact support with your order details.";
+      }
+      
+      if (message.includes('contact') || message.includes('support') || message.includes('help')) {
+        return "You can reach our support team through this chat, email, or phone. We're here to help with any questions about orders, lab tests, medicines, or technical issues.";
+      }
+      
+      return "I'm here to help with questions about lab tests, medicine orders, tracking, payments, and platform usage. For specific account or order issues, please provide more details or contact our support team directly.";
+    };
+
+    // Helpers for AI providers
+    const attemptGroq = async () => {
+      if (!groqApiKey) throw new Error('Groq API key not configured');
+      console.log('Calling Groq API...');
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: chatMessages,
+          max_tokens: 500,
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Groq API error:', response.status, response.statusText);
+        console.error('Error details:', errorText);
+        throw new Error(`groq_${response.status}:${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Groq response received');
+      const content = data?.choices?.[0]?.message?.content;
+      if (!content) throw new Error('No response from Groq');
+      return { message: content, usage: data.usage, provider: 'groq' } as const;
+    };
+
     const attemptOpenAI = async () => {
       if (!openAIApiKey) throw new Error('OpenAI API key not configured');
+      console.log('Calling OpenAI API...');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -97,52 +156,26 @@ serve(async (req) => {
       return { message: content, usage: data.usage, provider: 'openai' } as const;
     };
 
-    const attemptPerplexity = async () => {
-      if (!perplexityApiKey) throw new Error('PERPLEXITY_API_KEY not configured');
-      console.log('Falling back to Perplexity API...');
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${perplexityApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
-          messages: chatMessages,
-          temperature: 0.2,
-          top_p: 0.9,
-          max_tokens: 600,
-          frequency_penalty: 1,
-          presence_penalty: 0,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Perplexity API error:', response.status, response.statusText);
-        console.error('Error details:', errorText);
-        throw new Error(`perplexity_${response.status}:${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('Perplexity response received');
-      const content = data?.choices?.[0]?.message?.content;
-      if (!content) throw new Error('No response from Perplexity');
-      return { message: content, usage: data.usage, provider: 'perplexity' } as const;
-    };
-
     let result: { message: string; usage?: unknown; provider: string } | null = null;
 
     try {
-      result = await attemptOpenAI();
-    } catch (openAiErr) {
-      console.error('OpenAI failed, will try fallback if available:', openAiErr);
+      // Try Groq first (free)
+      result = await attemptGroq();
+    } catch (groqErr) {
+      console.error('Groq failed, trying OpenAI fallback:', groqErr);
       try {
-        result = await attemptPerplexity();
-      } catch (fallbackErr) {
-        console.error('Perplexity fallback also failed:', fallbackErr);
-        // Re-throw the original OpenAI error to keep context
-        throw openAiErr;
+        // Try OpenAI as fallback
+        result = await attemptOpenAI();
+      } catch (openAiErr) {
+        console.error('OpenAI fallback also failed, using rules-based response:', openAiErr);
+        // Use rules-based fallback
+        const userMessage = messages[messages.length - 1]?.content || '';
+        const rulesResponse = getRulesBasedResponse(userMessage);
+        result = { 
+          message: rulesResponse, 
+          usage: null, 
+          provider: 'rules-based' 
+        };
       }
     }
 
