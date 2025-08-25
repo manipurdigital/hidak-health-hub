@@ -269,18 +269,6 @@ export function MedicineDetailPage() {
           </div>
         </div>
 
-        {/* Source Attribution (if imported) */}
-        {medicine.external_source_url && medicine.source_attribution && (
-          <div className="mt-8">
-            <AttributionDisplay
-              sourceAttribution={medicine.source_attribution}
-              sourceDomain={medicine.external_source_domain || ''}
-              sourceUrl={medicine.external_source_url}
-              lastFetched={medicine.source_last_fetched}
-              variant="footer"
-            />
-          </div>
-        )}
 
         {/* Medicine Alternatives Section */}
         <div className="mt-8">
