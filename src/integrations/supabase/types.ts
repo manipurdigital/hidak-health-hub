@@ -528,33 +528,45 @@ export type Database = {
       diagnostic_centers: {
         Row: {
           address: string | null
-          contact_phone: string
+          code: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           email: string | null
           id: string
           is_active: boolean | null
+          lat: number | null
+          lng: number | null
           name: string
           service_areas: string[] | null
           updated_at: string
         }
         Insert: {
           address?: string | null
-          contact_phone: string
+          code?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name: string
           service_areas?: string[] | null
           updated_at?: string
         }
         Update: {
           address?: string | null
-          contact_phone?: string
+          code?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           email?: string | null
           id?: string
           is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name?: string
           service_areas?: string[] | null
           updated_at?: string
@@ -661,6 +673,72 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      geofence_lab_links: {
+        Row: {
+          center_id: string
+          created_at: string | null
+          geofence_id: string
+        }
+        Insert: {
+          center_id: string
+          created_at?: string | null
+          geofence_id: string
+        }
+        Update: {
+          center_id?: string
+          created_at?: string | null
+          geofence_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofence_lab_links_center_id_fkey"
+            columns: ["center_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geofence_lab_links_geofence_id_fkey"
+            columns: ["geofence_id"]
+            isOneToOne: false
+            referencedRelation: "geofences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geofence_store_links: {
+        Row: {
+          created_at: string | null
+          geofence_id: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          geofence_id: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string | null
+          geofence_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofence_store_links_geofence_id_fkey"
+            columns: ["geofence_id"]
+            isOneToOne: false
+            referencedRelation: "geofences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geofence_store_links_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       geofences: {
         Row: {
@@ -1470,6 +1548,11 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           delivery_center_id: string | null
+          delivery_fee: number | null
+          dest_address: string | null
+          dest_lat: number | null
+          dest_lng: number | null
+          distance_km: number | null
           id: string
           last_distance_meters: number | null
           last_eta_mins: number | null
@@ -1500,6 +1583,11 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivery_center_id?: string | null
+          delivery_fee?: number | null
+          dest_address?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
+          distance_km?: number | null
           id?: string
           last_distance_meters?: number | null
           last_eta_mins?: number | null
@@ -1530,6 +1618,11 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivery_center_id?: string | null
+          delivery_fee?: number | null
+          dest_address?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
+          distance_km?: number | null
           id?: string
           last_distance_meters?: number | null
           last_eta_mins?: number | null
@@ -1807,6 +1900,42 @@ export type Database = {
           },
         ]
       }
+      pricing_rules: {
+        Row: {
+          base_fee: number
+          base_km: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          min_fee: number
+          per_km_fee: number
+          service: string
+          surge_multiplier: number
+        }
+        Insert: {
+          base_fee?: number
+          base_km?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_fee?: number
+          per_km_fee?: number
+          service: string
+          surge_multiplier?: number
+        }
+        Update: {
+          base_fee?: number
+          base_km?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_fee?: number
+          per_km_fee?: number
+          service?: string
+          surge_multiplier?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -1942,6 +2071,36 @@ export type Database = {
         }
         Relationships: []
       }
+      service_zones: {
+        Row: {
+          center_lat: number
+          center_lng: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          radius_km: number
+        }
+        Insert: {
+          center_lat: number
+          center_lng: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          radius_km?: number
+        }
+        Update: {
+          center_lat?: number
+          center_lng?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          radius_km?: number
+        }
+        Relationships: []
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -1975,6 +2134,8 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean | null
+          lat: number | null
+          lng: number | null
           name: string
           phone: string | null
           pincode: string | null
@@ -1989,6 +2150,8 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name: string
           phone?: string | null
           pincode?: string | null
@@ -2003,6 +2166,8 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           name?: string
           phone?: string | null
           pincode?: string | null
@@ -2487,6 +2652,14 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      admin_set_lab_geofences: {
+        Args: { p_center_id: string; p_geofence_ids: string[] }
+        Returns: undefined
+      }
+      admin_set_store_geofences: {
+        Args: { p_geofence_ids: string[]; p_store_id: string }
+        Returns: undefined
+      }
       admin_timeseries_data: {
         Args: { end_date: string; metric_type: string; start_date: string }
         Returns: {
@@ -2503,6 +2676,19 @@ export type Database = {
           total_revenue: number
           unique_customers: number
         }[]
+      }
+      apply_distance_fee_to_order: {
+        Args: { p_order_id: string; p_service: string }
+        Returns: undefined
+      }
+      apply_distance_fee_to_order_with_coords: {
+        Args: {
+          p_dest_lat: number
+          p_dest_lng: number
+          p_order_id: string
+          p_service: string
+        }
+        Returns: undefined
       }
       apply_rls_fixes: {
         Args: Record<PropertyKey, never>
@@ -2562,6 +2748,40 @@ export type Database = {
       bytea: {
         Args: { "": unknown } | { "": unknown }
         Returns: string
+      }
+      calc_delivery_fee_from_geofence_store: {
+        Args: { p_dest_lat: number; p_dest_lng: number }
+        Returns: {
+          distance_km: number
+          fee: number
+          geofence_id: string
+          store_id: string
+          store_name: string
+        }[]
+      }
+      calc_distance_fee: {
+        Args: {
+          p_dest_lat: number
+          p_dest_lng: number
+          p_origin_lat?: number
+          p_origin_lng?: number
+          p_service: string
+        }
+        Returns: {
+          distance_km: number
+          fee: number
+        }[]
+      }
+      calc_distance_fee_from_geofence: {
+        Args:
+          | { p_dest_lat: number; p_dest_lng: number; p_service: string }
+          | { p_dest_lat: number; p_dest_lng: number; p_service: string }
+        Returns: {
+          distance_km: number
+          fee: number
+          geofence_id: string
+          geofence_name: string
+        }[]
       }
       calculate_polygon_area: {
         Args: { coordinates: Json }
@@ -2630,6 +2850,10 @@ export type Database = {
         Args: { txt: string }
         Returns: string
       }
+      compute_delivery_fee: {
+        Args: { p_distance_km: number; p_service: string }
+        Returns: number
+      }
       consultation_kpis: {
         Args: { end_date: string; start_date: string }
         Returns: {
@@ -2679,6 +2903,18 @@ export type Database = {
           title: string
         }
         Returns: undefined
+      }
+      create_geofence_circle: {
+        Args: {
+          p_center_lat: number
+          p_center_lng: number
+          p_is_active?: boolean
+          p_name: string
+          p_priority?: number
+          p_radius_m: number
+          p_service: string
+        }
+        Returns: string
       }
       create_service_area_with_geom: {
         Args: { area_data: Json; geom_sql: string }
@@ -2964,15 +3200,10 @@ export type Database = {
         Returns: unknown
       }
       get_available_centers_for_location: {
-        Args: { lat: number; lng: number; service_type: string }
-        Returns: {
-          center_id: string
-          center_name: string
-          geofence_name: string
-          priority: number
-          store_id: string
-          store_name: string
-        }[]
+        Args:
+          | { lat: number; lng: number; service_type: string }
+          | { p_lat: number; p_lng: number; service_type: string }
+        Returns: Json[]
       }
       get_cached_recommendations: {
         Args: {
@@ -2990,6 +3221,13 @@ export type Database = {
           check_date?: string
         }
         Returns: number
+      }
+      get_default_origin: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          lat: number
+          lng: number
+        }[]
       }
       get_lab_booking_by_token: {
         Args: { booking_id: string; token: string }
@@ -3082,6 +3320,14 @@ export type Database = {
           working_hours: Json
         }[]
       }
+      get_service_coverage: {
+        Args: { lat: number; lng: number; service_type: string }
+        Returns: {
+          geofence_id: string
+          geofence_name: string
+          priority: number
+        }[]
+      }
       get_user_center_access: {
         Args: { user_id_param: string }
         Returns: {
@@ -3148,11 +3394,14 @@ export type Database = {
         Returns: boolean
       }
       has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
+        Args:
+          | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
+          | { role_text: string }
         Returns: boolean
+      }
+      haversine_km: {
+        Args: { lat1: number; lat2: number; lon1: number; lon2: number }
+        Returns: number
       }
       is_admin: {
         Args: { _user_id?: string }
@@ -3281,6 +3530,10 @@ export type Database = {
       }
       normalize_composition: {
         Args: { composition: string }
+        Returns: string
+      }
+      normalize_service: {
+        Args: { p_service: string }
         Returns: string
       }
       normalize_token: {
