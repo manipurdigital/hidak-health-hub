@@ -184,15 +184,9 @@ function LabTestDetails({ labTest, onBookNow }: {
                 <MapPin className="w-6 h-6 text-primary" />
                 <span className="font-medium">Home Sample Collection</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Our certified phlebotomist will visit your home for safe sample collection
+              <p className="text-sm text-muted-foreground">
+                Our certified phlebotomist will call you to confirm and then visit your home for safe sample collection
               </p>
-              <div className="flex justify-center items-center gap-4 text-sm">
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4 text-green-600" />
-                  <span>{labTest.reporting_time || '24 hrs'}</span>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
