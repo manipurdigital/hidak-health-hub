@@ -9,6 +9,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
 import { ServiceabilityProvider } from "@/contexts/ServiceabilityContext";
+import { SupportChatWidget } from "@/components/support/SupportChatWidget";
+import { FeatureGuard } from "@/components/FeatureGuard";
 import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
 import { AdminLayout } from "@/components/AdminLayout";
 import { CenterLayout } from "@/components/CenterLayout";
@@ -172,6 +174,11 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            
+            {/* Support Chat Widget - Available site-wide except admin pages */}
+            <FeatureGuard feature="ENABLE_SUPPORT_CHAT">
+              <SupportChatWidget />
+            </FeatureGuard>
             </div>
           </BrowserRouter>
               </CartProvider>
