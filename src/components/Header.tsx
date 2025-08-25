@@ -99,10 +99,13 @@ const Header = () => {
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold text-primary">
+            <button 
+              onClick={() => navigate('/')}
+              className="text-2xl font-bold text-primary hover:opacity-80 transition-opacity cursor-pointer"
+            >
               HAK SHEL
               <span className="text-accent">+</span>
-            </h1>
+            </button>
           </div>
           
           {/* Search moved to dedicated row below */}
