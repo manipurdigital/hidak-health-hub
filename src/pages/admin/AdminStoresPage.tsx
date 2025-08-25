@@ -15,7 +15,6 @@ import GeofenceSelector from '@/components/admin/GeofenceSelector';
 
 interface StoreForm {
   id?: string;
-  code: string;
   name: string;
   is_active: boolean;
   address?: string;
@@ -26,7 +25,6 @@ export default function AdminStoresPage() {
   const queryClient = useQueryClient();
   
   const [form, setForm] = useState<StoreForm>({ 
-    code: '', 
     name: '', 
     is_active: true 
   });
@@ -90,7 +88,7 @@ export default function AdminStoresPage() {
         title: "Success",
         description: editingStore ? "Store updated successfully" : "Store created successfully"
       });
-      setForm({ code: '', name: '', is_active: true });
+      setForm({ name: '', is_active: true });
       setSelectedLocation(null);
       setSelectedGeofences([]);
       setEditingStore(null);
@@ -157,17 +155,21 @@ export default function AdminStoresPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!form.code.trim() || !form.name.trim()) {
+    if (!form.name.trim()) {
       toast({
         title: "Validation Error",
-        description: "Code and name are required",
+        description: "Name is required",
         variant: "destructive"
       });
       return;
     }
 
+    // Auto-generate store code if creating new store
+    const storeCode = editingStore ? undefined : `ST${Date.now().toString().slice(-6)}`;
+    
     const storeData = {
       ...form,
+      code: storeCode,
       address: selectedLocation?.address || form.address
     };
 
@@ -177,7 +179,6 @@ export default function AdminStoresPage() {
   const handleEdit = async (store: any) => {
     setForm({
       id: store.id,
-      code: store.code,
       name: store.name,
       is_active: store.is_active,
       address: store.address
@@ -198,7 +199,7 @@ export default function AdminStoresPage() {
   };
 
   const handleCancelEdit = () => {
-    setForm({ code: '', name: '', is_active: true });
+    setForm({ name: '', is_active: true });
     setSelectedLocation(null);
     setSelectedGeofences([]);
     setEditingStore(null);
@@ -238,16 +239,14 @@ export default function AdminStoresPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Store Code *</Label>
-                <Input
-                  id="code"
-                  placeholder="Enter unique store code"
-                  value={form.code}
-                  onChange={(e) => setForm(prev => ({ ...prev, code: e.target.value }))}
-                  required
-                />
-              </div>
+              {!editingStore && (
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Store Code</Label>
+                  <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                    Will be auto-generated: ST{Date.now().toString().slice(-6)}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="name">Store Name *</Label>

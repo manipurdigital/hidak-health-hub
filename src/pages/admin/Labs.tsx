@@ -15,7 +15,6 @@ import GeofenceSelector from '@/components/admin/GeofenceSelector';
 
 interface LabForm {
   id?: string;
-  code: string;
   name: string;
   is_active: boolean;
   address?: string;
@@ -26,7 +25,6 @@ export default function Labs() {
   const queryClient = useQueryClient();
   
   const [form, setForm] = useState<LabForm>({ 
-    code: '', 
     name: '', 
     is_active: true 
   });
@@ -90,7 +88,7 @@ export default function Labs() {
         title: "Success",
         description: editingLab ? "Diagnostic center updated successfully" : "Diagnostic center created successfully"
       });
-      setForm({ code: '', name: '', is_active: true });
+      setForm({ name: '', is_active: true });
       setSelectedLocation(null);
       setSelectedGeofences([]);
       setEditingLab(null);
@@ -157,17 +155,21 @@ export default function Labs() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!form.code.trim() || !form.name.trim()) {
+    if (!form.name.trim()) {
       toast({
         title: "Validation Error",
-        description: "Code and name are required",
+        description: "Name is required",
         variant: "destructive"
       });
       return;
     }
 
+    // Auto-generate center code if creating new center
+    const centerCode = editingLab ? undefined : `LC${Date.now().toString().slice(-6)}`;
+    
     const labData = {
       ...form,
+      code: centerCode,
       address: selectedLocation?.address || form.address,
       lat: selectedLocation?.latitude,
       lng: selectedLocation?.longitude
@@ -179,7 +181,6 @@ export default function Labs() {
   const handleEdit = async (lab: any) => {
     setForm({
       id: lab.id,
-      code: lab.code || '',
       name: lab.name,
       is_active: lab.is_active,
       address: lab.address
@@ -200,7 +201,7 @@ export default function Labs() {
   };
 
   const handleCancelEdit = () => {
-    setForm({ code: '', name: '', is_active: true });
+    setForm({ name: '', is_active: true });
     setSelectedLocation(null);
     setSelectedGeofences([]);
     setEditingLab(null);
@@ -240,16 +241,14 @@ export default function Labs() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Center Code *</Label>
-                <Input
-                  id="code"
-                  placeholder="Enter unique center code"
-                  value={form.code}
-                  onChange={(e) => setForm(prev => ({ ...prev, code: e.target.value }))}
-                  required
-                />
-              </div>
+              {!editingLab && (
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Center Code</Label>
+                  <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                    Will be auto-generated: LC{Date.now().toString().slice(-6)}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="name">Center Name *</Label>
