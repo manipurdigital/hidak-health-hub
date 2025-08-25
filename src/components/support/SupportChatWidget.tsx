@@ -137,7 +137,7 @@ export function SupportChatWidget() {
           
           <CardContent className="flex-1 flex flex-col gap-4 pb-4">
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[400px] scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               {messages.map((message) => (
                 <div
                   key={message.id}
