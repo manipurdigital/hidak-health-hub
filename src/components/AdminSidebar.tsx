@@ -16,7 +16,8 @@ import {
   FileText,
   Store,
   ChevronDown,
-  Database
+  Database,
+  Download
 } from 'lucide-react';
 
 import {
@@ -95,6 +96,7 @@ const adminSidebarGroups = [
     label: "Development",
     items: [
       { title: "Schema Export", url: "/admin/schema-export", icon: Database },
+      { title: "Code Export", url: "/admin/code-export", icon: Download },
     ]
   },
 ];
