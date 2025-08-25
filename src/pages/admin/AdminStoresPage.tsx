@@ -58,6 +58,8 @@ export default function AdminStoresPage() {
   // Create/Update store mutation
   const saveStoreMutation = useMutation({
     mutationFn: async (storeData: any) => {
+      let storeId = editingStore;
+      
       if (editingStore) {
         const { error } = await supabase
           .from('stores')
@@ -65,10 +67,22 @@ export default function AdminStoresPage() {
           .eq('id', editingStore);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('stores')
-          .insert(storeData);
+          .insert(storeData)
+          .select('id')
+          .single();
         if (error) throw error;
+        storeId = data.id;
+      }
+      
+      // Save geofences if any are selected
+      if (selectedGeofences.length > 0 && storeId) {
+        const { error: geofenceError } = await supabase.rpc('admin_set_store_geofences' as any, {
+          p_store_id: storeId,
+          p_geofence_ids: selectedGeofences
+        });
+        if (geofenceError) throw geofenceError;
       }
     },
     onSuccess: () => {
@@ -78,6 +92,7 @@ export default function AdminStoresPage() {
       });
       setForm({ code: '', name: '', is_active: true });
       setSelectedLocation(null);
+      setSelectedGeofences([]);
       setEditingStore(null);
       queryClient.invalidateQueries({ queryKey: ['stores'] });
     },
@@ -282,6 +297,19 @@ export default function AdminStoresPage() {
                   }
                 />
                 <Label htmlFor="is_active">Active</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <MapPinned className="h-4 w-4" />
+                  Service Areas (Delivery)
+                </Label>
+                <GeofenceSelector
+                  serviceType="delivery"
+                  value={selectedGeofences}
+                  onChange={setSelectedGeofences}
+                  disabled={saveStoreMutation.isPending}
+                />
               </div>
 
               <div className="flex gap-2">

@@ -58,6 +58,8 @@ export default function Labs() {
   // Create/Update lab mutation
   const saveLabMutation = useMutation({
     mutationFn: async (labData: any) => {
+      let labId = editingLab;
+      
       if (editingLab) {
         const { error } = await supabase
           .from('diagnostic_centers')
@@ -65,10 +67,22 @@ export default function Labs() {
           .eq('id', editingLab);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('diagnostic_centers')
-          .insert(labData);
+          .insert(labData)
+          .select('id')
+          .single();
         if (error) throw error;
+        labId = data.id;
+      }
+      
+      // Save geofences if any are selected
+      if (selectedGeofences.length > 0 && labId) {
+        const { error: geofenceError } = await supabase.rpc('admin_set_lab_geofences' as any, {
+          p_center_id: labId,
+          p_geofence_ids: selectedGeofences
+        });
+        if (geofenceError) throw geofenceError;
       }
     },
     onSuccess: () => {
@@ -78,6 +92,7 @@ export default function Labs() {
       });
       setForm({ code: '', name: '', is_active: true });
       setSelectedLocation(null);
+      setSelectedGeofences([]);
       setEditingLab(null);
       queryClient.invalidateQueries({ queryKey: ['diagnostic_centers'] });
     },
@@ -284,6 +299,19 @@ export default function Labs() {
                   }
                 />
                 <Label htmlFor="is_active">Active</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <MapPinned className="h-4 w-4" />
+                  Service Areas (Lab Collection)
+                </Label>
+                <GeofenceSelector
+                  serviceType="lab_collection"
+                  value={selectedGeofences}
+                  onChange={setSelectedGeofences}
+                  disabled={saveLabMutation.isPending}
+                />
               </div>
 
               <div className="flex gap-2">
