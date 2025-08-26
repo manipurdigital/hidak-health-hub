@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, CreditCard, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, CreditCard, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -77,19 +77,6 @@ const { toast } = useToast();
     });
   };
 
-  const formatTime = (timeString: string) => {
-    // Support both single time (e.g., "09:00") and range (e.g., "09:00 - 11:00")
-    if (timeString.includes(' - ')) {
-      const [start, end] = timeString.split(' - ').map((s) => s.trim());
-      return { start, end, display: `${start} - ${end}` };
-    }
-    const [hour, minute = '00'] = timeString.split(':');
-    const hourNum = parseInt(hour);
-    const endHour = (hourNum + 2) % 24;
-    const start = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-    const end = `${endHour.toString().padStart(2, '0')}:${minute}`;
-    return { start, end, display: `${start} - ${end}` };
-  };
   const handleConfirmBooking = async () => {
     if (!selectedAddr) {
       toast({
@@ -113,8 +100,6 @@ const { toast } = useToast();
     setIsBooking(true);
 
     try {
-      const timeWindow = formatTime(slot.time);
-      
       const bookingData: any = {
         testId: labTest.id,
         bookingDate: slot.date,
@@ -145,7 +130,7 @@ const { toast } = useToast();
           amount: labTest.price * 100,
           currency: 'INR',
           name: 'Lab Test Booking',
-          description: `${labTest.name} - ${formatDate(slot.date)} (${formatTime(slot.time).display})`,
+          description: `${labTest.name} - ${formatDate(slot.date)} (Collection time to be confirmed)`,
           order_id: result.razorpay_order_id,
           handler: async (response: any) => {
             try {

@@ -59,16 +59,6 @@ export function LabBookingSuccessPage() {
     });
   };
 
-  const formatTime = (timeString: string) => {
-    // Handle both single time and range formats
-    if (timeString.includes(' - ')) {
-      return timeString;
-    }
-    const [hour] = timeString.split(':');
-    const hourNum = parseInt(hour);
-    const endHour = hourNum + 2;
-    return `${timeString} - ${endHour.toString().padStart(2, '0')}:00`;
-  };
 
   const bookingSteps = [
     { icon: CheckCircle, label: 'Booking Confirmed', completed: true },
@@ -89,7 +79,7 @@ export function LabBookingSuccessPage() {
               </div>
                <h1 className="text-2xl font-bold text-green-600 mb-2">Booking Confirmed!</h1>
                <p className="text-muted-foreground mb-4">
-                 Your lab test has been scheduled successfully. We'll come to your address between {formatTime(bookingData.time_slot)}.
+                 Your lab test has been scheduled successfully. We will confirm the exact collection time soon.
                </p>
                <div className="bg-muted p-4 rounded-lg">
                  <p className="text-sm text-muted-foreground">Booking ID</p>
@@ -164,8 +154,8 @@ export function LabBookingSuccessPage() {
                 <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{formatTime(bookingData.time_slot)}</p>
-                    <p className="text-sm text-muted-foreground">Sample Collection Window</p>
+                    <p className="font-medium">To be confirmed</p>
+                    <p className="text-sm text-muted-foreground">Collection Time</p>
                   </div>
                 </div>
               </div>
