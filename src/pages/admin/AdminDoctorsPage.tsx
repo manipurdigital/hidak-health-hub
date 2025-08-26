@@ -151,37 +151,30 @@ const AdminDoctorsPage = () => {
     }
 
     try {
-      // Find user by email
-      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-      if (userError) throw userError;
+      const { error } = await supabase.rpc('admin_link_doctor_account', {
+        p_doctor_id: selectedDoctorId,
+        p_email: linkEmail
+      });
 
-      const foundUser = userData.users.find((u: any) => u.email === linkEmail);
-      if (!foundUser) {
+      if (error) {
+        console.error('Link account error:', error);
+        
+        let errorMessage = "Failed to link account";
+        if (error.message === 'user_not_found') {
+          errorMessage = "User with this email not found";
+        } else if (error.message === 'doctor_update_failed') {
+          errorMessage = "Doctor is already linked to another user or doesn't exist";
+        } else if (error.message === 'forbidden') {
+          errorMessage = "You don't have permission to perform this action";
+        }
+        
         toast({
           title: "Error",
-          description: "User with this email not found",
+          description: errorMessage,
           variant: "destructive"
         });
         return;
       }
-
-      // Update doctor with user_id
-      const { error: updateError } = await supabase
-        .from('doctors')
-        .update({ user_id: foundUser.id })
-        .eq('id', selectedDoctorId);
-
-      if (updateError) throw updateError;
-
-      // Set user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: foundUser.id,
-          role: 'doctor'
-        });
-
-      if (roleError) throw roleError;
 
       toast({
         title: "Success",
@@ -193,9 +186,10 @@ const AdminDoctorsPage = () => {
       setSelectedDoctorId('');
       fetchDoctors();
     } catch (error: any) {
+      console.error('Unexpected error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to link account",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     }

@@ -2925,6 +2925,10 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      admin_link_doctor_account: {
+        Args: { p_doctor_id: string; p_email: string }
+        Returns: undefined
+      }
       admin_set_delivery_status: {
         Args: { p_order_number: string; p_status: string }
         Returns: undefined
