@@ -158,8 +158,8 @@ const ConsultationsSection = () => {
         description: `Your consultation with ${bookingDoctor.full_name} has been scheduled for ${format(selectedDate, 'PPP')} at ${selectedTimeSlot}`,
       });
 
-      // Navigate to consultation chat
-      navigate(`/consultation/${consultation.id}`);
+      // Navigate to consultation success page
+      navigate(`/consult-success/${consultation.id}`);
 
       setBookingDoctor(null);
       setSelectedDate(undefined);

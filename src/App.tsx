@@ -21,6 +21,10 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { AdminLayoutWrapper } from '@/components/AdminLayoutWrapper';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
+import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
+import DashboardPage from '@/pages/DashboardPage';
+import { DoctorDashboardPage } from '@/pages/doctor/DoctorDashboardPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import AdminMedicinesPage from '@/pages/admin/AdminMedicinesPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
@@ -79,6 +83,34 @@ function App() {
                   <Route path="/doctors" element={<DoctorsPage />} />
                   <Route path="/doctors/:id" element={<DoctorProfilePage />} />
                   <Route path="/wellness" element={<WellnessPage />} />
+                  
+                  {/* Consultation Routes */}
+                  <Route path="/consult-success/:consultId" element={
+                    <AuthGuard>
+                      <ConsultationSuccessPage />
+                    </AuthGuard>
+                  } />
+                  <Route path="/consult/:consultId" element={
+                    <AuthGuard>
+                      <ConsultationRoomPage />
+                    </AuthGuard>
+                  } />
+                  <Route path="/consultation/:consultationId" element={
+                    <AuthGuard>
+                      <ConsultationRoomPage />
+                    </AuthGuard>
+                  } />
+                  <Route path="/dashboard" element={
+                    <AuthGuard>
+                      <DashboardPage />
+                    </AuthGuard>
+                  } />
+                  <Route path="/doctor" element={
+                    <AuthGuard>
+                      <DoctorDashboardPage />
+                    </AuthGuard>
+                  } />
+                  
                   <Route path="/checkout" element={
                     <AuthGuard>
                       <CheckoutPage />
