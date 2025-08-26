@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDeliveryPlaygroundPage() {
   const [orderNumber, setOrderNumber] = useState('ORD-XXXX');
+  const [orderId, setOrderId] = useState('<order_id>');
   const [riderCode, setRiderCode] = useState('RID-001');
   const { toast } = useToast();
 
@@ -175,6 +176,79 @@ on conflict (code) do update set is_active = true;`}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Auto-fills delivered_at timestamp
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rider Flow Testing */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Rider Flow Testing</CardTitle>
+            <CardDescription>
+              Test rider functions (requires rider role authentication)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="order-id">Order ID (UUID)</Label>
+              <Input
+                id="order-id"
+                value={orderId}
+                onChange={(e) => setOrderId(e.target.value)}
+                placeholder="<order_id>"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Step 1: Start Trip</Label>
+                <div className="flex gap-2">
+                  <Textarea
+                    readOnly
+                    value={`select public.rider_start('${orderId}');`}
+                    className="font-mono text-sm"
+                    rows={1}
+                  />
+                  <Button
+                    onClick={() => copyToClipboard(
+                      `select public.rider_start('${orderId}');`,
+                      "Rider Start"
+                    )}
+                    className="min-w-[100px]"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Sets status to "on_the_way" and updates picked_up_at
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Step 2: Complete Delivery</Label>
+                <div className="flex gap-2">
+                  <Textarea
+                    readOnly
+                    value={`select public.rider_complete('${orderId}');`}
+                    className="font-mono text-sm"
+                    rows={1}
+                  />
+                  <Button
+                    onClick={() => copyToClipboard(
+                      `select public.rider_complete('${orderId}');`,
+                      "Rider Complete"
+                    )}
+                    className="min-w-[100px]"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Sets status to "delivered" and updates delivered_at
                 </p>
               </div>
             </div>
