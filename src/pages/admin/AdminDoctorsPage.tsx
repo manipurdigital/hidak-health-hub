@@ -526,21 +526,35 @@ const AdminDoctorsPage = () => {
                         <Label htmlFor="doctor_select">Select Doctor Profile</Label>
                         <select
                           id="doctor_select"
-                          className="w-full p-2 border rounded"
+                          className="w-full p-2 border rounded bg-background z-50"
                           value={selectedDoctorId}
                           onChange={(e) => setSelectedDoctorId(e.target.value)}
                           required
                         >
                           <option value="">Choose a doctor...</option>
-                          {unlinkedDoctors.map(doctor => (
-                            <option key={doctor.id} value={doctor.id}>
-                              {doctor.full_name} - {doctor.specialization}
-                            </option>
-                          ))}
+                          {unlinkedDoctors.length === 0 ? (
+                            <option disabled>No unlinked doctors available</option>
+                          ) : (
+                            unlinkedDoctors.map(doctor => (
+                              <option key={doctor.id} value={doctor.id}>
+                                {doctor.full_name} - {doctor.specialization}
+                              </option>
+                            ))
+                          )}
                         </select>
+                        {unlinkedDoctors.length === 0 && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            All doctors already have linked accounts. Create a new doctor profile first.
+                          </p>
+                        )}
                       </div>
                       <div className="flex space-x-2">
-                        <Button onClick={handleLinkAccount}>Link Account</Button>
+                        <Button 
+                          onClick={handleLinkAccount}
+                          disabled={unlinkedDoctors.length === 0}
+                        >
+                          Link Account
+                        </Button>
                         <Button type="button" variant="outline" onClick={() => {
                           setIsLinkDialogOpen(false);
                           setLinkEmail('');
