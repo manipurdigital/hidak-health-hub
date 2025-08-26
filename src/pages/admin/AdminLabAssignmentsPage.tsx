@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, RefreshCw, Map, RotateCcw, ExternalLink, MessageCircle, UserCheck } from 'lucide-react';
+import { MapPin, Map, ExternalLink, UserCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { pickCenterForJob } from '@/services/serviceability';
+
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { GoogleMap, Polygon, useJsApiLoader } from '@react-google-maps/api';
@@ -180,45 +180,6 @@ export default function AdminLabAssignmentsPage() {
     }
   });
 
-  // Re-run auto assignment
-  const reassignMutation = useMutation({
-    mutationFn: async (booking: LabBooking) => {
-      const lat = booking.pickup_lat || 28.6139 + (Math.random() - 0.5) * 0.1;
-      const lng = booking.pickup_lng || 77.2090 + (Math.random() - 0.5) * 0.1;
-      
-      const assignment = await pickCenterForJob('lab', lat, lng);
-      
-      if (!assignment) {
-        throw new Error('No suitable center found');
-      }
-
-      const { error } = await supabase
-        .from('lab_bookings')
-        .update({ 
-          center_id: assignment.center_id,
-          assigned_at: new Date().toISOString()
-        })
-        .eq('id', booking.id);
-
-      if (error) throw error;
-      
-      return { ...assignment, booking_id: booking.id };
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Assignment Updated",
-        description: `Booking reassigned - ${data.reason.replace('_', ' ')}`
-      });
-      queryClient.invalidateQueries({ queryKey: ['admin-lab-bookings'] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Assignment Failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -297,14 +258,6 @@ export default function AdminLabAssignmentsPage() {
                           onClick={() => setSelectedBooking(booking)}
                         >
                           <MapPin className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => reassignMutation.mutate(booking)}
-                          disabled={reassignMutation.isPending}
-                        >
-                          <RotateCcw className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -443,18 +396,6 @@ export default function AdminLabAssignmentsPage() {
                         </SelectContent>
                       </Select>
                       
-                      <div className="text-center text-muted-foreground text-sm">or</div>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => reassignMutation.mutate(selectedBooking)}
-                        disabled={reassignMutation.isPending}
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        {reassignMutation.isPending ? 'Auto-assigning...' : 'Auto-assign based on location'}
-                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -462,23 +403,14 @@ export default function AdminLabAssignmentsPage() {
                         <UserCheck className="h-4 w-4 text-green-600" />
                         <span>Assigned to: {selectedBooking.center_name}</span>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => reassignMutation.mutate(selectedBooking)}
-                        disabled={reassignMutation.isPending}
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        {reassignMutation.isPending ? 'Re-assigning...' : 'Re-assign'}
-                      </Button>
                     </div>
                   )}
                   
-                  {(assignMutation.isPending || reassignMutation.isPending) && (
-                    <div className="text-sm text-muted-foreground">
-                      Processing assignment...
-                    </div>
-                  )}
+                    {assignMutation.isPending && (
+                      <div className="text-sm text-muted-foreground">
+                        Processing assignment...
+                      </div>
+                    )}
                 </div>
               </div>
             )}
