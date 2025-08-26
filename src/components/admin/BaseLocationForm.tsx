@@ -19,7 +19,7 @@ interface BaseLocationFormProps {
 export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocationFormProps) {
   const [formData, setFormData] = useState({
     name: '',
-    service_type: 'delivery' as 'delivery' | 'lab_collection',
+    service_type: 'delivery',
     geofence_id: '',
     base_lat: 0,
     base_lng: 0,
@@ -132,7 +132,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
             <Label>Service Type</Label>
             <Select
               value={formData.service_type}
-              onValueChange={(value: 'delivery' | 'lab_collection') => 
+              onValueChange={(value) => 
                 setFormData(prev => ({ ...prev, service_type: value }))
               }
             >

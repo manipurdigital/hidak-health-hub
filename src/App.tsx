@@ -1,64 +1,65 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
-import { Auth } from '@/pages/Auth';
-import { Home } from '@/pages/Home';
-import { Profile } from '@/pages/Profile';
-import { AdminGuard } from '@/guards/AdminGuard';
-import { AdminLayout } from '@/components/AdminLayout';
-import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
+import AuthPage from '@/pages/AuthPage';
+import Index from '@/pages/Index';
+import AccountPage from '@/pages/AccountPage';
+import { AdminGuard } from '@/components/auth/AdminGuard';
+import { AdminLayoutWrapper } from '@/components/AdminLayoutWrapper';
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
-import { AdminMedicinesPage } from '@/pages/admin/AdminMedicinesPage';
-import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage';
-import { AdminDoctorsPage } from '@/pages/admin/AdminDoctorsPage';
-import { AdminStoresPage } from '@/pages/admin/AdminStoresPage';
-import { AdminLabTestsPage } from '@/pages/admin/AdminLabTestsPage';
-import { AdminLabsPage } from '@/pages/admin/AdminLabsPage';
-import { AdminLabAssignmentsPage } from '@/pages/admin/AdminLabAssignmentsPage';
+import AdminMedicinesPage from '@/pages/admin/AdminMedicinesPage';
+import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
+import AdminDoctorsPage from '@/pages/admin/AdminDoctorsPage';
+import AdminStoresPage from '@/pages/admin/AdminStoresPage';
+import AdminLabTestsPage from '@/pages/admin/AdminLabTestsPage';
+import Labs from '@/pages/admin/Labs';
+import AdminLabAssignmentsPage from '@/pages/admin/AdminLabAssignmentsPage';
 import { AdminLabPayoutsPage } from '@/pages/admin/AdminLabPayoutsPage';
-import { AdminDeliveryPage } from '@/pages/admin/AdminDeliveryPage';
-import { AdminDeliveryAssignmentsPage } from '@/pages/admin/AdminDeliveryAssignmentsPage';
-import { AdminTrackingPage } from '@/pages/admin/AdminTrackingPage';
-import { AdminGeofencingPage } from '@/pages/admin/AdminGeofencingPage';
-import { AdminLocationsPage } from '@/pages/admin/AdminLocationsPage';
-import { AdminAnalyticsPage } from '@/pages/admin/AdminAnalyticsPage';
-import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
-import { AdminPerformancePage } from '@/pages/admin/AdminPerformancePage';
-import { AdminPaymentReconciliationPage } from '@/pages/admin/AdminPaymentReconciliationPage';
-import { AdminPartnerApplicationsPage } from '@/pages/admin/AdminPartnerApplicationsPage';
-import { AdminSecurityPage } from '@/pages/admin/AdminSecurityPage';
-import { AdminBackupRestorePage } from '@/pages/admin/AdminBackupRestorePage';
-import { AdminSchemaExportPage } from '@/pages/admin/AdminSchemaExportPage';
-import { AdminCodeExportPage } from '@/pages/admin/AdminCodeExportPage';
-import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+import AdminDeliveryPage from '@/pages/admin/AdminDeliveryPage';
+import AdminDeliveryAssignmentsPage from '@/pages/admin/AdminDeliveryAssignmentsPage';
+import AdminTrackingPage from '@/pages/admin/AdminTrackingPage';
+import AdminGeofencingPage from '@/pages/admin/AdminGeofencingPage';
+import AdminLocationsPage from '@/pages/admin/AdminLocationsPage';
+import { AdminAnalyticsDashboard } from '@/pages/admin/AdminAnalyticsDashboard';
+import AdminReportsPage from '@/pages/admin/AdminReportsPage';
+import AdminPerformancePage from '@/pages/admin/AdminPerformancePage';
+import AdminPaymentReconciliationPage from '@/pages/admin/AdminPaymentReconciliationPage';
+import AdminPartnerApplicationsPage from '@/pages/admin/AdminPartnerApplicationsPage';
+import AdminSecurityPage from '@/pages/admin/AdminSecurityPage';
+import AdminBackupRestorePage from '@/pages/admin/AdminBackupRestorePage';
+import AdminSchemaExportPage from '@/pages/admin/AdminSchemaExportPage';
+import AdminCodeExportPage from '@/pages/admin/AdminCodeExportPage';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
-import { ServiceabilityContextProvider } from '@/contexts/ServiceabilityContext';
+import { ServiceabilityProvider } from '@/contexts/ServiceabilityContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
 
 function App() {
   return (
     <Router>
-      <GoogleMapsProvider>
-        <ServiceabilityContextProvider>
-          <CartProvider>
-            <SubscriptionProvider>
-              <div className="min-h-screen bg-background">
-                <Toaster />
+      <AuthProvider>
+        <GoogleMapsProvider>
+          <ServiceabilityProvider>
+            <CartProvider>
+              <SubscriptionProvider>
+                <div className="min-h-screen bg-background">
+                  <Toaster />
                 <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={<Home />} />
-                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/" element={<Index />} />
+                  <Route path="/profile" element={<AccountPage />} />
 
                   {/* Admin Routes */}
                   <Route
                     path="/admin"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminDashboardPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -66,9 +67,9 @@ function App() {
                     path="/admin/users"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminUsersPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -76,9 +77,9 @@ function App() {
                     path="/admin/medicines"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminMedicinesPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -86,9 +87,9 @@ function App() {
                     path="/admin/categories"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminCategoriesPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -96,9 +97,9 @@ function App() {
                     path="/admin/doctors"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminDoctorsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -106,9 +107,9 @@ function App() {
                     path="/admin/stores"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminStoresPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -116,9 +117,9 @@ function App() {
                     path="/admin/lab-tests"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminLabTestsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -126,9 +127,9 @@ function App() {
                     path="/admin/labs"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
-                          <AdminLabsPage />
-                        </AdminLayout>
+                        <AdminLayoutWrapper>
+                          <Labs />
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -136,9 +137,9 @@ function App() {
                     path="/admin/lab-assignments"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminLabAssignmentsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -146,9 +147,9 @@ function App() {
                     path="/admin/lab-payouts"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminLabPayoutsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -156,9 +157,9 @@ function App() {
                     path="/admin/delivery"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminDeliveryPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -166,9 +167,9 @@ function App() {
                     path="/admin/delivery-assignments"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminDeliveryAssignmentsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -176,9 +177,9 @@ function App() {
                     path="/admin/tracking"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminTrackingPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -186,9 +187,9 @@ function App() {
                     path="/admin/geofencing"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminGeofencingPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -196,9 +197,9 @@ function App() {
                     path="/admin/locations"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminLocationsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -206,9 +207,9 @@ function App() {
                     path="/admin/base-locations" 
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminBaseLocationsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     } 
                   />
@@ -216,9 +217,9 @@ function App() {
                     path="/admin/analytics"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
-                          <AdminAnalyticsPage />
-                        </AdminLayout>
+                        <AdminLayoutWrapper>
+                          <AdminAnalyticsDashboard />
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -226,9 +227,9 @@ function App() {
                     path="/admin/reports"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminReportsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -236,9 +237,9 @@ function App() {
                     path="/admin/performance"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminPerformancePage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -246,9 +247,9 @@ function App() {
                     path="/admin/payment-reconciliation"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminPaymentReconciliationPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -256,9 +257,9 @@ function App() {
                     path="/admin/partner-applications"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminPartnerApplicationsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -266,9 +267,9 @@ function App() {
                     path="/admin/security"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminSecurityPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -276,9 +277,9 @@ function App() {
                     path="/admin/backup-restore"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminBackupRestorePage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -286,9 +287,9 @@ function App() {
                     path="/admin/schema-export"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminSchemaExportPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
@@ -296,29 +297,20 @@ function App() {
                     path="/admin/code-export"
                     element={
                       <AdminGuard>
-                        <AdminLayout>
+                        <AdminLayoutWrapper>
                           <AdminCodeExportPage />
-                        </AdminLayout>
-                      </AdminGuard>
-                    }
-                  />
-                  <Route
-                    path="/admin/settings"
-                    element={
-                      <AdminGuard>
-                        <AdminLayout>
-                          <AdminSettingsPage />
-                        </AdminLayout>
+                        </AdminLayoutWrapper>
                       </AdminGuard>
                     }
                   />
                 </Routes>
               </div>
-            </SubscriptionProvider>
-          </CartProvider>
-        </ServiceabilityContextProvider>
-      </GoogleMapsProvider>
-    </Router>
+                </SubscriptionProvider>
+              </CartProvider>
+            </ServiceabilityProvider>
+          </GoogleMapsProvider>
+        </AuthProvider>
+      </Router>
   );
 }
 

@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface BaseLocation {
   id: string;
   name: string;
-  service_type: 'delivery' | 'lab_collection';
+  service_type: string;
   geofence_id?: string;
   base_lat: number;
   base_lng: number;
@@ -21,7 +21,7 @@ export interface BaseLocation {
 
 export interface CreateBaseLocationData {
   name: string;
-  service_type: 'delivery' | 'lab_collection';
+  service_type: string;
   geofence_id?: string;
   base_lat: number;
   base_lng: number;
@@ -152,7 +152,7 @@ export const useTestFeeCalculation = () => {
     mutationFn: async ({ lat, lng, serviceType }: { 
       lat: number; 
       lng: number; 
-      serviceType: 'delivery' | 'lab_collection' 
+      serviceType: string 
     }) => {
       const { data, error } = await supabase.rpc('calc_delivery_fee_from_base', {
         p_service: serviceType,
