@@ -6,9 +6,20 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, FileText, Download, Calendar, ArrowLeft } from 'lucide-react';
+import { Upload, FileText, Download, Calendar, ArrowLeft, Edit2, Trash2, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface LabReport {
   id: string;
@@ -26,6 +37,9 @@ const ReportsPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [reportName, setReportName] = useState('');
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  const [editingReportName, setEditingReportName] = useState('');
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -221,6 +235,109 @@ const ReportsPage = () => {
     }
   };
 
+  const handleEdit = (report: LabReport) => {
+    setEditingReportId(report.id);
+    setEditingReportName(report.report_name);
+  };
+
+  const handleSaveEdit = async (reportId: string) => {
+    if (!editingReportName.trim()) {
+      toast({
+        title: "Error",
+        description: "Report name cannot be empty",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('lab_reports')
+        .update({ report_name: editingReportName.trim() })
+        .eq('id', reportId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setReports(reports.map(report => 
+        report.id === reportId 
+          ? { ...report, report_name: editingReportName.trim() }
+          : report
+      ));
+
+      setEditingReportId(null);
+      setEditingReportName('');
+
+      toast({
+        title: "Success",
+        description: "Report name updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update report name",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReportId(null);
+    setEditingReportName('');
+  };
+
+  const handleDelete = async (report: LabReport) => {
+    setDeletingReportId(report.id);
+    
+    try {
+      // Extract file path from URL for storage deletion
+      const urlParts = report.report_url.split('/');
+      const bucketIndex = urlParts.findIndex(part => part === 'lab-reports');
+      
+      if (bucketIndex !== -1) {
+        const filePath = urlParts.slice(bucketIndex + 1).join('/');
+        
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('lab-reports')
+          .remove([filePath]);
+
+        if (storageError) {
+          console.warn('Error deleting from storage:', storageError);
+          // Continue with database deletion even if storage deletion fails
+        }
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('lab_reports')
+        .delete()
+        .eq('id', report.id)
+        .eq('user_id', user?.id);
+
+      if (dbError) throw dbError;
+
+      // Update local state
+      setReports(reports.filter(r => r.id !== report.id));
+
+      toast({
+        title: "Success",
+        description: "Report deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete report",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingReportId(null);
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -349,7 +466,32 @@ const ReportsPage = () => {
                       <div key={report.id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <h4 className="font-medium">{report.report_name}</h4>
+                            {editingReportId === report.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editingReportName}
+                                  onChange={(e) => setEditingReportName(e.target.value)}
+                                  className="font-medium"
+                                  autoFocus
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleSaveEdit(report.id)}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={handleCancelEdit}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <h4 className="font-medium">{report.report_name}</h4>
+                            )}
                             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
@@ -358,14 +500,52 @@ const ReportsPage = () => {
                               <span>{formatFileSize(report.file_size)}</span>
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownload(report)}
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(report)}
+                              disabled={editingReportId === report.id}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={deletingReportId === report.id}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Report</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{report.report_name}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(report)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownload(report)}
+                            >
+                              <Download className="w-4 h-4 mr-1" />
+                              Download
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
