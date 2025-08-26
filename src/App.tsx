@@ -17,6 +17,7 @@ import { CenterLayout } from '@/components/CenterLayout';
 
 // Guard components
 import { AdminGuard } from '@/components/auth/AdminGuard';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { CenterGuard } from '@/components/CenterGuard';
 
 // Pages that actually exist
@@ -74,12 +75,14 @@ function App() {
                         {/* Public Routes */}
                         <Route path="/" element={<Index />} />
                         <Route path="/auth" element={<AuthPage />} />
-                        <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/lab-tests" element={<LabTestsPage />} />
                         <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
                         <Route path="/medicines" element={<MedicinesPage />} />
                         <Route path="/medicines/:id" element={<MedicineDetailPage />} />
                         <Route path="/checkout" element={<CheckoutPage />} />
+                        
+                        {/* Protected Routes */}
+                        <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
 
                         {/* Center Routes */}
                         <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
