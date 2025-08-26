@@ -58,6 +58,7 @@ import AdminGeofencingPage from "./pages/admin/AdminGeofencingPage";
 import AdminLocationsPage from "./pages/admin/AdminLocationsPage";
 import AdminLabAssignmentsPage from "./pages/admin/AdminLabAssignmentsPage";
 import AdminDeliveryAssignmentsPage from "./pages/admin/AdminDeliveryAssignmentsPage";
+import AdminDeliveryPlaygroundPage from "./pages/admin/AdminDeliveryPlaygroundPage";
 import AccountPage from "./pages/AccountPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import SearchResults from "./pages/SearchResults";
@@ -139,6 +140,7 @@ const App = () => (
                 <Route path="lab-tests" element={<AdminLabTestsPage />} />
                 <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
                 <Route path="delivery-assignments" element={<AdminDeliveryAssignmentsPage />} />
+                <Route path="delivery-playground" element={<AdminDeliveryPlaygroundPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="doctors" element={<AdminDoctorsPage />} />
                 <Route path="settings/security" element={<AdminSecurityPage />} />
