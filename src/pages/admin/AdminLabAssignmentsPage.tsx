@@ -74,6 +74,8 @@ const center = {
   lng: 77.2090
 };
 
+const libraries: ["places", "geometry", "drawing"] = ["places", "geometry", "drawing"];
+
 export default function AdminLabAssignmentsPage() {
   const [selectedBooking, setSelectedBooking] = useState<LabBooking | null>(null);
   const [showGeofenceOverlay, setShowGeofenceOverlay] = useState(false);
@@ -85,7 +87,7 @@ export default function AdminLabAssignmentsPage() {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: ["places", "geometry", "drawing"]
+    libraries
   });
 
   // Fetch lab bookings
@@ -211,7 +213,7 @@ export default function AdminLabAssignmentsPage() {
                            booking.test_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            booking.center_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesStatus = !statusFilter || booking.status === statusFilter;
+      const matchesStatus = !statusFilter || statusFilter === 'all' || booking.status === statusFilter;
       
       const matchesDate = !dateFilter || 
                          new Date(booking.booking_date).toDateString() === new Date(dateFilter).toDateString();
@@ -417,7 +419,7 @@ export default function AdminLabAssignmentsPage() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="assigned">Assigned</SelectItem>
                   <SelectItem value="en_route">En Route</SelectItem>
