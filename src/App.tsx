@@ -68,6 +68,7 @@ import AdminDoctorsPage from '@/pages/admin/AdminDoctorsPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
 import AdminReportsPage from '@/pages/admin/AdminReportsPage';
 import AdminDeliveryPage from '@/pages/admin/AdminDeliveryPage';
+import AdminStoresPage from '@/pages/admin/AdminStoresPage';
 
 // Role dashboards
 import { DoctorDashboardPage } from '@/pages/doctor/DoctorDashboardPage';
@@ -154,6 +155,7 @@ function App() {
           <Route path="lab-payouts" element={<AdminLabPayoutsPage />} />
           <Route path="doctors" element={<AdminDoctorsPage />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="stores" element={<AdminStoresPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="delivery" element={<AdminDeliveryPage />} />
         </Route>
