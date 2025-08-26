@@ -444,6 +444,7 @@ export type Database = {
       delivery_base_locations: {
         Row: {
           base_fare: number
+          base_km: number
           base_lat: number
           base_lng: number
           created_at: string
@@ -459,6 +460,7 @@ export type Database = {
         }
         Insert: {
           base_fare?: number
+          base_km?: number
           base_lat: number
           base_lng: number
           created_at?: string
@@ -474,6 +476,7 @@ export type Database = {
         }
         Update: {
           base_fare?: number
+          base_km?: number
           base_lat?: number
           base_lng?: number
           created_at?: string
