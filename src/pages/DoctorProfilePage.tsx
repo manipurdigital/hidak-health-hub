@@ -266,7 +266,7 @@ function DoctorProfile({ doctor, onBookConsultation, formatPrice }: any) {
                 <div className="flex items-center gap-2">
                   <Languages className="w-4 h-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
-                    {doctor.languages.join(', ')}
+                    {doctor.languages ? doctor.languages.join(', ') : 'Not specified'}
                   </span>
                 </div>
               </div>

@@ -281,7 +281,7 @@ const ConsultationsSection = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-primary" />
-                    <span>{doctor.languages.join(', ')}</span>
+                    <span>{doctor.languages ? doctor.languages.join(', ') : 'Not specified'}</span>
                   </div>
                 </div>
 
