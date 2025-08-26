@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,7 @@ const CheckoutPage = () => {
     postal_code: '',
     country: 'India'
   });
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -234,7 +236,8 @@ const CheckoutPage = () => {
         prescription_required: requiresPrescription,
         notes: notes || null,
         status: 'pending',
-        payment_status: 'pending'
+        payment_status: paymentMethod === 'cod' ? 'pending' : 'pending',
+        payment_method: paymentMethod
       };
 
       // No need to add center assignment here - it will be handled automatically by the new geofencing system
@@ -264,17 +267,21 @@ const CheckoutPage = () => {
 
       toast({
         title: "Order Placed Successfully!",
-        description: `Order ${order.order_number} has been created. Redirecting to payment...`,
+        description: `Order ${order.order_number} has been created. ${paymentMethod === 'cod' ? 'You can pay when the order is delivered.' : 'Redirecting to payment...'}`,
       });
 
       // Clear cart
       clearCart();
 
-      // Here you would integrate with payment gateway
-      // For now, we'll simulate a successful order
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+      if (paymentMethod === 'cod') {
+        // For COD, redirect to success page directly
+        navigate(`/order/success/${order.id}`);
+      } else {
+        // For online payment, handle payment flow (if needed)
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      }
 
     } catch (error) {
       console.error('Error placing order:', error);
@@ -310,6 +317,12 @@ const CheckoutPage = () => {
     }
 
     if (!validateForm()) return;
+    
+    if (paymentMethod === 'cod') {
+      // For COD, use the existing handlePlaceOrder logic
+      await handlePlaceOrder();
+      return;
+    }
     
     setLoading(true);
     
@@ -650,16 +663,46 @@ const CheckoutPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <RadioGroup 
+                  value={paymentMethod} 
+                  onValueChange={(value: 'online' | 'cod') => setPaymentMethod(value)}
+                  className="space-y-4"
+                >
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="online" id="online" />
+                    <Label htmlFor="online" className="flex-1 cursor-pointer">
+                      <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="font-medium">Online Payment</div>
+                        <p className="text-sm text-muted-foreground">
+                          Pay securely using UPI, Cards, Net Banking
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value="cod" id="cod" />
+                    <Label htmlFor="cod" className="flex-1 cursor-pointer">
+                      <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="font-medium">Cash on Delivery</div>
+                        <p className="text-sm text-muted-foreground">
+                          Pay when the order is delivered to your address
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+
                 <Button 
                   className="w-full"
                   onClick={handlePayNow}
                   disabled={loading}
                 >
-                  {loading ? "Processing..." : "Pay Now"}
+                  {loading ? "Processing..." : paymentMethod === 'cod' ? "Place Order" : "Pay Now"}
                 </Button>
                 
                 <div className="text-xs text-muted-foreground text-center">
-                  <p>🔒 Your payment information is secure and encrypted</p>
+                  <p>🔒 Your {paymentMethod === 'cod' ? 'order information is' : 'payment information is'} secure and encrypted</p>
                 </div>
               </CardContent>
             </Card>
