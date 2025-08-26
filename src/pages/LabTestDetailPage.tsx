@@ -10,11 +10,12 @@ import { useLabTest } from '@/hooks/lab-hooks';
 import { useAddresses } from '@/hooks/medicine-hooks';
 import { SlotPicker } from '@/components/SlotPicker';
 import { LabBookingReview } from '@/components/LabBookingReview';
+import { LocationCapture } from '@/components/LocationCapture';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
 import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
 
-type BookingStep = 'details' | 'slot' | 'review';
+type BookingStep = 'details' | 'location' | 'slot' | 'review';
 
 export function LabTestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,11 @@ export function LabTestDetailPage() {
     notes?: string;
   } | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<string>('');
+  const [locationData, setLocationData] = useState<{
+    lat: number;
+    lng: number;
+    address: any;
+  } | null>(null);
 
   const { data: labTest, isLoading, error } = useLabTest(id!);
   const { data: addresses = [] } = useAddresses();
@@ -51,6 +57,11 @@ export function LabTestDetailPage() {
   }
 
   const handleBookNow = () => {
+    setCurrentStep('location');
+  };
+
+  const handleLocationCaptured = (location: { lat: number; lng: number; address: any }) => {
+    setLocationData(location);
     setCurrentStep('slot');
   };
 
@@ -63,9 +74,15 @@ export function LabTestDetailPage() {
     setCurrentStep('slot');
   };
 
+  const handleBackToLocation = () => {
+    setCurrentStep('location');
+    setSelectedSlot(null);
+  };
+
   const handleBackToDetails = () => {
     setCurrentStep('details');
     setSelectedSlot(null);
+    setLocationData(null);
   };
 
   return (
@@ -81,8 +98,13 @@ export function LabTestDetailPage() {
           />
         )}
         <BackButton 
-          onClick={() => currentStep === 'details' ? navigate(-1) : handleBackToDetails()}
-          label={currentStep === 'details' ? 'Back' : 'Back to Details'}
+          onClick={() => {
+            if (currentStep === 'details') navigate(-1);
+            else if (currentStep === 'location') handleBackToDetails();
+            else if (currentStep === 'slot') handleBackToLocation();
+            else if (currentStep === 'review') handleBackToSlots();
+          }}
+          label={currentStep === 'details' ? 'Back' : `Back to ${currentStep === 'location' ? 'Details' : currentStep === 'slot' ? 'Location' : 'Slots'}`}
         />
 
         {/* Progress Steps */}
@@ -95,6 +117,15 @@ export function LabTestDetailPage() {
                 <FileText className="w-4 h-4" />
               </div>
               <span className="ml-2 text-sm">Details</span>
+            </div>
+            <div className="w-8 h-px bg-muted" />
+            <div className={`flex items-center ${currentStep === 'location' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                currentStep === 'location' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+              }`}>
+                <MapPin className="w-4 h-4" />
+              </div>
+              <span className="ml-2 text-sm">Location</span>
             </div>
             <div className="w-8 h-px bg-muted" />
             <div className={`flex items-center ${currentStep === 'slot' ? 'text-primary' : 'text-muted-foreground'}`}>
@@ -124,6 +155,13 @@ export function LabTestDetailPage() {
           />
         )}
 
+        {currentStep === 'location' && (
+          <LocationCapture
+            onLocationCapture={handleLocationCaptured}
+            className="max-w-2xl mx-auto"
+          />
+        )}
+
         {currentStep === 'slot' && (
           <SlotPicker
             labTest={labTest}
@@ -131,16 +169,17 @@ export function LabTestDetailPage() {
             selectedAddress={selectedAddress}
             onAddressChange={setSelectedAddress}
             onSlotSelected={handleSlotSelected}
-            onBack={handleBackToDetails}
+            onBack={handleBackToLocation}
           />
         )}
 
-        {currentStep === 'review' && selectedSlot && (
+        {currentStep === 'review' && selectedSlot && locationData && (
           <LabBookingReview
             labTest={labTest}
             slot={selectedSlot}
             selectedAddress={selectedAddress}
             addresses={addresses}
+            locationData={locationData}
             onBack={handleBackToSlots}
           />
         )}

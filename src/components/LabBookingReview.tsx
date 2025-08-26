@@ -18,6 +18,7 @@ interface LabBookingReviewProps {
   slot: { date: string; time: string; datetime: string; notes?: string };
   selectedAddress: string;
   addresses: any[];
+  locationData: { lat: number; lng: number; address: any };
   onBack: () => void;
 }
 
@@ -26,6 +27,7 @@ export function LabBookingReview({
   slot, 
   selectedAddress, 
   addresses, 
+  locationData,
   onBack 
 }: LabBookingReviewProps) {
   const navigate = useNavigate();
@@ -114,17 +116,18 @@ const { toast } = useToast();
       const timeWindow = formatTime(slot.time);
       
       const bookingData: any = {
-        test_id: labTest.id,
-        booking_date: slot.date,
-        time_slot: slot.time,
-        pickup_window_start: timeWindow.start,
-        pickup_window_end: timeWindow.end,
-        patient_name: selectedAddr.name,
-        patient_phone: selectedAddr.phone,
-        patient_email: '', // Will be filled from user profile on backend
-        special_instructions: slot.notes || (labTest.preparation_required 
+        testId: labTest.id,
+        bookingDate: slot.date,
+        timeSlot: slot.time,
+        patientName: locationData.address.name || selectedAddr?.name || '',
+        patientPhone: locationData.address.phone || selectedAddr?.phone || '',
+        patientEmail: '', // Will be filled from user profile on backend
+        specialInstructions: slot.notes || (labTest.preparation_required 
           ? 'Patient requires fasting as per test requirements.' 
           : undefined),
+        pickupLat: locationData.lat,
+        pickupLng: locationData.lng,
+        pickupAddress: locationData.address
       };
 
       // Add assigned center if available

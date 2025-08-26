@@ -5,12 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MapPin, RefreshCw, Map, RotateCcw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MapPin, RefreshCw, Map, RotateCcw, ExternalLink, MessageCircle, UserCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { pickCenterForJob } from '@/services/serviceability';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { GoogleMap, Polygon, useJsApiLoader } from '@react-google-maps/api';
+import { DeliveryMap } from '@/components/delivery/DeliveryMap';
+import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
+import { LatLngDisplay } from '@/components/LatLngDisplay';
 
 interface LabBooking {
   id: string;
@@ -22,6 +26,12 @@ interface LabBooking {
   patient_phone: string;
   center_name?: string;
   assignment_reason?: string;
+  pickup_lat?: number;
+  pickup_lng?: number;
+  pickup_address?: any;
+  time_slot?: string;
+  test_id?: string;
+  diagnostic_centers?: { name: string } | null;
 }
 
 interface Geofence {
@@ -69,6 +79,11 @@ export default function AdminLabAssignmentsPage() {
           center_id,
           total_amount,
           patient_phone,
+          time_slot,
+          pickup_lat,
+          pickup_lng,
+          pickup_address,
+          test_id,
           diagnostic_centers(name)
         `)
         .order('booking_date', { ascending: false });
@@ -76,9 +91,36 @@ export default function AdminLabAssignmentsPage() {
       if (error) throw error;
       
       return data.map(booking => ({
-        ...booking,
-        center_name: booking.diagnostic_centers?.name
+        id: booking.id,
+        patient_name: booking.patient_name,
+        booking_date: booking.booking_date,
+        status: booking.status,
+        center_id: booking.center_id,
+        total_amount: booking.total_amount,
+        patient_phone: booking.patient_phone,
+        time_slot: booking.time_slot,
+        pickup_lat: booking.pickup_lat,
+        pickup_lng: booking.pickup_lng,
+        pickup_address: booking.pickup_address,
+        center_name: booking.diagnostic_centers?.name,
+        test_id: booking.test_id,
+        diagnostic_centers: booking.diagnostic_centers
       }));
+    }
+  });
+
+  // Fetch diagnostic centers for assignment
+  const { data: diagnosticCenters = [] } = useQuery({
+    queryKey: ['diagnostic-centers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('diagnostic_centers')
+        .select('id, name, is_active')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      return data;
     }
   });
 
@@ -110,13 +152,39 @@ export default function AdminLabAssignmentsPage() {
     enabled: showGeofenceOverlay
   });
 
+  // Manual assignment mutation
+  const assignMutation = useMutation({
+    mutationFn: async ({ bookingId, centerId }: { bookingId: string; centerId: string }) => {
+      const { data, error } = await supabase.rpc('assign_lab_booking_admin', {
+        p_booking_id: bookingId,
+        p_center_id: centerId
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Assignment Successful",
+        description: "Lab test has been assigned to the selected center"
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-lab-bookings'] });
+      setSelectedBooking(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Assignment Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   // Re-run auto assignment
   const reassignMutation = useMutation({
     mutationFn: async (booking: LabBooking) => {
-      // For demo purposes, using a default location
-      // In real implementation, you'd get the actual address coordinates
-      const lat = 28.6139 + (Math.random() - 0.5) * 0.1;
-      const lng = 77.2090 + (Math.random() - 0.5) * 0.1;
+      const lat = booking.pickup_lat || 28.6139 + (Math.random() - 0.5) * 0.1;
+      const lng = booking.pickup_lng || 77.2090 + (Math.random() - 0.5) * 0.1;
       
       const assignment = await pickCenterForJob('lab', lat, lng);
       
@@ -257,21 +325,146 @@ export default function AdminLabAssignmentsPage() {
           </CardHeader>
           <CardContent>
             {selectedBooking && (
-              <div className="mb-4 p-3 bg-muted rounded-lg">
-                <h3 className="font-medium">{selectedBooking.patient_name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Assignment: {selectedBooking.center_name ? "Inside geofence" : "Fallback"}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => reassignMutation.mutate(selectedBooking)}
-                  disabled={reassignMutation.isPending}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Re-run auto-assign
-                </Button>
+              <div className="mb-4 p-4 bg-muted rounded-lg space-y-4">
+                <div>
+                  <h3 className="font-medium text-lg">{selectedBooking.patient_name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Test ID: {selectedBooking.test_id || 'Lab Test'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Date: {new Date(selectedBooking.booking_date).toLocaleDateString()}
+                    {selectedBooking.time_slot && ` | ${selectedBooking.time_slot}`}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Status: {selectedBooking.center_name ? `Assigned to ${selectedBooking.center_name}` : "Unassigned"}
+                  </p>
+                </div>
+
+                {/* Location Information */}
+                {selectedBooking.pickup_lat && selectedBooking.pickup_lng && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Pickup Location</h4>
+                    
+                    <div className="text-xs text-muted-foreground">
+                      Coordinates: {selectedBooking.pickup_lat?.toFixed(6)}, {selectedBooking.pickup_lng?.toFixed(6)}
+                    </div>
+                    
+                    {selectedBooking.pickup_address && (
+                      <div className="text-sm text-muted-foreground">
+                        {(() => {
+                          try {
+                            const addr = typeof selectedBooking.pickup_address === 'string' 
+                              ? JSON.parse(selectedBooking.pickup_address) 
+                              : selectedBooking.pickup_address;
+                            return [
+                              addr.address_line_1,
+                              addr.address_line_2,
+                              addr.city,
+                              addr.state,
+                              addr.pincode
+                            ].filter(Boolean).join(', ');
+                          } catch {
+                            return 'Address information available';
+                          }
+                        })()}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = `https://maps.google.com/?q=${selectedBooking.pickup_lat},${selectedBooking.pickup_lng}`;
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open in Maps
+                      </Button>
+                      
+                      <WhatsAppShareButton
+                        bookingData={{
+                          id: selectedBooking.id,
+                          patient_name: selectedBooking.patient_name,
+                          patient_phone: selectedBooking.patient_phone,
+                          booking_date: selectedBooking.booking_date,
+                          time_slot: selectedBooking.time_slot || '',
+                          test_name: selectedBooking.test_id
+                        }}
+                        pickupLocation={{
+                          lat: selectedBooking.pickup_lat,
+                          lng: selectedBooking.pickup_lng,
+                          address: selectedBooking.pickup_address
+                        }}
+                        size="sm"
+                      />
+                    </div>
+
+                    <DeliveryMap
+                      lat={selectedBooking.pickup_lat}
+                      lng={selectedBooking.pickup_lng}
+                      address={selectedBooking.pickup_address}
+                      className="h-32"
+                    />
+                  </div>
+                )}
+
+                {/* Assignment Section */}
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Assignment</h4>
+                  
+                  {!selectedBooking.center_id ? (
+                    <div className="space-y-2">
+                      <Select onValueChange={(centerId) => {
+                        if (centerId) {
+                          assignMutation.mutate({
+                            bookingId: selectedBooking.id,
+                            centerId
+                          });
+                        }
+                      }}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select diagnostic center to assign" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {diagnosticCenters.map((center) => (
+                            <SelectItem key={center.id} value={center.id}>
+                              {center.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => reassignMutation.mutate(selectedBooking)}
+                        disabled={reassignMutation.isPending}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Auto-assign based on location
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <UserCheck className="h-4 w-4 text-green-600" />
+                        <span>Assigned to: {selectedBooking.center_name}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => reassignMutation.mutate(selectedBooking)}
+                        disabled={reassignMutation.isPending}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Re-assign
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

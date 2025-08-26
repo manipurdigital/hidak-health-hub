@@ -46,11 +46,21 @@ serve(async (req) => {
       patientName, 
       patientPhone, 
       patientEmail, 
-      specialInstructions 
+      specialInstructions,
+      pickupLat,
+      pickupLng,
+      pickupAddress
     } = body;
 
     if (!testId || !bookingDate || !timeSlot || !patientName || !patientPhone) {
       throw new Error("Missing required booking information");
+    }
+
+    // Validate pickup coordinates if provided
+    if (pickupLat !== undefined && pickupLng !== undefined) {
+      if (pickupLat < -90 || pickupLat > 90 || pickupLng < -180 || pickupLng > 180) {
+        throw new Error("Invalid GPS coordinates");
+      }
     }
 
     logStep("Request validated", { testId, bookingDate, timeSlot });
@@ -106,7 +116,10 @@ serve(async (req) => {
         special_instructions: specialInstructions || null,
         total_amount: test.price,
         status: 'pending',
-        payment_status: 'pending'
+        payment_status: 'pending',
+        pickup_lat: pickupLat || null,
+        pickup_lng: pickupLng || null,
+        pickup_address: pickupAddress || null
       })
       .select()
       .single();

@@ -1100,6 +1100,9 @@ export type Database = {
           patient_name: string
           patient_phone: string
           payment_status: string | null
+          pickup_address: Json | null
+          pickup_lat: number | null
+          pickup_lng: number | null
           pickup_window_end: string | null
           pickup_window_start: string | null
           razorpay_order_id: string | null
@@ -1133,6 +1136,9 @@ export type Database = {
           patient_name: string
           patient_phone: string
           payment_status?: string | null
+          pickup_address?: Json | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           pickup_window_end?: string | null
           pickup_window_start?: string | null
           razorpay_order_id?: string | null
@@ -1166,6 +1172,9 @@ export type Database = {
           patient_name?: string
           patient_phone?: string
           payment_status?: string | null
+          pickup_address?: Json | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           pickup_window_end?: string | null
           pickup_window_start?: string | null
           razorpay_order_id?: string | null
@@ -2816,6 +2825,10 @@ export type Database = {
       apply_rls_fixes: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      assign_lab_booking_admin: {
+        Args: { p_booking_id: string; p_center_id: string; p_notes?: string }
+        Returns: Json
       }
       audit_rls: {
         Args: Record<PropertyKey, never>
