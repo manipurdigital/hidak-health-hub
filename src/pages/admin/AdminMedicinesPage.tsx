@@ -249,12 +249,37 @@ const AdminMedicinesPage = () => {
     if (!confirm('Are you sure you want to delete this medicine?')) return;
 
     try {
+      // First check if this medicine is referenced in any orders
+      const { data: orderItems, error: checkError } = await supabase
+        .from('order_items')
+        .select('id')
+        .eq('medicine_id', medicineId)
+        .limit(1);
+
+      if (checkError) {
+        console.error('Error checking order references:', checkError);
+        throw new Error('Failed to check medicine usage');
+      }
+
+      if (orderItems && orderItems.length > 0) {
+        toast({
+          title: "Cannot Delete Medicine",
+          description: "This medicine has been used in orders and cannot be deleted. You can deactivate it instead.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Proceed with deletion if no order references exist
       const { error } = await supabase
         .from('medicines')
         .delete()
         .eq('id', medicineId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -263,9 +288,10 @@ const AdminMedicinesPage = () => {
 
       fetchMedicines();
     } catch (error) {
+      console.error('Delete medicine error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete medicine",
+        description: error instanceof Error ? error.message : "Failed to delete medicine",
         variant: "destructive"
       });
     }
