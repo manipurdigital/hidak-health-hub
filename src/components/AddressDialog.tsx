@@ -142,13 +142,14 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] sm:max-w-md max-h-[85vh] overflow-hidden p-0">
+        <DialogHeader className="sticky top-0 z-10 bg-background border-b px-6 pt-6 pb-4">
           <DialogTitle>{editingAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="overflow-y-auto flex-1">
+          <form id="address-form" onSubmit={handleSubmit} className="px-6 pb-6 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="type">Address Type</Label>
               <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
@@ -222,7 +223,7 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="city">City *</Label>
               <Input
@@ -244,7 +245,7 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="postal_code">Postal Code *</Label>
               <Input
@@ -306,12 +307,17 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
             </div>
           )}
 
-          <div className="flex space-x-2 pt-4">
+          </form>
+        </div>
+        
+        <div className="sticky bottom-0 bg-background border-t px-6 py-4">
+          <div className="flex space-x-2">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
             <Button 
               type="submit" 
+              form="address-form"
               disabled={createAddress.isPending || updateAddress.isPending || serviceabilityLoading || inDeliveryArea === false}
               className="flex-1"
             >
@@ -322,7 +328,7 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
                   : "Save Address"}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
