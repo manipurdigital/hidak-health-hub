@@ -87,7 +87,7 @@ export function LabTestDetailPage() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8 max-w-6xl">
         {currentStep === 'details' && (
           <Breadcrumb 
             items={[
@@ -108,81 +108,84 @@ export function LabTestDetailPage() {
         />
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center mb-6 sm:mb-8 overflow-x-auto">
+          <div className="flex items-center space-x-2 sm:space-x-4 min-w-max px-4">
             <div className={`flex items-center ${currentStep === 'details' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
                 currentStep === 'details' ? 'bg-primary text-primary-foreground' : 'bg-muted'
               }`}>
-                <FileText className="w-4 h-4" />
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <span className="ml-2 text-sm">Details</span>
+              <span className="ml-1 sm:ml-2 text-xs sm:text-sm">Details</span>
             </div>
-            <div className="w-8 h-px bg-muted" />
+            <div className="w-4 sm:w-8 h-px bg-muted" />
             <div className={`flex items-center ${currentStep === 'location' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
                 currentStep === 'location' ? 'bg-primary text-primary-foreground' : 'bg-muted'
               }`}>
-                <MapPin className="w-4 h-4" />
+                <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <span className="ml-2 text-sm">Location</span>
+              <span className="ml-1 sm:ml-2 text-xs sm:text-sm">Location</span>
             </div>
-            <div className="w-8 h-px bg-muted" />
+            <div className="w-4 sm:w-8 h-px bg-muted" />
             <div className={`flex items-center ${currentStep === 'slot' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
                 currentStep === 'slot' ? 'bg-primary text-primary-foreground' : 'bg-muted'
               }`}>
-                <Calendar className="w-4 h-4" />
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <span className="ml-2 text-sm">Slot</span>
+              <span className="ml-1 sm:ml-2 text-xs sm:text-sm">Slot</span>
             </div>
-            <div className="w-8 h-px bg-muted" />
+            <div className="w-4 sm:w-8 h-px bg-muted" />
             <div className={`flex items-center ${currentStep === 'review' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
                 currentStep === 'review' ? 'bg-primary text-primary-foreground' : 'bg-muted'
               }`}>
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <span className="ml-2 text-sm">Review</span>
+              <span className="ml-1 sm:ml-2 text-xs sm:text-sm">Review</span>
             </div>
           </div>
         </div>
 
-        {currentStep === 'details' && (
-          <LabTestDetails 
-            labTest={labTest} 
-            onBookNow={handleBookNow}
-          />
-        )}
+        <div className="max-w-4xl mx-auto">
+          {currentStep === 'details' && (
+            <LabTestDetails 
+              labTest={labTest} 
+              onBookNow={handleBookNow}
+            />
+          )}
 
-        {currentStep === 'location' && (
-          <LocationCapture
-            onLocationCapture={handleLocationCaptured}
-            className="max-w-2xl mx-auto"
-          />
-        )}
+          {currentStep === 'location' && (
+            <div className="w-full">
+              <LocationCapture
+                onLocationCapture={handleLocationCaptured}
+              />
+            </div>
+          )}
 
-        {currentStep === 'slot' && (
-          <SlotPicker
-            labTest={labTest}
-            addresses={addresses}
-            selectedAddress={selectedAddress}
-            onAddressChange={setSelectedAddress}
-            onSlotSelected={handleSlotSelected}
-            onBack={handleBackToLocation}
-          />
-        )}
+          {currentStep === 'slot' && (
+            <SlotPicker
+              labTest={labTest}
+              addresses={addresses}
+              selectedAddress={selectedAddress}
+              onAddressChange={setSelectedAddress}
+              onSlotSelected={handleSlotSelected}
+              onBack={handleBackToLocation}
+            />
+          )}
 
-        {currentStep === 'review' && selectedSlot && locationData && (
-          <LabBookingReview
-            labTest={labTest}
-            slot={selectedSlot}
-            selectedAddress={selectedAddress}
-            addresses={addresses}
-            locationData={locationData}
-            onBack={handleBackToSlots}
-          />
-        )}
+          {currentStep === 'review' && selectedSlot && locationData && (
+            <LabBookingReview
+              labTest={labTest}
+              slot={selectedSlot}
+              selectedAddress={selectedAddress}
+              addresses={addresses}
+              locationData={locationData}
+              onBack={handleBackToSlots}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
