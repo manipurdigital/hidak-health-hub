@@ -19,7 +19,6 @@ import {
   Edit,
   Trash2,
   Stethoscope,
-  Star,
   UserPlus,
   Link,
   KeyRound,
@@ -54,8 +53,11 @@ const AdminDoctorsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [linkEmail, setLinkEmail] = useState('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
 
   // Check if user is admin
   if (userRole !== 'admin') {
@@ -100,7 +102,7 @@ const AdminDoctorsPage = () => {
   const handleAddDoctor = async (formData: FormData) => {
     try {
       const doctorData = {
-        user_id: null, // Will be linked later when account is created
+        user_id: null,
         contact_email: formData.get('contact_email') as string,
         full_name: formData.get('full_name') as string,
         specialization: formData.get('specialization') as string,
@@ -138,6 +140,67 @@ const AdminDoctorsPage = () => {
     }
   };
 
+  const handleLinkAccount = async () => {
+    if (!linkEmail || !selectedDoctorId) {
+      toast({
+        title: "Error",
+        description: "Please provide both email and select a doctor",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Find user by email
+      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+      if (userError) throw userError;
+
+      const foundUser = userData.users.find((u: any) => u.email === linkEmail);
+      if (!foundUser) {
+        toast({
+          title: "Error",
+          description: "User with this email not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update doctor with user_id
+      const { error: updateError } = await supabase
+        .from('doctors')
+        .update({ user_id: foundUser.id })
+        .eq('id', selectedDoctorId);
+
+      if (updateError) throw updateError;
+
+      // Set user role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: foundUser.id,
+          role: 'doctor'
+        });
+
+      if (roleError) throw roleError;
+
+      toast({
+        title: "Success",
+        description: "Account linked successfully"
+      });
+
+      setIsLinkDialogOpen(false);
+      setLinkEmail('');
+      setSelectedDoctorId('');
+      fetchDoctors();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to link account",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleCreateAccount = async (doctor: Doctor) => {
     if (!doctor.contact_email) {
       toast({
@@ -149,10 +212,9 @@ const AdminDoctorsPage = () => {
     }
 
     try {
-      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: doctor.contact_email,
-        password: Math.random().toString(36).slice(-12), // Random temporary password
+        password: Math.random().toString(36).slice(-12),
         email_confirm: true,
         user_metadata: {
           full_name: doctor.full_name,
@@ -162,7 +224,6 @@ const AdminDoctorsPage = () => {
 
       if (authError) throw authError;
 
-      // Update doctor with user_id
       const { error: updateError } = await supabase
         .from('doctors')
         .update({ user_id: authData.user.id })
@@ -170,7 +231,6 @@ const AdminDoctorsPage = () => {
 
       if (updateError) throw updateError;
 
-      // Set user role
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
@@ -321,10 +381,11 @@ const AdminDoctorsPage = () => {
     doctor.specialization?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const unlinkedDoctors = doctors.filter(doctor => !doctor.user_id);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        {/* Header */}
         <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-primary text-primary-foreground border-b flex items-center px-4">
           <SidebarTrigger className="mr-4" />
           
@@ -360,7 +421,6 @@ const AdminDoctorsPage = () => {
 
         <main className="flex-1 pt-16 p-6 bg-background">
           <div className="space-y-6">
-            {/* Header Actions */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Stethoscope className="w-8 h-8 text-primary" />
@@ -369,76 +429,132 @@ const AdminDoctorsPage = () => {
                   <p className="text-muted-foreground">Manage medical professionals</p>
                 </div>
               </div>
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Doctor
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Doctor</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    handleAddDoctor(formData);
-                  }} className="space-y-4">
-                    <div>
-                      <Label htmlFor="contact_email">Contact Email</Label>
-                      <Input id="contact_email" name="contact_email" type="email" required />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+              
+              <div className="flex gap-2">
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Doctor
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Add New Doctor</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      handleAddDoctor(formData);
+                    }} className="space-y-4">
                       <div>
-                        <Label htmlFor="full_name">Full Name</Label>
-                        <Input id="full_name" name="full_name" required />
+                        <Label htmlFor="contact_email">Contact Email</Label>
+                        <Input id="contact_email" name="contact_email" type="email" required />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="full_name">Full Name</Label>
+                          <Input id="full_name" name="full_name" required />
+                        </div>
+                        <div>
+                          <Label htmlFor="specialization">Specialization</Label>
+                          <Input id="specialization" name="specialization" required />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="qualification">Qualification</Label>
+                          <Input id="qualification" name="qualification" required />
+                        </div>
+                        <div>
+                          <Label htmlFor="experience_years">Experience (Years)</Label>
+                          <Input id="experience_years" name="experience_years" type="number" required />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="consultation_fee">Consultation Fee</Label>
+                          <Input id="consultation_fee" name="consultation_fee" type="number" step="0.01" required />
+                        </div>
+                        <div>
+                          <Label htmlFor="license_number">License Number</Label>
+                          <Input id="license_number" name="license_number" required />
+                        </div>
                       </div>
                       <div>
-                        <Label htmlFor="specialization">Specialization</Label>
-                        <Input id="specialization" name="specialization" required />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="qualification">Qualification</Label>
-                        <Input id="qualification" name="qualification" required />
+                        <Label htmlFor="hospital_affiliation">Hospital Affiliation</Label>
+                        <Input id="hospital_affiliation" name="hospital_affiliation" />
                       </div>
                       <div>
-                        <Label htmlFor="experience_years">Experience (Years)</Label>
-                        <Input id="experience_years" name="experience_years" type="number" required />
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea id="bio" name="bio" rows={3} />
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex space-x-2">
+                        <Button type="submit">Add Doctor</Button>
+                        <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Link className="w-4 h-4 mr-2" />
+                      Link Existing Account
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Link Existing Account to Doctor</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
                       <div>
-                        <Label htmlFor="consultation_fee">Consultation Fee</Label>
-                        <Input id="consultation_fee" name="consultation_fee" type="number" step="0.01" required />
+                        <Label htmlFor="link_email">User Email</Label>
+                        <Input
+                          id="link_email"
+                          type="email"
+                          placeholder="Enter user's email address"
+                          value={linkEmail}
+                          onChange={(e) => setLinkEmail(e.target.value)}
+                          required
+                        />
                       </div>
                       <div>
-                        <Label htmlFor="license_number">License Number</Label>
-                        <Input id="license_number" name="license_number" required />
+                        <Label htmlFor="doctor_select">Select Doctor Profile</Label>
+                        <select
+                          id="doctor_select"
+                          className="w-full p-2 border rounded"
+                          value={selectedDoctorId}
+                          onChange={(e) => setSelectedDoctorId(e.target.value)}
+                          required
+                        >
+                          <option value="">Choose a doctor...</option>
+                          {unlinkedDoctors.map(doctor => (
+                            <option key={doctor.id} value={doctor.id}>
+                              {doctor.full_name} - {doctor.specialization}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button onClick={handleLinkAccount}>Link Account</Button>
+                        <Button type="button" variant="outline" onClick={() => {
+                          setIsLinkDialogOpen(false);
+                          setLinkEmail('');
+                          setSelectedDoctorId('');
+                        }}>
+                          Cancel
+                        </Button>
                       </div>
                     </div>
-                    <div>
-                      <Label htmlFor="hospital_affiliation">Hospital Affiliation</Label>
-                      <Input id="hospital_affiliation" name="hospital_affiliation" />
-                    </div>
-                    <div>
-                      <Label htmlFor="bio">Bio</Label>
-                      <Textarea id="bio" name="bio" rows={3} />
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button type="submit">Add Doctor</Button>
-                      <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
-            {/* Search Bar */}
             <Card>
               <CardContent className="pt-6">
                 <div className="relative">
@@ -453,7 +569,6 @@ const AdminDoctorsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Doctors Table */}
             <Card>
               <CardHeader>
                 <CardTitle>All Doctors ({filteredDoctors.length})</CardTitle>

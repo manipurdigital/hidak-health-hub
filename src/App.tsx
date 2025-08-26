@@ -19,7 +19,9 @@ import { OrderSuccessPage } from '@/pages/OrderSuccessPage';
 import NotFound from '@/pages/NotFound';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { AdminGuard } from '@/components/auth/AdminGuard';
+import { DoctorGuard } from '@/components/auth/DoctorGuard';
 import { AdminLayoutWrapper } from '@/components/AdminLayoutWrapper';
+import { DoctorPendingPage } from '@/pages/doctor/DoctorPendingPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
 import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
@@ -56,7 +58,6 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
 
 // Doctor components
-import { DoctorGuard } from '@/components/auth/DoctorGuard';
 import DoctorAvailabilityPage from '@/pages/doctor/DoctorAvailabilityPage';
 
 function App() {
@@ -384,19 +385,22 @@ function App() {
                       </AdminGuard>
                     }
                   />
-                  <Route
-                    path="/admin/code-export"
-                    element={
-                      <AdminGuard>
-                        <AdminLayoutWrapper>
-                          <AdminCodeExportPage />
-                        </AdminLayoutWrapper>
-                      </AdminGuard>
-                    }
-                   />
-                   
-                   {/* Catch all route - must be last */}
-                   <Route path="*" element={<NotFound />} />
+                   <Route
+                     path="/admin/code-export"
+                     element={
+                       <AdminGuard>
+                         <AdminLayoutWrapper>
+                           <AdminCodeExportPage />
+                         </AdminLayoutWrapper>
+                       </AdminGuard>
+                     }
+                    />
+                    
+                    {/* Doctor Routes */}
+                    <Route path="/doctor/pending" element={<DoctorPendingPage />} />
+                    
+                    {/* Catch all route - must be last */}
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
                   </SubscriptionProvider>

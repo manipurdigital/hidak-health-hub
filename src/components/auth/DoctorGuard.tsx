@@ -21,7 +21,6 @@ export const DoctorGuard: React.FC<DoctorGuardProps> = ({ children }) => {
         .from('doctors')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_verified', true)
         .single();
       
       if (error && error.code !== 'PGRST116') {
@@ -45,8 +44,9 @@ export const DoctorGuard: React.FC<DoctorGuardProps> = ({ children }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!doctor) {
-    return <Navigate to="/" replace />;
+  // Redirect to pending page if not linked or not verified
+  if (!doctor || !doctor.is_verified) {
+    return <Navigate to="/doctor/pending" replace />;
   }
 
   return <>{children}</>;
