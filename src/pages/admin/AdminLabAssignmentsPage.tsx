@@ -341,7 +341,7 @@ export default function AdminLabAssignmentsPage() {
                 </div>
 
                 {/* Location Information */}
-                {selectedBooking.pickup_lat && selectedBooking.pickup_lng && (
+                {selectedBooking.pickup_lat && selectedBooking.pickup_lng ? (
                   <div className="space-y-3">
                     <h4 className="font-medium text-sm">Pickup Location</h4>
                     
@@ -408,22 +408,29 @@ export default function AdminLabAssignmentsPage() {
                       className="h-32"
                     />
                   </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground p-3 bg-amber-50 rounded border border-amber-200">
+                    No pickup location data available for this booking. This booking was created before location tracking was implemented.
+                  </div>
                 )}
 
                 {/* Assignment Section */}
                 <div className="space-y-3">
-                  <h4 className="font-medium text-sm">Assignment</h4>
+                  <h4 className="font-medium text-sm">Manual Assignment</h4>
                   
                   {!selectedBooking.center_id ? (
-                    <div className="space-y-2">
-                      <Select onValueChange={(centerId) => {
-                        if (centerId) {
-                          assignMutation.mutate({
-                            bookingId: selectedBooking.id,
-                            centerId
-                          });
-                        }
-                      }}>
+                    <div className="space-y-3">
+                      <Select 
+                        onValueChange={(centerId) => {
+                          if (centerId) {
+                            assignMutation.mutate({
+                              bookingId: selectedBooking.id,
+                              centerId
+                            });
+                          }
+                        }}
+                        disabled={assignMutation.isPending}
+                      >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select diagnostic center to assign" />
                         </SelectTrigger>
@@ -436,6 +443,8 @@ export default function AdminLabAssignmentsPage() {
                         </SelectContent>
                       </Select>
                       
+                      <div className="text-center text-muted-foreground text-sm">or</div>
+                      
                       <Button
                         variant="outline"
                         size="sm"
@@ -444,7 +453,7 @@ export default function AdminLabAssignmentsPage() {
                         disabled={reassignMutation.isPending}
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Auto-assign based on location
+                        {reassignMutation.isPending ? 'Auto-assigning...' : 'Auto-assign based on location'}
                       </Button>
                     </div>
                   ) : (
@@ -460,8 +469,14 @@ export default function AdminLabAssignmentsPage() {
                         disabled={reassignMutation.isPending}
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Re-assign
+                        {reassignMutation.isPending ? 'Re-assigning...' : 'Re-assign'}
                       </Button>
+                    </div>
+                  )}
+                  
+                  {(assignMutation.isPending || reassignMutation.isPending) && (
+                    <div className="text-sm text-muted-foreground">
+                      Processing assignment...
                     </div>
                   )}
                 </div>
