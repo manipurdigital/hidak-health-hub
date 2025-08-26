@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CartItem {
   id: string;
@@ -114,6 +115,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     totalAmount: 0,
   });
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -136,6 +138,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Failed to save cart to localStorage:', error);
     }
   }, [state.items]);
+
+  // Clear cart when user logs out
+  useEffect(() => {
+    if (user === null) {
+      dispatch({ type: 'CLEAR_CART' });
+    }
+  }, [user]);
 
   const addItem = (item: Omit<CartItem, 'quantity'>) => {
     dispatch({ type: 'ADD_ITEM', payload: item });

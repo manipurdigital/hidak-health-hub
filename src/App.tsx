@@ -17,6 +17,7 @@ import WellnessPage from '@/pages/WellnessPage';
 import CheckoutPage from '@/pages/CheckoutPage';
 import { OrderSuccessPage } from '@/pages/OrderSuccessPage';
 import NotFound from '@/pages/NotFound';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { AdminLayoutWrapper } from '@/components/AdminLayoutWrapper';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
@@ -78,8 +79,16 @@ function App() {
                   <Route path="/doctors" element={<DoctorsPage />} />
                   <Route path="/doctors/:id" element={<DoctorProfilePage />} />
                   <Route path="/wellness" element={<WellnessPage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                  <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+                  <Route path="/checkout" element={
+                    <AuthGuard>
+                      <CheckoutPage />
+                    </AuthGuard>
+                  } />
+                  <Route path="/order-success/:orderId" element={
+                    <AuthGuard>
+                      <OrderSuccessPage />
+                    </AuthGuard>
+                  } />
 
                   {/* Admin Routes */}
                   <Route
