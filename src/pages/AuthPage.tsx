@@ -60,7 +60,7 @@ const AuthPage = () => {
         switch (userRole) {
           case 'admin':
           case 'analyst':
-            navigate('/admin');
+            navigate('/admin/dashboard');
             break;
           case 'doctor':
             navigate('/doctor');

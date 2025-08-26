@@ -145,6 +145,7 @@ function App() {
                         {/* Admin Routes */}
                         <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
                           <Route index element={<AdminDashboardPage />} />
+                          <Route path="dashboard" element={<AdminDashboardPage />} />
                           <Route path="medicines" element={<AdminMedicinesPage />} />
                           <Route path="lab-tests" element={<AdminLabTestsPage />} />
                           <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
