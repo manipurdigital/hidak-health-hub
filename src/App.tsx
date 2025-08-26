@@ -68,6 +68,16 @@ function App() {
                     }
                   />
                   <Route
+                    path="/admin/dashboard"
+                    element={
+                      <AdminGuard>
+                        <AdminLayoutWrapper>
+                          <AdminDashboardPage />
+                        </AdminLayoutWrapper>
+                      </AdminGuard>
+                    }
+                   />
+                  <Route
                     path="/admin/users"
                     element={
                       <AdminGuard>
