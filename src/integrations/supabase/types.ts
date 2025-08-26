@@ -689,6 +689,93 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_applications: {
+        Row: {
+          admin_notes: string | null
+          bio: string | null
+          consultation_fee: number
+          created_at: string
+          current_hospital: string | null
+          date_of_birth: string
+          email: string
+          experience_certificate_url: string | null
+          experience_years: number
+          full_name: string
+          gender: string
+          id: string
+          languages: string[] | null
+          license_document_url: string | null
+          license_number: string
+          phone: string
+          profile_image_url: string | null
+          qualification: string
+          qualification_document_url: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          specialization: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          bio?: string | null
+          consultation_fee: number
+          created_at?: string
+          current_hospital?: string | null
+          date_of_birth: string
+          email: string
+          experience_certificate_url?: string | null
+          experience_years: number
+          full_name: string
+          gender: string
+          id?: string
+          languages?: string[] | null
+          license_document_url?: string | null
+          license_number: string
+          phone: string
+          profile_image_url?: string | null
+          qualification: string
+          qualification_document_url?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialization: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          bio?: string | null
+          consultation_fee?: number
+          created_at?: string
+          current_hospital?: string | null
+          date_of_birth?: string
+          email?: string
+          experience_certificate_url?: string | null
+          experience_years?: number
+          full_name?: string
+          gender?: string
+          id?: string
+          languages?: string[] | null
+          license_document_url?: string | null
+          license_number?: string
+          phone?: string
+          profile_image_url?: string | null
+          qualification?: string
+          qualification_document_url?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialization?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       doctor_availability: {
         Row: {
           created_at: string
@@ -731,6 +818,7 @@ export type Database = {
         Row: {
           bio: string | null
           consultation_fee: number
+          contact_email: string | null
           created_at: string
           experience_years: number | null
           full_name: string
@@ -746,11 +834,12 @@ export type Database = {
           review_count: number | null
           specialization: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           bio?: string | null
           consultation_fee: number
+          contact_email?: string | null
           created_at?: string
           experience_years?: number | null
           full_name: string
@@ -766,11 +855,12 @@ export type Database = {
           review_count?: number | null
           specialization: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           bio?: string | null
           consultation_fee?: number
+          contact_email?: string | null
           created_at?: string
           experience_years?: number | null
           full_name?: string
@@ -786,7 +876,7 @@ export type Database = {
           review_count?: number | null
           specialization?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2884,6 +2974,10 @@ export type Database = {
       apply_rls_fixes: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      approve_doctor_application: {
+        Args: { admin_user_id: string; application_id: string }
+        Returns: undefined
       }
       assign_lab_booking_admin: {
         Args: { p_booking_id: string; p_center_id: string; p_notes?: string }
