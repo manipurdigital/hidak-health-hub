@@ -81,8 +81,8 @@ function App() {
                         <Route path="/medicines/:id" element={<MedicineDetailPage />} />
                         <Route path="/checkout" element={<CheckoutPage />} />
                         
-                        {/* Protected Routes */}
-                        <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
+                        {/* Protected Routes - Admin Only */}
+                        <Route path="/dashboard" element={<AdminGuard><DashboardPage /></AdminGuard>} />
 
                         {/* Center Routes */}
                         <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
