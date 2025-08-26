@@ -45,6 +45,7 @@ import AdminDoctorsPage from '@/pages/admin/AdminDoctorsPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
 import AdminReportsPage from '@/pages/admin/AdminReportsPage';
 import AdminDeliveryPage from '@/pages/admin/AdminDeliveryPage';
+import DashboardPage from '@/pages/DashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,6 +74,7 @@ function App() {
                         {/* Public Routes */}
                         <Route path="/" element={<Index />} />
                         <Route path="/auth" element={<AuthPage />} />
+                        <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/lab-tests" element={<LabTestsPage />} />
                         <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
                         <Route path="/medicines" element={<MedicinesPage />} />
