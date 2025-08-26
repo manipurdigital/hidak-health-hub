@@ -12,10 +12,7 @@ import { AccessibilityWrapper } from '@/components/AccessibilityWrapper';
 import { SkipLink } from '@/components/SkipLink';
 
 // Layout components
-import { AdminLayout } from '@/components/AdminLayout';
-import { CenterLayout } from '@/components/CenterLayout';
-
-// Guard components
+// Guard components  
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { CenterGuard } from '@/components/CenterGuard';
@@ -85,25 +82,21 @@ function App() {
                         <Route path="/dashboard" element={<AdminGuard><DashboardPage /></AdminGuard>} />
 
                         {/* Center Routes */}
-                        <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
-                          <Route index element={<CenterDashboardPage />} />
-                          <Route path="jobs" element={<CenterJobsPage />} />
-                          <Route path="payments" element={<CenterPaymentsPage />} />
-                          <Route path="tracking/lab/:id" element={<CenterJobTrackingPage />} />
-                        </Route>
+                        <Route path="/center" element={<CenterGuard><div className="min-h-screen w-full bg-background"><div className="p-6"><div className="space-y-6"><h1 className="text-3xl font-bold">Center Dashboard</h1><p>Welcome to your center dashboard.</p></div></div></div></CenterGuard>} />
+                        <Route path="/center/jobs" element={<CenterGuard><CenterJobsPage /></CenterGuard>} />
+                        <Route path="/center/payments" element={<CenterGuard><CenterPaymentsPage /></CenterGuard>} />
+                        <Route path="/center/tracking/lab/:id" element={<CenterGuard><CenterJobTrackingPage /></CenterGuard>} />
 
                         {/* Admin Routes */}
-                        <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
-                          <Route index element={<AdminDashboardPage />} />
-                          <Route path="medicines" element={<AdminMedicinesPage />} />
-                          <Route path="lab-tests" element={<AdminLabTestsPage />} />
-                          <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
-                          <Route path="lab-payouts" element={<AdminLabPayoutsPage />} />
-                          <Route path="doctors" element={<AdminDoctorsPage />} />
-                          <Route path="categories" element={<AdminCategoriesPage />} />
-                          <Route path="reports" element={<AdminReportsPage />} />
-                          <Route path="delivery" element={<AdminDeliveryPage />} />
-                        </Route>
+                        <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
+                        <Route path="/admin/medicines" element={<AdminGuard><AdminMedicinesPage /></AdminGuard>} />
+                        <Route path="/admin/lab-tests" element={<AdminGuard><AdminLabTestsPage /></AdminGuard>} />
+                        <Route path="/admin/lab-assignments" element={<AdminGuard><AdminLabAssignmentsPage /></AdminGuard>} />
+                        <Route path="/admin/lab-payouts" element={<AdminGuard><AdminLabPayoutsPage /></AdminGuard>} />
+                        <Route path="/admin/doctors" element={<AdminGuard><AdminDoctorsPage /></AdminGuard>} />
+                        <Route path="/admin/categories" element={<AdminGuard><AdminCategoriesPage /></AdminGuard>} />
+                        <Route path="/admin/reports" element={<AdminGuard><AdminReportsPage /></AdminGuard>} />
+                        <Route path="/admin/delivery" element={<AdminGuard><AdminDeliveryPage /></AdminGuard>} />
 
                         {/* 404 Route */}
                         <Route path="*" element={<NotFound />} />
