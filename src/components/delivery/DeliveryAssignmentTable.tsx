@@ -40,13 +40,17 @@ import {
   type DeliveryAssignment 
 } from '@/hooks/delivery-assignment-hooks';
 import { AssignRiderDrawer } from './AssignRiderDrawer';
-import { MoreHorizontal, MapPin, Clock, CheckCircle, XCircle, Truck } from 'lucide-react';
+import { DeliveryDetailPanel } from './DeliveryDetailPanel';
+import { useRealTimeDeliveryUpdates } from '@/hooks/realtime-delivery-hooks';
+import { MoreHorizontal, Clock, CheckCircle, XCircle, Truck, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function DeliveryAssignmentTable() {
   const [filters, setFilters] = useState<DeliveryAssignmentFilters>({});
   const [assignRiderOpen, setAssignRiderOpen] = useState(false);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState('');
+  const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<DeliveryAssignment | null>(null);
   const [statusChangeDialog, setStatusChangeDialog] = useState<{
     open: boolean;
     orderNumber: string;
@@ -55,6 +59,9 @@ export function DeliveryAssignmentTable() {
 
   const { data: assignments = [], isLoading } = useAdminDeliveryAssignments(filters);
   const forceStatusMutation = useForceStatus();
+  
+  // Enable real-time updates
+  useRealTimeDeliveryUpdates();
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -81,6 +88,11 @@ export function DeliveryAssignmentTable() {
   const handleAssignRider = (orderNumber: string) => {
     setSelectedOrderNumber(orderNumber);
     setAssignRiderOpen(true);
+  };
+
+  const handleViewDetails = (assignment: DeliveryAssignment) => {
+    setSelectedAssignment(assignment);
+    setDetailPanelOpen(true);
   };
 
   const handleStatusChange = (orderNumber: string, status: string) => {
@@ -212,6 +224,12 @@ export function DeliveryAssignmentTable() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                          onClick={() => handleViewDetails(assignment)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => handleAssignRider(assignment.order_number!)}
                         >
                           {assignment.rider_code ? 'Reassign Rider' : 'Assign Rider'}
@@ -255,6 +273,13 @@ export function DeliveryAssignmentTable() {
         open={assignRiderOpen}
         onOpenChange={setAssignRiderOpen}
         initialOrderNumber={selectedOrderNumber}
+      />
+
+      {/* Detail Panel */}
+      <DeliveryDetailPanel
+        open={detailPanelOpen}
+        onOpenChange={setDetailPanelOpen}
+        assignment={selectedAssignment}
       />
 
       {/* Status Change Confirmation Dialog */}

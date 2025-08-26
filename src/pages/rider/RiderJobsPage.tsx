@@ -1,4 +1,5 @@
 import { useMyRiderJobs } from '@/hooks/delivery-assignment-hooks';
+import { useRealTimeDeliveryUpdates } from '@/hooks/realtime-delivery-hooks';
 import { RiderJobCard } from '@/components/delivery/RiderJobCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, Package } from 'lucide-react';
@@ -6,6 +7,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RiderJobsPage() {
   const { data: assignments = [], isLoading, error } = useMyRiderJobs();
+  
+  // Enable real-time updates
+  useRealTimeDeliveryUpdates();
 
   if (error) {
     return (
