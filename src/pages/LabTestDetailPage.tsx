@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
 import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
 
-type BookingStep = 'details' | 'location' | 'slot' | 'review';
+type BookingStep = 'details' | 'slot' | 'review';
 
 export function LabTestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +57,7 @@ export function LabTestDetailPage() {
   }
 
   const handleBookNow = () => {
-    setCurrentStep('location');
+    setCurrentStep('slot');
   };
 
   const handleLocationCaptured = (location: { lat: number; lng: number; address: any }) => {
@@ -72,11 +72,6 @@ export function LabTestDetailPage() {
 
   const handleBackToSlots = () => {
     setCurrentStep('slot');
-  };
-
-  const handleBackToLocation = () => {
-    setCurrentStep('location');
-    setSelectedSlot(null);
   };
 
   const handleBackToDetails = () => {
@@ -100,11 +95,10 @@ export function LabTestDetailPage() {
         <BackButton 
           onClick={() => {
             if (currentStep === 'details') navigate(-1);
-            else if (currentStep === 'location') handleBackToDetails();
-            else if (currentStep === 'slot') handleBackToLocation();
+            else if (currentStep === 'slot') handleBackToDetails();
             else if (currentStep === 'review') handleBackToSlots();
           }}
-          label={currentStep === 'details' ? 'Back' : `Back to ${currentStep === 'location' ? 'Details' : currentStep === 'slot' ? 'Location' : 'Slots'}`}
+          label={currentStep === 'details' ? 'Back' : `Back to ${currentStep === 'slot' ? 'Details' : 'Slot'}`}
         />
 
         {/* Progress Steps */}
@@ -117,15 +111,6 @@ export function LabTestDetailPage() {
                 <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
               <span className="ml-1 sm:ml-2 text-xs sm:text-sm">Details</span>
-            </div>
-            <div className="w-4 sm:w-8 h-px bg-muted" />
-            <div className={`flex items-center ${currentStep === 'location' ? 'text-primary' : 'text-muted-foreground'}`}>
-              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
-                currentStep === 'location' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-              }`}>
-                <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-              </div>
-              <span className="ml-1 sm:ml-2 text-xs sm:text-sm">Location</span>
             </div>
             <div className="w-4 sm:w-8 h-px bg-muted" />
             <div className={`flex items-center ${currentStep === 'slot' ? 'text-primary' : 'text-muted-foreground'}`}>
@@ -156,14 +141,6 @@ export function LabTestDetailPage() {
             />
           )}
 
-          {currentStep === 'location' && (
-            <div className="w-full">
-              <LocationCapture
-                onLocationCapture={handleLocationCaptured}
-              />
-            </div>
-          )}
-
           {currentStep === 'slot' && (
             <SlotPicker
               labTest={labTest}
@@ -171,17 +148,17 @@ export function LabTestDetailPage() {
               selectedAddress={selectedAddress}
               onAddressChange={setSelectedAddress}
               onSlotSelected={handleSlotSelected}
-              onBack={handleBackToLocation}
+              onBack={handleBackToDetails}
             />
           )}
 
-          {currentStep === 'review' && selectedSlot && locationData && (
+          {currentStep === 'review' && selectedSlot && (
             <LabBookingReview
               labTest={labTest}
               slot={selectedSlot}
               selectedAddress={selectedAddress}
               addresses={addresses}
-              locationData={locationData}
+              locationData={{ lat: 0, lng: 0, address: {} }}
               onBack={handleBackToSlots}
             />
           )}
