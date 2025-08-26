@@ -155,178 +155,194 @@ export function LocationCapture({ onLocationCapture, className }: LocationCaptur
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-lg mx-auto">
       <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MapPin className="h-4 w-4" />
             Pickup Location
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              We need your location for our collection team to visit you for sample pickup.
+        <CardContent className="space-y-3">
+          <Alert className="py-2">
+            <AlertCircle className="h-3 w-3" />
+            <AlertDescription className="text-xs">
+              We need your location for sample pickup.
             </AlertDescription>
           </Alert>
 
           {!showManualForm ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Button
                 onClick={getCurrentLocation}
                 disabled={isCapturing}
-                className="w-full"
-                size="lg"
+                className="w-full h-9"
+                size="sm"
               >
-                <Navigation className="h-4 w-4 mr-2" />
+                <Navigation className="h-3 w-3 mr-2" />
                 {isCapturing ? 'Getting Location...' : 'Use Current Location'}
               </Button>
               
               <div className="text-center">
-                <span className="text-sm text-muted-foreground">or</span>
+                <span className="text-xs text-muted-foreground">or</span>
               </div>
               
               <Button
                 variant="outline"
                 onClick={() => setShowManualForm(true)}
-                className="w-full"
+                className="w-full h-9"
+                size="sm"
               >
                 Enter Address Manually
               </Button>
             </div>
           ) : (
-            <div className="max-h-[70vh] overflow-y-auto pr-2">
-              <form onSubmit={handleManualSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Contact Name *</Label>
+            <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-background">
+              <form onSubmit={handleManualSubmit} className="space-y-3 pr-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="name" className="text-xs font-medium">Contact Name *</Label>
                     <Input
                       id="name"
                       value={manualAddress.name}
                       onChange={(e) => setManualAddress(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter contact name"
+                      placeholder="Enter name"
+                      className="h-8 text-sm"
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="phone">Phone Number *</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="phone" className="text-xs font-medium">Phone Number *</Label>
                     <Input
                       id="phone"
                       value={manualAddress.phone}
                       onChange={(e) => setManualAddress(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="Enter phone number"
+                      placeholder="08794265302"
+                      className="h-8 text-sm"
                       required
                     />
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="address1">Address *</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="address1" className="text-xs font-medium">Address *</Label>
                   <Input
                     id="address1"
                     value={manualAddress.address_line_1}
                     onChange={(e) => setManualAddress(prev => ({ ...prev, address_line_1: e.target.value }))}
                     placeholder="Soibam Leikai Ayangpalli Road near Porompat Traffic Point"
+                    className="h-8 text-sm"
                     required
                   />
-                  <div className="text-center text-muted-foreground text-sm mt-2">OR</div>
-                  <Button type="button" variant="outline" className="w-full mt-2 flex items-center gap-2">
-                    <Navigation className="h-4 w-4" />
+                  
+                  <div className="text-center text-muted-foreground text-xs py-1">OR</div>
+                  
+                  <Button type="button" variant="outline" className="w-full h-8 text-xs" size="sm">
+                    <Navigation className="h-3 w-3 mr-1" />
                     Use Current Location
                   </Button>
-                  <div className="mt-2 p-2 bg-muted/50 rounded-md">
-                    <div className="flex items-center gap-2 text-sm text-green-600">
-                      <MapPin className="h-4 w-4" />
+                  
+                  <div className="mt-2 p-2 bg-muted/30 rounded-md">
+                    <div className="flex items-center gap-2 text-xs text-green-600">
+                      <MapPin className="h-3 w-3" />
                       Current Location Detected
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       Lat: 24.805376, Lng: 93.945856
                     </div>
                   </div>
-                  <Button type="button" variant="outline" className="w-full mt-2 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
+                  
+                  <Button type="button" variant="outline" className="w-full h-8 text-xs mt-2" size="sm">
+                    <MapPin className="h-3 w-3 mr-1" />
                     Choose on Map
                   </Button>
+                  
                   <Input
-                    className="mt-2"
+                    className="mt-2 h-8 text-sm"
                     placeholder="Opposite Traffic Point,Lane no.2"
                     value=""
                     onChange={() => {}}
                   />
+                  
                   <div className="text-xs text-muted-foreground mt-1">
-                    Location coordinates captured: 24.805376, 93.945856
+                    📍 Location coordinates captured: 24.805376, 93.945856
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="address2">Address Line 2</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="address2" className="text-xs font-medium">Address Line 2</Label>
                   <Input
                     id="address2"
                     value={manualAddress.address_line_2}
                     onChange={(e) => setManualAddress(prev => ({ ...prev, address_line_2: e.target.value }))}
                     placeholder="Area, Colony, Locality"
+                    className="h-8 text-sm"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="city">City *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="city" className="text-xs font-medium">City *</Label>
                     <Input
                       id="city"
                       value={manualAddress.city}
                       onChange={(e) => setManualAddress(prev => ({ ...prev, city: e.target.value }))}
                       placeholder="Imphal"
+                      className="h-8 text-sm"
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="state">State *</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="state" className="text-xs font-medium">State *</Label>
                     <Input
                       id="state"
                       value={manualAddress.state}
                       onChange={(e) => setManualAddress(prev => ({ ...prev, state: e.target.value }))}
                       placeholder="Manipur"
+                      className="h-8 text-sm"
                       required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="pincode">Postal Code *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="pincode" className="text-xs font-medium">Postal Code *</Label>
                     <Input
                       id="pincode"
                       value={manualAddress.pincode}
                       onChange={(e) => setManualAddress(prev => ({ ...prev, pincode: e.target.value }))}
                       placeholder="795005"
+                      className="h-8 text-sm"
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="landmark">Landmark</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="landmark" className="text-xs font-medium">Landmark</Label>
                     <Input
                       id="landmark"
                       value={manualAddress.landmark}
                       onChange={(e) => setManualAddress(prev => ({ ...prev, landmark: e.target.value }))}
                       placeholder="Near landmark"
+                      className="h-8 text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" id="default" className="rounded" />
-                  <Label htmlFor="default" className="text-sm">Set as default address</Label>
+                <div className="flex items-center space-x-2 py-1">
+                  <input type="checkbox" id="default" className="h-3 w-3 rounded" />
+                  <Label htmlFor="default" className="text-xs">Set as default address</Label>
                 </div>
 
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">
+                <div className="flex gap-2 pt-2 sticky bottom-0 bg-background">
+                  <Button type="submit" className="flex-1 h-9 text-sm">
                     Save Address
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setShowManualForm(false)}
+                    className="h-9 px-3 text-sm"
                   >
                     Back
                   </Button>
