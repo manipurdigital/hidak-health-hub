@@ -89,15 +89,25 @@ const ReportsPage = () => {
     }
   };
 
+  const sanitizeFileName = (fileName: string) => {
+    // Remove special characters and replace spaces with underscores
+    return fileName
+      .replace(/[^\w\s.-]/g, '') // Remove special characters except word chars, spaces, dots, and hyphens
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .toLowerCase();
+  };
+
   const handleUpload = async () => {
     if (!selectedFile || !reportName || !user) return;
 
     setUploading(true);
 
     try {
-      // Upload file to Supabase Storage
+      // Upload file to Supabase Storage with sanitized filename
       const fileExt = 'pdf';
-      const fileName = `${Date.now()}-${selectedFile.name}`;
+      const sanitizedName = sanitizeFileName(selectedFile.name);
+      const fileName = `${Date.now()}-${sanitizedName}`;
       const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -150,18 +160,45 @@ const ReportsPage = () => {
 
   const handleDownload = async (report: LabReport) => {
     try {
-      // Create a link and trigger download
+      // Get a signed URL for secure download
+      const urlParts = report.report_url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `${user?.id}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('lab-reports')
+        .createSignedUrl(filePath, 60); // URL valid for 60 seconds
+
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        // Fallback to direct download
+        const link = document.createElement('a');
+        link.href = report.report_url;
+        link.download = `${report.report_name}.pdf`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
+      // Download using signed URL
       const link = document.createElement('a');
-      link.href = report.report_url;
+      link.href = data.signedUrl;
       link.download = `${report.report_name}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      toast({
+        title: "Download Started",
+        description: "Your report download has started",
+      });
     } catch (error) {
       console.error('Error downloading report:', error);
       toast({
         title: "Download Failed",
-        description: "Failed to download report",
+        description: "Failed to download report. Please try again.",
         variant: "destructive"
       });
     }
