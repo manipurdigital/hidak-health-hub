@@ -59,6 +59,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         console.error('Error checking subscription:', error);
         setSubscription(null);
       } else {
+        // The response format is { has_subscription, subscription, usage }
         setSubscription(data?.subscription || null);
       }
     } catch (error) {
