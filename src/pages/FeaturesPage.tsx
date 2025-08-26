@@ -108,7 +108,7 @@ const FeaturesPage = () => {
         {
           title: "Analytics Dashboard",
           description: "Comprehensive analytics, KPIs and business intelligence",
-          route: "/admin/dashboard",
+          route: "/admin",
           requiredRole: "admin",
           icon: <BarChart3 className="w-5 h-5" />,
           status: "available"
