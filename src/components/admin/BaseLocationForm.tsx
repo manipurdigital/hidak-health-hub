@@ -24,6 +24,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
     base_lat: 0,
     base_lng: 0,
     base_fare: 0,
+    base_km: 0,
     per_km_fee: 0,
     priority: 1,
     is_active: true,
@@ -44,6 +45,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
         base_lat: baseLocation.base_lat || 0,
         base_lng: baseLocation.base_lng || 0,
         base_fare: baseLocation.base_fare || 0,
+        base_km: (baseLocation as any).base_km || 0,
         per_km_fee: baseLocation.per_km_fee || 0,
         priority: baseLocation.priority || 1,
         is_active: baseLocation.is_active ?? true,
@@ -56,6 +58,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
         base_lat: 0,
         base_lng: 0,
         base_fare: 0,
+        base_km: 0,
         per_km_fee: 0,
         priority: 1,
         is_active: true,
@@ -200,7 +203,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
           </Button>
 
           {/* Pricing */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="base_fare">Base Fare (₹)</Label>
               <Input
@@ -214,6 +217,19 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="base_km">Base KM</Label>
+              <Input
+                id="base_km"
+                type="number"
+                step="0.1"
+                min="0"
+                value={formData.base_km}
+                onChange={(e) => setFormData(prev => ({ ...prev, base_km: parseFloat(e.target.value) || 0 }))}
+                placeholder="5.0"
+              />
+              <p className="text-xs text-muted-foreground">Distance covered by base fare</p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="per_km_fee">Per KM Fee (₹)</Label>
               <Input
                 id="per_km_fee"
@@ -224,6 +240,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
                 onChange={(e) => setFormData(prev => ({ ...prev, per_km_fee: parseFloat(e.target.value) || 0 }))}
                 placeholder="5.00"
               />
+              <p className="text-xs text-muted-foreground">Fee for each additional KM</p>
             </div>
           </div>
 
