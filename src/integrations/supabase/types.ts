@@ -346,13 +346,6 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "courier_locations_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "v_order_delivery_assignment"
-            referencedColumns: ["order_id"]
-          },
         ]
       }
       data_deletion_requests: {
@@ -438,13 +431,6 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "orders"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "delivery_assignments_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: true
-            referencedRelation: "v_order_delivery_assignment"
-            referencedColumns: ["order_id"]
           },
           {
             foreignKeyName: "delivery_assignments_rider_id_fkey"
@@ -1614,13 +1600,6 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "v_order_delivery_assignment"
-            referencedColumns: ["order_id"]
-          },
         ]
       }
       orders: {
@@ -2601,23 +2580,14 @@ export type Database = {
       v_order_delivery_assignment: {
         Row: {
           assigned_at: string | null
-          order_id: string | null
+          delivered_at: string | null
           order_number: string | null
+          picked_up_at: string | null
           rider_code: string | null
-          rider_id: string | null
           rider_name: string | null
-          rider_phone: string | null
-          vehicle_type: string | null
+          status: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "delivery_assignments_rider_id_fkey"
-            columns: ["rider_id"]
-            isOneToOne: false
-            referencedRelation: "riders"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
