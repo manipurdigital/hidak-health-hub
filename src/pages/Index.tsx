@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import ServicesSection from "@/components/ServicesSection";
@@ -11,6 +13,21 @@ import { FeatureGuard } from "@/components/FeatureGuard";
 import { HomeLocationGate } from "@/components/HomeLocationGate";
 
 const HomePage = () => {
+  const { user, userRole, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect admins to their dashboard
+  useEffect(() => {
+    if (!loading && user && (userRole === 'admin' || userRole === 'analyst')) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [user, userRole, loading, navigate]);
+
+  // Don't render the homepage if we're redirecting an admin
+  if (!loading && user && (userRole === 'admin' || userRole === 'analyst')) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
