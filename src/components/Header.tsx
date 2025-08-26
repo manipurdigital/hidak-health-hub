@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { User, ShoppingCart, Phone, FileText, Pill, Crown, Plus, Minus, X } from "lucide-react";
+import { User, ShoppingCart, Phone, FileText, Pill, Crown, Plus, Minus, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
@@ -23,7 +23,7 @@ const Header = () => {
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const { toast } = useToast();
   const { itemCount, state, updateQuantity, removeItem } = useCart();
-  const { user, userRole } = useAuth();
+  const { user, userRole, signOut } = useAuth();
   const { topStore, topLabCenter, setManualLocation } = useServiceability();
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,6 +70,31 @@ const Header = () => {
       navigate("/profile");
     } else {
       navigate("/auth");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await signOut();
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to log out. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out.",
+        });
+        navigate("/");
+      }
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "An unexpected error occurred during logout.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -140,15 +165,38 @@ const Header = () => {
               <Pill className="w-4 h-4" />
               Prescriptions
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
-              onClick={handleProfile}
-            >
-              <User className="w-4 h-4" />
-              {user ? "Profile" : "Login"}
-            </Button>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                  onClick={handleProfile}
+                >
+                  <User className="w-4 h-4" />
+                  Profile
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center gap-2 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={handleProfile}
+              >
+                <User className="w-4 h-4" />
+                Login
+              </Button>
+            )}
             <Popover open={isCartOpen} onOpenChange={setIsCartOpen}>
               <PopoverTrigger asChild>
                 <Button 
