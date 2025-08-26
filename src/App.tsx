@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import AuthPage from '@/pages/AuthPage';
 import Index from '@/pages/Index';
@@ -38,15 +39,18 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
 
 function App() {
+  const queryClient = new QueryClient();
+
   return (
     <Router>
-      <AuthProvider>
-        <GoogleMapsProvider>
-          <ServiceabilityProvider>
-            <CartProvider>
-              <SubscriptionProvider>
-                <div className="min-h-screen bg-background">
-                  <Toaster />
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <GoogleMapsProvider>
+            <ServiceabilityProvider>
+              <CartProvider>
+                <SubscriptionProvider>
+                  <div className="min-h-screen bg-background">
+                    <Toaster />
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/" element={<Index />} />
@@ -305,11 +309,12 @@ function App() {
                   />
                 </Routes>
               </div>
-                </SubscriptionProvider>
-              </CartProvider>
-            </ServiceabilityProvider>
-          </GoogleMapsProvider>
-        </AuthProvider>
+                  </SubscriptionProvider>
+                </CartProvider>
+              </ServiceabilityProvider>
+            </GoogleMapsProvider>
+          </AuthProvider>
+        </QueryClientProvider>
       </Router>
   );
 }
