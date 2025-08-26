@@ -14,11 +14,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DollarSign, Plus, CheckCircle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
+interface DiagnosticCenter {
+  id: string;
+  name: string;
+}
+
+interface PayoutBatch {
+  id: string;
+  center_id: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  paid_at: string | null;
+  reference: string | null;
+  notes: string | null;
+  diagnostic_centers: { name: string } | null;
+}
+
 export function AdminLabPayoutsPage() {
   const [selectedCenter, setSelectedCenter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedBatch, setSelectedBatch] = useState<any>(null);
+  const [selectedBatch, setSelectedBatch] = useState<PayoutBatch | null>(null);
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const queryClient = useQueryClient();
@@ -26,22 +43,22 @@ export function AdminLabPayoutsPage() {
   // Fetch diagnostic centers
   const { data: centers = [] } = useQuery({
     queryKey: ['diagnostic-centers'],
-    queryFn: async () => {
+    queryFn: async (): Promise<DiagnosticCenter[]> => {
       const { data, error } = await supabase
         .from('diagnostic_centers')
         .select('id, name')
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
-  // Fetch payout batches
+  // Fetch payout batches using generic query
   const { data: batches = [], isLoading } = useQuery({
     queryKey: ['admin-lab-payout-batches'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async (): Promise<PayoutBatch[]> => {
+      const { data, error } = await (supabase as any)
         .from('lab_payout_batches')
         .select(`
           id,
@@ -56,7 +73,7 @@ export function AdminLabPayoutsPage() {
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
@@ -67,7 +84,7 @@ export function AdminLabPayoutsPage() {
         throw new Error('Please select center and date range');
       }
 
-      const { data, error } = await supabase.rpc('admin_create_lab_payout_batch', {
+      const { data, error } = await (supabase as any).rpc('admin_create_lab_payout_batch', {
         p_center_id: selectedCenter,
         p_start_date: startDate,
         p_end_date: endDate
@@ -86,7 +103,7 @@ export function AdminLabPayoutsPage() {
       setStartDate('');
       setEndDate('');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to Create Batch",
         description: error.message,
@@ -98,7 +115,7 @@ export function AdminLabPayoutsPage() {
   // Mark batch as paid mutation
   const markPaidMutation = useMutation({
     mutationFn: async ({ batchId, reference, notes }: { batchId: string; reference: string; notes: string }) => {
-      const { error } = await supabase.rpc('admin_mark_lab_payout_paid', {
+      const { error } = await (supabase as any).rpc('admin_mark_lab_payout_paid', {
         p_batch_id: batchId,
         p_reference: reference || null,
         p_notes: notes || null
@@ -116,7 +133,7 @@ export function AdminLabPayoutsPage() {
       setPaymentReference('');
       setPaymentNotes('');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to Mark as Paid",
         description: error.message,
@@ -223,7 +240,7 @@ export function AdminLabPayoutsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {batches.map((batch: any) => (
+                {batches.map((batch) => (
                   <TableRow key={batch.id}>
                     <TableCell className="font-mono text-sm">
                       #{batch.id.slice(-8)}

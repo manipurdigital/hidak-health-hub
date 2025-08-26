@@ -8,39 +8,51 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DollarSign, Calendar, ChevronDown, ChevronRight, Clock, CheckCircle } from 'lucide-react';
 
+interface PayoutBatch {
+  id: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  paid_at: string | null;
+  reference: string | null;
+  notes: string | null;
+}
+
+interface PayoutItem {
+  id: string;
+  amount: number;
+  created_at: string;
+  lab_bookings: {
+    id: string;
+    patient_name: string;
+    booking_date: string;
+    total_amount: number;
+  } | null;
+}
+
 export function CenterPaymentsPage() {
   // Fetch pending payout amount (collected bookings not yet in any payout batch)
   const { data: pendingPayout = 0 } = useQuery({
     queryKey: ['center-pending-payout'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_bookings')
-        .select('center_payout_amount')
-        .eq('status', 'collected')
-        .is('center_payout_amount', null)
-        .not('center_payout_amount', 'is', null);
-
-      if (error) throw error;
-      
-      // Also check bookings not in any payout items
-      const { data: notInPayoutItems, error: error2 } = await supabase
+    queryFn: async (): Promise<number> => {
+      const { data: notInPayoutItems, error } = await supabase
         .from('lab_bookings')
         .select('center_payout_amount')
         .eq('status', 'collected')
         .not('id', 'in', `(SELECT booking_id FROM lab_payout_items WHERE booking_id IS NOT NULL)`);
 
-      if (error2) throw error2;
+      if (error) throw error;
 
       return notInPayoutItems?.reduce((sum, booking) => 
         sum + (booking.center_payout_amount || 0), 0) || 0;
     }
   });
 
-  // Fetch payout batches for this center
+  // Fetch payout batches for this center using generic query
   const { data: payoutBatches = [], isLoading } = useQuery({
     queryKey: ['center-payout-batches'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+    queryFn: async (): Promise<PayoutBatch[]> => {
+      const { data, error } = await (supabase as any)
         .from('lab_payout_batches')
         .select(`
           id,
@@ -54,13 +66,13 @@ export function CenterPaymentsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
   // Fetch payout items for expanded batches
-  const fetchPayoutItems = async (batchId: string) => {
-    const { data, error } = await supabase
+  const fetchPayoutItems = async (batchId: string): Promise<PayoutItem[]> => {
+    const { data, error } = await (supabase as any)
       .from('lab_payout_items')
       .select(`
         id,
@@ -77,7 +89,7 @@ export function CenterPaymentsPage() {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+    return data || [];
   };
 
   const getBatchStatusBadge = (status: string) => {
@@ -140,7 +152,7 @@ export function CenterPaymentsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {payoutBatches.map((batch: any) => (
+              {payoutBatches.map((batch) => (
                 <PayoutBatchCard key={batch.id} batch={batch} fetchItems={fetchPayoutItems} />
               ))}
             </div>
@@ -151,7 +163,12 @@ export function CenterPaymentsPage() {
   );
 }
 
-function PayoutBatchCard({ batch, fetchItems }: { batch: any; fetchItems: (batchId: string) => Promise<any[]> }) {
+interface PayoutBatchCardProps {
+  batch: PayoutBatch;
+  fetchItems: (batchId: string) => Promise<PayoutItem[]>;
+}
+
+function PayoutBatchCard({ batch, fetchItems }: PayoutBatchCardProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   
   const { data: items = [], isLoading } = useQuery({
@@ -228,7 +245,7 @@ function PayoutBatchCard({ batch, fetchItems }: { batch: any; fetchItems: (batch
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((item: any) => (
+                    {items.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.lab_bookings?.patient_name}</TableCell>
                         <TableCell>
