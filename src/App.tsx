@@ -59,6 +59,7 @@ import CenterJobTrackingPage from '@/pages/center/CenterJobTrackingPage';
 
 // Admin pages
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import AdminLabTestsPage from '@/pages/admin/AdminLabTestsPage';
 import AdminLabAssignmentsPage from '@/pages/admin/AdminLabAssignmentsPage';
 import { AdminLabPayoutsPage } from '@/pages/admin/AdminLabPayoutsPage';
@@ -143,18 +144,19 @@ function App() {
                         </Route>
 
                         {/* Admin Routes */}
-                        <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
-                          <Route index element={<AdminDashboardPage />} />
-                          <Route path="dashboard" element={<AdminDashboardPage />} />
-                          <Route path="medicines" element={<AdminMedicinesPage />} />
-                          <Route path="lab-tests" element={<AdminLabTestsPage />} />
-                          <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
-                          <Route path="lab-payouts" element={<AdminLabPayoutsPage />} />
-                          <Route path="doctors" element={<AdminDoctorsPage />} />
-                          <Route path="categories" element={<AdminCategoriesPage />} />
-                          <Route path="reports" element={<AdminReportsPage />} />
-                          <Route path="delivery" element={<AdminDeliveryPage />} />
-                        </Route>
+        <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="dashboard" element={<AdminDashboardPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="medicines" element={<AdminMedicinesPage />} />
+          <Route path="lab-tests" element={<AdminLabTestsPage />} />
+          <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
+          <Route path="lab-payouts" element={<AdminLabPayoutsPage />} />
+          <Route path="doctors" element={<AdminDoctorsPage />} />
+          <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="delivery" element={<AdminDeliveryPage />} />
+        </Route>
 
                         {/* 404 Route */}
                         <Route path="*" element={<NotFound />} />
