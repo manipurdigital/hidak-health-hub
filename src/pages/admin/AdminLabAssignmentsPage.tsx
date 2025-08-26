@@ -164,6 +164,34 @@ export default function AdminLabAssignmentsPage() {
     }
   });
 
+  // Status update mutation
+  const statusUpdateMutation = useMutation({
+    mutationFn: async ({ bookingId, status }: { bookingId: string; status: string }) => {
+      const { data, error } = await supabase
+        .from('lab_bookings')
+        .update({ status })
+        .eq('id', bookingId)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Status Updated",
+        description: "Booking status has been updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin-lab-bookings'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Status Update Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   // Filtered and sorted bookings
   const filteredBookings = useMemo(() => {
     let filtered = bookings.filter(booking => {
@@ -602,6 +630,47 @@ export default function AdminLabAssignmentsPage() {
                     </p>
                   </div>
                 )}
+
+                {/* Status Management Section */}
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Timer className="h-4 w-4" />
+                    Status Management
+                  </h4>
+                  
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <Label className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2 block">
+                      Update Booking Status
+                    </Label>
+                    <Select 
+                      value={selectedBooking.status}
+                      onValueChange={(status) => {
+                        statusUpdateMutation.mutate({
+                          bookingId: selectedBooking.id,
+                          status
+                        });
+                      }}
+                      disabled={statusUpdateMutation.isPending}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Change status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="assigned">Assigned</SelectItem>
+                        <SelectItem value="collected">Collected</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {statusUpdateMutation.isPending && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Updating status...
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Enhanced Assignment Section */}
                 <div className="space-y-4">
