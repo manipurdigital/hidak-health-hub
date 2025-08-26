@@ -115,6 +115,7 @@ function App() {
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/prescriptions" element={<PrescriptionsPage />} />
                         <Route path="/account" element={<AccountPage />} />
+                        <Route path="/profile" element={<AccountPage />} />
                         <Route path="/order/success/:orderId" element={<OrderSuccessPage />} />
                         <Route path="/lab-booking/success/:bookingId" element={<LabBookingSuccessPage />} />
                         <Route path="/track/:jobType/:jobId/:token" element={<PublicTrackingPage />} />
