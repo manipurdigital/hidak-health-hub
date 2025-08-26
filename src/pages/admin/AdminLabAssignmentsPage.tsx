@@ -25,7 +25,8 @@ import {
   CheckCircle2,
   XCircle,
   Timer,
-  ClipboardList
+  ClipboardList,
+  Edit
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
@@ -495,6 +496,54 @@ export default function AdminLabAssignmentsPage() {
                             <DropdownMenuItem onClick={() => setSelectedBooking(booking)}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                statusUpdateMutation.mutate({
+                                  bookingId: booking.id,
+                                  status: 'pending'
+                                });
+                              }}
+                              disabled={booking.status === 'pending'}
+                            >
+                              <Timer className="h-4 w-4 mr-2" />
+                              Mark as Pending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                statusUpdateMutation.mutate({
+                                  bookingId: booking.id,
+                                  status: 'assigned'
+                                });
+                              }}
+                              disabled={booking.status === 'assigned'}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Mark as Assigned
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                statusUpdateMutation.mutate({
+                                  bookingId: booking.id,
+                                  status: 'collected'
+                                });
+                              }}
+                              disabled={booking.status === 'collected'}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Mark as Collected
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                statusUpdateMutation.mutate({
+                                  bookingId: booking.id,
+                                  status: 'cancelled'
+                                });
+                              }}
+                              disabled={booking.status === 'cancelled'}
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Mark as Cancelled
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
