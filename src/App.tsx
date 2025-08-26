@@ -1,4 +1,3 @@
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
@@ -12,7 +11,10 @@ import { AccessibilityWrapper } from '@/components/AccessibilityWrapper';
 import { SkipLink } from '@/components/SkipLink';
 
 // Layout components
-// Guard components  
+import { AdminLayout } from '@/components/AdminLayout';
+import { CenterLayout } from '@/components/CenterLayout';
+
+// Guard components
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { CenterGuard } from '@/components/CenterGuard';
@@ -26,6 +28,28 @@ import { LabTestDetailPage } from '@/pages/LabTestDetailPage';
 import MedicinesPage from '@/pages/MedicinesPage';
 import { MedicineDetailPage } from '@/pages/MedicineDetailPage';
 import CheckoutPage from '@/pages/CheckoutPage';
+import DashboardPage from '@/pages/DashboardPage';
+
+// Additional public pages
+import FeaturesPage from '@/pages/FeaturesPage';
+import SearchResults from '@/pages/SearchResults';
+import DoctorsPage from '@/pages/DoctorsPage';
+import { DoctorProfilePage } from '@/pages/DoctorProfilePage';
+import WellnessPage from '@/pages/WellnessPage';
+import ReportsPage from '@/pages/ReportsPage';
+import PrescriptionsPage from '@/pages/PrescriptionsPage';
+import AccountPage from '@/pages/AccountPage';
+import { OrderSuccessPage } from '@/pages/OrderSuccessPage';
+import { LabBookingSuccessPage } from '@/pages/LabBookingSuccessPage';
+import PublicTrackingPage from '@/pages/track/PublicTrackingPage';
+import DeliveryPartnerSignupPage from '@/pages/DeliveryPartnerSignupPage';
+import LabSignupPage from '@/pages/LabSignupPage';
+import PharmacySignupPage from '@/pages/PharmacySignupPage';
+import CarePlanPage from '@/pages/CarePlanPage';
+import CareSubscriptionPage from '@/pages/CareSubscriptionPage';
+import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
+import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
+import ConsultationChatPage from '@/pages/ConsultationChatPage';
 
 // Center pages
 import { CenterDashboardPage } from '@/pages/center/CenterDashboardPage';
@@ -43,7 +67,11 @@ import AdminDoctorsPage from '@/pages/admin/AdminDoctorsPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
 import AdminReportsPage from '@/pages/admin/AdminReportsPage';
 import AdminDeliveryPage from '@/pages/admin/AdminDeliveryPage';
-import DashboardPage from '@/pages/DashboardPage';
+
+// Role dashboards
+import { DoctorDashboardPage } from '@/pages/doctor/DoctorDashboardPage';
+import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
+import RiderJobsPage from '@/pages/rider/RiderJobsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,25 +106,53 @@ function App() {
                         <Route path="/medicines/:id" element={<MedicineDetailPage />} />
                         <Route path="/checkout" element={<CheckoutPage />} />
                         
-                        {/* Protected Routes - Admin Only */}
+                        {/* Public feature pages */}
+                        <Route path="/features" element={<FeaturesPage />} />
+                        <Route path="/search" element={<SearchResults />} />
+                        <Route path="/doctors" element={<DoctorsPage />} />
+                        <Route path="/doctors/:id" element={<DoctorProfilePage />} />
+                        <Route path="/wellness" element={<WellnessPage />} />
+                        <Route path="/reports" element={<ReportsPage />} />
+                        <Route path="/prescriptions" element={<PrescriptionsPage />} />
+                        <Route path="/account" element={<AccountPage />} />
+                        <Route path="/order/success/:orderId" element={<OrderSuccessPage />} />
+                        <Route path="/lab-booking/success/:bookingId" element={<LabBookingSuccessPage />} />
+                        <Route path="/track/:jobType/:jobId/:token" element={<PublicTrackingPage />} />
+                        <Route path="/delivery-partner/signup" element={<DeliveryPartnerSignupPage />} />
+                        <Route path="/labs/signup" element={<LabSignupPage />} />
+                        <Route path="/pharmacy/signup" element={<PharmacySignupPage />} />
+                        <Route path="/care-plus" element={<CarePlanPage />} />
+                        <Route path="/care-plus/subscription" element={<CareSubscriptionPage />} />
+                        <Route path="/consult-success/:consultId" element={<ConsultationSuccessPage />} />
+                        <Route path="/consult/:consultId" element={<ConsultationRoomPage />} />
+                        <Route path="/consult/chat/:consultationId" element={<ConsultationChatPage />} />
+
+                        {/* Protected Routes - Role specific */}
                         <Route path="/dashboard" element={<AdminGuard><DashboardPage /></AdminGuard>} />
+                        <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
+                        <Route path="/lab" element={<AuthGuard requiredRole="lab"><LabDashboardPage /></AuthGuard>} />
+                        <Route path="/rider/jobs" element={<AuthGuard requiredRole="rider"><RiderJobsPage /></AuthGuard>} />
 
                         {/* Center Routes */}
-                        <Route path="/center" element={<CenterGuard><div className="min-h-screen w-full bg-background"><div className="p-6"><div className="space-y-6"><h1 className="text-3xl font-bold">Center Dashboard</h1><p>Welcome to your center dashboard.</p></div></div></div></CenterGuard>} />
-                        <Route path="/center/jobs" element={<CenterGuard><CenterJobsPage /></CenterGuard>} />
-                        <Route path="/center/payments" element={<CenterGuard><CenterPaymentsPage /></CenterGuard>} />
-                        <Route path="/center/tracking/lab/:id" element={<CenterGuard><CenterJobTrackingPage /></CenterGuard>} />
+                        <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
+                          <Route index element={<CenterDashboardPage />} />
+                          <Route path="jobs" element={<CenterJobsPage />} />
+                          <Route path="payments" element={<CenterPaymentsPage />} />
+                          <Route path="tracking/lab/:id" element={<CenterJobTrackingPage />} />
+                        </Route>
 
                         {/* Admin Routes */}
-                        <Route path="/admin" element={<AdminGuard><AdminDashboardPage /></AdminGuard>} />
-                        <Route path="/admin/medicines" element={<AdminGuard><AdminMedicinesPage /></AdminGuard>} />
-                        <Route path="/admin/lab-tests" element={<AdminGuard><AdminLabTestsPage /></AdminGuard>} />
-                        <Route path="/admin/lab-assignments" element={<AdminGuard><AdminLabAssignmentsPage /></AdminGuard>} />
-                        <Route path="/admin/lab-payouts" element={<AdminGuard><AdminLabPayoutsPage /></AdminGuard>} />
-                        <Route path="/admin/doctors" element={<AdminGuard><AdminDoctorsPage /></AdminGuard>} />
-                        <Route path="/admin/categories" element={<AdminGuard><AdminCategoriesPage /></AdminGuard>} />
-                        <Route path="/admin/reports" element={<AdminGuard><AdminReportsPage /></AdminGuard>} />
-                        <Route path="/admin/delivery" element={<AdminGuard><AdminDeliveryPage /></AdminGuard>} />
+                        <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+                          <Route index element={<AdminDashboardPage />} />
+                          <Route path="medicines" element={<AdminMedicinesPage />} />
+                          <Route path="lab-tests" element={<AdminLabTestsPage />} />
+                          <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
+                          <Route path="lab-payouts" element={<AdminLabPayoutsPage />} />
+                          <Route path="doctors" element={<AdminDoctorsPage />} />
+                          <Route path="categories" element={<AdminCategoriesPage />} />
+                          <Route path="reports" element={<AdminReportsPage />} />
+                          <Route path="delivery" element={<AdminDeliveryPage />} />
+                        </Route>
 
                         {/* 404 Route */}
                         <Route path="*" element={<NotFound />} />
