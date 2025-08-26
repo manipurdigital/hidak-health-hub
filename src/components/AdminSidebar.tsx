@@ -226,6 +226,14 @@ export function AdminSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/admin/base-locations">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      Base Locations
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </CollapsibleContent>
           </SidebarGroup>

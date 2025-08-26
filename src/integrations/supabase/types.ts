@@ -441,6 +441,62 @@ export type Database = {
           },
         ]
       }
+      delivery_base_locations: {
+        Row: {
+          base_fare: number
+          base_lat: number
+          base_lng: number
+          created_at: string
+          created_by: string | null
+          geofence_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          per_km_fee: number
+          priority: number
+          service_type: string
+          updated_at: string
+        }
+        Insert: {
+          base_fare?: number
+          base_lat: number
+          base_lng: number
+          created_at?: string
+          created_by?: string | null
+          geofence_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          per_km_fee?: number
+          priority?: number
+          service_type?: string
+          updated_at?: string
+        }
+        Update: {
+          base_fare?: number
+          base_lat?: number
+          base_lng?: number
+          created_at?: string
+          created_by?: string | null
+          geofence_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          per_km_fee?: number
+          priority?: number
+          service_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_base_locations_geofence_id_fkey"
+            columns: ["geofence_id"]
+            isOneToOne: false
+            referencedRelation: "geofences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_partner_applications: {
         Row: {
           aadhar_card_url: string | null
@@ -2884,6 +2940,17 @@ export type Database = {
       bytea: {
         Args: { "": unknown } | { "": unknown }
         Returns: string
+      }
+      calc_delivery_fee_from_base: {
+        Args: { p_dest_lat: number; p_dest_lng: number; p_service: string }
+        Returns: {
+          base_id: string
+          base_name: string
+          distance_km: number
+          fee: number
+          geofence_id: string
+          geofence_name: string
+        }[]
       }
       calc_delivery_fee_from_geofence_store: {
         Args: { p_dest_lat: number; p_dest_lng: number }
