@@ -47,6 +47,7 @@ interface LabBooking {
   pickup_address?: any;
   time_slot?: string;
   test_id?: string;
+  test_name?: string;
   diagnostic_centers?: { name: string } | null;
 }
 
@@ -61,7 +62,8 @@ export default function AdminLabAssignmentsPage() {
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['admin-lab-bookings'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch all lab bookings
+      const { data: bookingsData, error: bookingsError } = await supabase
         .from('lab_bookings')
         .select(`
           id,
@@ -80,9 +82,26 @@ export default function AdminLabAssignmentsPage() {
         `)
         .order('booking_date', { ascending: false });
 
-      if (error) throw error;
+      if (bookingsError) throw bookingsError;
+
+      // Get unique test IDs
+      const testIds = [...new Set(bookingsData.map(b => b.test_id).filter(Boolean))];
       
-      return data.map(booking => ({
+      // Fetch test names for those IDs
+      const { data: testsData, error: testsError } = await supabase
+        .from('lab_tests')
+        .select('id, name')
+        .in('id', testIds);
+
+      if (testsError) throw testsError;
+
+      // Create a lookup map for test names
+      const testNameMap = testsData.reduce((acc, test) => {
+        acc[test.id] = test.name;
+        return acc;
+      }, {} as Record<string, string>);
+      
+      return bookingsData.map(booking => ({
         id: booking.id,
         patient_name: booking.patient_name,
         booking_date: booking.booking_date,
@@ -96,6 +115,7 @@ export default function AdminLabAssignmentsPage() {
         pickup_address: booking.pickup_address,
         center_name: booking.diagnostic_centers?.name,
         test_id: booking.test_id,
+        test_name: testNameMap[booking.test_id] || 'Unknown Test',
         diagnostic_centers: booking.diagnostic_centers
       }));
     }
@@ -149,7 +169,7 @@ export default function AdminLabAssignmentsPage() {
     let filtered = bookings.filter(booking => {
       const matchesSearch = booking.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            booking.patient_phone.includes(searchTerm) ||
-                           booking.test_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           booking.test_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            booking.center_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = !statusFilter || statusFilter === 'all' || booking.status === statusFilter;
@@ -489,7 +509,7 @@ export default function AdminLabAssignmentsPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <Label className="text-xs text-muted-foreground">Test</Label>
-                      <p className="font-medium">{selectedBooking.test_id || 'Lab Test'}</p>
+                      <p className="font-medium">{selectedBooking.test_name || 'Unknown Test'}</p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Amount</Label>
@@ -533,7 +553,7 @@ export default function AdminLabAssignmentsPage() {
                             patient_phone: selectedBooking.patient_phone,
                             booking_date: selectedBooking.booking_date,
                             time_slot: selectedBooking.time_slot || '',
-                            test_name: selectedBooking.test_id
+                            test_name: selectedBooking.test_name
                           }}
                           pickupLocation={{
                             lat: selectedBooking.pickup_lat,
