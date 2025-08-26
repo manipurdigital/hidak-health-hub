@@ -3,7 +3,8 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   SidebarProvider, 
-  SidebarTrigger 
+  SidebarTrigger,
+  SidebarInset 
 } from "@/components/ui/sidebar";
 import { AdminSidebar } from './AdminSidebar';
 import { Button } from '@/components/ui/button';
@@ -35,9 +36,10 @@ export function AdminLayout() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full bg-background">
+      <AdminSidebar />
+      <SidebarInset>
         {/* Top Bar */}
-        <header className="fixed top-0 left-0 right-0 h-14 bg-background border-b border-border z-50 flex items-center justify-between px-4">
+        <header className="sticky top-0 h-14 bg-background border-b border-border z-50 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <h1 className="text-lg font-semibold text-foreground">Admin Panel</h1>
@@ -63,19 +65,13 @@ export function AdminLayout() {
           </div>
         </header>
 
-        {/* Main Layout with Sidebar */}
-        <div className="flex pt-14">
-          {/* Sidebar */}
-          <AdminSidebar />
-
-          {/* Main Content */}
-          <main className="flex-1">
-            <div className="p-6">
-              <Outlet />
-            </div>
-          </main>
-        </div>
-      </div>
+        {/* Main Content */}
+        <main className="flex-1">
+          <div className="p-6">
+            <Outlet />
+          </div>
+        </main>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
