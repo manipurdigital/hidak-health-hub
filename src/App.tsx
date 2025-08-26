@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ServiceabilityProvider } from '@/contexts/ServiceabilityContext';
@@ -121,6 +121,7 @@ function App() {
                         <Route path="/profile" element={<AccountPage />} />
                         <Route path="/order/success/:orderId" element={<OrderSuccessPage />} />
                         <Route path="/lab-booking/success/:bookingId" element={<LabBookingSuccessPage />} />
+                        <Route path="/lab-booking-success/:bookingId" element={<Navigate to="/lab-booking/success/:bookingId" replace />} />
                         <Route path="/track/:jobType/:jobId/:token" element={<PublicTrackingPage />} />
                         <Route path="/delivery-partner/signup" element={<DeliveryPartnerSignupPage />} />
                         <Route path="/labs/signup" element={<LabSignupPage />} />
