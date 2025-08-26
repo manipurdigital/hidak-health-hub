@@ -150,262 +150,203 @@ export const useUpdateRider = () => {
   });
 };
 
-// Hooks for Delivery Jobs - Commented out until tables are created
-// export const useDeliveryJobs = () => {
-//   return useQuery({
-//     queryKey: ['delivery-jobs'],
-//     queryFn: async () => {
-//       const { data, error } = await supabase
-//         .from('delivery_jobs')
-//         .select(`
-//           *,
-//           rider:riders(*),
-//           order:orders(*)
-//         `)
-//         .order('created_at', { ascending: false });
+// Hooks for Delivery Jobs
+export const useDeliveryJobs = () => {
+  return useQuery({
+    queryKey: ['delivery-jobs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('delivery_jobs' as any)
+        .select('*')
+        .order('created_at', { ascending: false });
       
-//       if (error) throw error;
-//       return data as DeliveryJob[];
-//     },
-//   });
-// };
+      if (error) throw error;
+      return data as unknown as DeliveryJob[];
+    },
+  });
+};
 
-// export const useDeliveryJobsByStatus = (status: DeliveryJob['status']) => {
-//   return useQuery({
-//     queryKey: ['delivery-jobs', 'status', status],
-//     queryFn: async () => {
-//       const { data, error } = await supabase
-//         .from('delivery_jobs')
-//         .select(`
-//           *,
-//           rider:riders(*),
-//           order:orders(*)
-//         `)
-//         .eq('status', status)
-//         .order('created_at', { ascending: false });
+export const useDeliveryJobsByStatus = (status: DeliveryJob['status']) => {
+  return useQuery({
+    queryKey: ['delivery-jobs', 'status', status],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('delivery_jobs' as any)
+        .select('*')
+        .eq('status', status)
+        .order('created_at', { ascending: false });
       
-//       if (error) throw error;
-//       return data as DeliveryJob[];
-//     },
-//   });
-// };
+      if (error) throw error;
+      return data as unknown as DeliveryJob[];
+    },
+  });
+};
 
-// export const useRiderJobs = (riderId: string) => {
-//   return useQuery({
-//     queryKey: ['delivery-jobs', 'rider', riderId],
-//     queryFn: async () => {
-//       const { data, error } = await supabase
-//         .from('delivery_jobs')
-//         .select(`
-//           *,
-//           order:orders(*)
-//         `)
-//         .eq('rider_id', riderId)
-//         .order('created_at', { ascending: false });
+export const useRiderJobs = (riderId: string) => {
+  return useQuery({
+    queryKey: ['delivery-jobs', 'rider', riderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('delivery_jobs' as any)
+        .select('*')
+        .eq('rider_id', riderId)
+        .order('created_at', { ascending: false });
       
-//       if (error) throw error;
-//       return data as DeliveryJob[];
-//     },
-//     enabled: !!riderId,
-//   });
-// };
+      if (error) throw error;
+      return data as unknown as DeliveryJob[];
+    },
+    enabled: !!riderId,
+  });
+};
 
-// export const useAssignDeliveryJob = () => {
-//   const { toast } = useToast();
-//   const queryClient = useQueryClient();
+export const useUpdateDeliveryJob = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-//   return useMutation({
-//     mutationFn: async ({ jobId, riderId, estimatedDeliveryTime }: {
-//       jobId: string;
-//       riderId: string;
-//       estimatedDeliveryTime?: string;
-//     }) => {
-//       const { error } = await supabase.rpc('assign_delivery_job', {
-//         p_job_id: jobId,
-//         p_rider_id: riderId,
-//         p_estimated_delivery_time: estimatedDeliveryTime,
-//       });
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<DeliveryJob> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('delivery_jobs' as any)
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
       
-//       if (error) throw error;
-//     },
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ['delivery-jobs'] });
-//       toast({
-//         title: 'Success',
-//         description: 'Delivery job assigned successfully',
-//       });
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: 'Error',
-//         description: error.message,
-//         variant: 'destructive',
-//       });
-//     },
-//   });
-// };
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-jobs'] });
+      toast({
+        title: 'Success',
+        description: 'Delivery job updated successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
 
-// export const useUpdateDeliveryStatus = () => {
-//   const { toast } = useToast();
-//   const queryClient = useQueryClient();
+export const useCreateDeliveryJob = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-//   return useMutation({
-//     mutationFn: async ({ jobId, status, notes }: {
-//       jobId: string;
-//       status: string;
-//       notes?: string;
-//     }) => {
-//       const { error } = await supabase.rpc('update_delivery_status', {
-//         p_job_id: jobId,
-//         p_status: status,
-//         p_notes: notes,
-//       });
+  return useMutation({
+    mutationFn: async (job: Omit<DeliveryJob, 'id' | 'created_at' | 'updated_at' | 'rider'>) => {
+      const { data, error } = await supabase
+        .from('delivery_jobs' as any)
+        .insert(job)
+        .select()
+        .single();
       
-//       if (error) throw error;
-//     },
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ['delivery-jobs'] });
-//       toast({
-//         title: 'Success',
-//         description: 'Delivery status updated successfully',
-//       });
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: 'Error',
-//         description: error.message,
-//         variant: 'destructive',
-//       });
-//     },
-//   });
-// };
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['delivery-jobs'] });
+      toast({
+        title: 'Success',
+        description: 'Delivery job created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
 
-// export const useCreateDeliveryJobForOrder = () => {
-//   const { toast } = useToast();
-//   const queryClient = useQueryClient();
+// Hooks for Rider Shifts
+export const useRiderShifts = (riderId?: string) => {
+  return useQuery({
+    queryKey: ['rider-shifts', riderId],
+    queryFn: async () => {
+      let query = supabase
+        .from('rider_shifts' as any)
+        .select('*')
+        .order('shift_date', { ascending: false });
 
-//   return useMutation({
-//     mutationFn: async ({ orderId, pickupAddress, deliveryAddress, deliveryFee, distanceKm }: {
-//       orderId: string;
-//       pickupAddress: any;
-//       deliveryAddress: any;
-//       deliveryFee?: number;
-//       distanceKm?: number;
-//     }) => {
-//       const { data, error } = await supabase.rpc('create_delivery_job_for_order', {
-//         p_order_id: orderId,
-//         p_pickup_address: pickupAddress,
-//         p_delivery_address: deliveryAddress,
-//         p_delivery_fee: deliveryFee || 0,
-//         p_distance_km: distanceKm,
-//       });
+      if (riderId) {
+        query = query.eq('rider_id', riderId);
+      }
       
-//       if (error) throw error;
-//       return data;
-//     },
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ['delivery-jobs'] });
-//       toast({
-//         title: 'Success',
-//         description: 'Delivery job created successfully',
-//       });
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: 'Error',
-//         description: error.message,
-//         variant: 'destructive',
-//       });
-//     },
-//   });
-// };
-
-// Hooks for Rider Shifts - Commented out until tables are created
-// export const useRiderShifts = (riderId?: string) => {
-//   return useQuery({
-//     queryKey: ['rider-shifts', riderId],
-//     queryFn: async () => {
-//       let query = supabase
-//         .from('rider_shifts')
-//         .select(`
-//           *,
-//           rider:riders(*)
-//         `)
-//         .order('shift_date', { ascending: false });
-
-//       if (riderId) {
-//         query = query.eq('rider_id', riderId);
-//       }
+      const { data, error } = await query;
       
-//       const { data, error } = await query;
+      if (error) throw error;
+      return data as unknown as RiderShift[];
+    },
+  });
+};
+
+export const useCreateRiderShift = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (shift: Omit<RiderShift, 'id' | 'created_at' | 'updated_at' | 'rider'>) => {
+      const { data, error } = await supabase
+        .from('rider_shifts' as any)
+        .insert(shift)
+        .select()
+        .single();
       
-//       if (error) throw error;
-//       return data as RiderShift[];
-//     },
-//   });
-// };
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rider-shifts'] });
+      toast({
+        title: 'Success',
+        description: 'Rider shift created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
 
-// export const useCreateRiderShift = () => {
-//   const { toast } = useToast();
-//   const queryClient = useQueryClient();
+export const useUpdateRiderShift = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-//   return useMutation({
-//     mutationFn: async (shift: Omit<RiderShift, 'id' | 'created_at' | 'updated_at' | 'rider'>) => {
-//       const { data, error } = await supabase
-//         .from('rider_shifts')
-//         .insert(shift)
-//         .select()
-//         .single();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<RiderShift> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('rider_shifts' as any)
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
       
-//       if (error) throw error;
-//       return data;
-//     },
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ['rider-shifts'] });
-//       toast({
-//         title: 'Success',
-//         description: 'Rider shift created successfully',
-//       });
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: 'Error',
-//         description: error.message,
-//         variant: 'destructive',
-//       });
-//     },
-//   });
-// };
-
-// export const useUpdateRiderShift = () => {
-//   const { toast } = useToast();
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: async ({ id, ...updates }: Partial<RiderShift> & { id: string }) => {
-//       const { data, error } = await supabase
-//         .from('rider_shifts')
-//         .update(updates)
-//         .eq('id', id)
-//         .select()
-//         .single();
-      
-//       if (error) throw error;
-//       return data;
-//     },
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ['rider-shifts'] });
-//       toast({
-//         title: 'Success',
-//         description: 'Rider shift updated successfully',
-//       });
-//     },
-//     onError: (error) => {
-//       toast({
-//         title: 'Error',
-//         description: error.message,
-//         variant: 'destructive',
-//       });
-//     },
-//   });
-// };
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rider-shifts'] });
+      toast({
+        title: 'Success',
+        description: 'Rider shift updated successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
