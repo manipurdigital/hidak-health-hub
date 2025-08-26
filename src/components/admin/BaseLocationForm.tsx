@@ -20,7 +20,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
   const [formData, setFormData] = useState({
     name: '',
     service_type: 'delivery',
-    geofence_id: '',
+    geofence_id: 'none',
     base_lat: 0,
     base_lng: 0,
     base_fare: 0,
@@ -40,7 +40,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
       setFormData({
         name: baseLocation.name || '',
         service_type: baseLocation.service_type || 'delivery',
-        geofence_id: baseLocation.geofence_id || '',
+        geofence_id: baseLocation.geofence_id || 'none',
         base_lat: baseLocation.base_lat || 0,
         base_lng: baseLocation.base_lng || 0,
         base_fare: baseLocation.base_fare || 0,
@@ -52,7 +52,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
       setFormData({
         name: '',
         service_type: 'delivery',
-        geofence_id: '',
+        geofence_id: 'none',
         base_lat: 0,
         base_lng: 0,
         base_fare: 0,
@@ -70,7 +70,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
     try {
       const submitData = {
         ...formData,
-        geofence_id: formData.geofence_id || undefined,
+        geofence_id: formData.geofence_id === 'none' ? undefined : formData.geofence_id,
       };
 
       if (isEditing && baseLocation) {
@@ -157,7 +157,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
                 <SelectValue placeholder="Select geofence (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {/* Note: Would need to fetch geofences here */}
               </SelectContent>
             </Select>
