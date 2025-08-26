@@ -36,6 +36,7 @@ import AdminDoctorsPage from "./pages/admin/AdminDoctorsPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { LabDashboardPage } from "./pages/lab/LabDashboardPage";
 import { DoctorDashboardPage } from "./pages/doctor/DoctorDashboardPage";
+import RiderJobsPage from "./pages/rider/RiderJobsPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ReportsPage from "./pages/ReportsPage";
 import ConsultationChatPage from "./pages/ConsultationChatPage";
@@ -159,6 +160,9 @@ const App = () => (
               
               {/* Doctor Routes - Doctor role required */}
               <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
+              
+              {/* Rider Routes - Rider role required */}
+              <Route path="/rider/jobs" element={<AuthGuard requiredRole="rider"><RiderJobsPage /></AuthGuard>} />
               
               {/* Center Routes - Center role required */}
               <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
