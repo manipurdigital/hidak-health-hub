@@ -2741,7 +2741,9 @@ export type Database = {
         Returns: string
       }
       admin_assign_rider: {
-        Args: { p_order_id: string; p_rider_id: string }
+        Args:
+          | { p_order_id: string; p_rider_id: string }
+          | { p_order_number: string; p_rider_code: string }
         Returns: undefined
       }
       admin_build_maps_message: {
@@ -2764,6 +2766,10 @@ export type Database = {
           total_orders: number
           total_revenue: number
         }[]
+      }
+      admin_set_delivery_status: {
+        Args: { p_order_number: string; p_status: string }
+        Returns: undefined
       }
       admin_set_lab_geofences: {
         Args: { p_center_id: string; p_geofence_ids: string[] }
@@ -3944,6 +3950,14 @@ export type Database = {
           orders: number
           revenue: number
         }[]
+      }
+      rider_complete: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      rider_start: {
+        Args: { p_order_id: string }
+        Returns: undefined
       }
       search_medicines_brand_or_composition: {
         Args: { max_rows?: number; q: string }
