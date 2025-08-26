@@ -24,9 +24,9 @@ import Index from '@/pages/Index';
 import AuthPage from '@/pages/AuthPage';
 import NotFound from '@/pages/NotFound';
 import LabTestsPage from '@/pages/LabTestsPage';
-import LabTestDetailPage from '@/pages/LabTestDetailPage';
+import { LabTestDetailPage } from '@/pages/LabTestDetailPage';
 import MedicinesPage from '@/pages/MedicinesPage';
-import MedicineDetailPage from '@/pages/MedicineDetailPage';
+import { MedicineDetailPage } from '@/pages/MedicineDetailPage';
 import CheckoutPage from '@/pages/CheckoutPage';
 
 // Center pages
@@ -39,7 +39,7 @@ import CenterJobTrackingPage from '@/pages/center/CenterJobTrackingPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminLabTestsPage from '@/pages/admin/AdminLabTestsPage';
 import AdminLabAssignmentsPage from '@/pages/admin/AdminLabAssignmentsPage';
-import AdminLabPayoutsPage from '@/pages/admin/AdminLabPayoutsPage';
+import { AdminLabPayoutsPage } from '@/pages/admin/AdminLabPayoutsPage';
 import AdminMedicinesPage from '@/pages/admin/AdminMedicinesPage';
 import AdminDoctorsPage from '@/pages/admin/AdminDoctorsPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';

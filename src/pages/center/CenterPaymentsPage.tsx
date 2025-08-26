@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DollarSign, Calendar, ChevronDown, ChevronRight, Clock, CheckCircle } from 'lucide-react';
@@ -140,7 +140,7 @@ export function CenterPaymentsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {payoutBatches.map((batch) => (
+              {payoutBatches.map((batch: any) => (
                 <PayoutBatchCard key={batch.id} batch={batch} fetchItems={fetchPayoutItems} />
               ))}
             </div>
@@ -159,6 +159,20 @@ function PayoutBatchCard({ batch, fetchItems }: { batch: any; fetchItems: (batch
     queryFn: () => fetchItems(batch.id),
     enabled: isOpen
   });
+
+  const getBatchStatusBadge = (status: string) => {
+    return status === 'paid' ? (
+      <Badge className="bg-green-100 text-green-800">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        Paid
+      </Badge>
+    ) : (
+      <Badge className="bg-yellow-100 text-yellow-800">
+        <Clock className="w-3 h-3 mr-1" />
+        Pending
+      </Badge>
+    );
+  };
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -214,7 +228,7 @@ function PayoutBatchCard({ batch, fetchItems }: { batch: any; fetchItems: (batch
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((item) => (
+                    {items.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.lab_bookings?.patient_name}</TableCell>
                         <TableCell>

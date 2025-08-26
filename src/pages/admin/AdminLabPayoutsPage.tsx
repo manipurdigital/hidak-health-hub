@@ -11,10 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { DollarSign, Plus, CheckCircle, Clock, FileText } from 'lucide-react';
+import { DollarSign, Plus, CheckCircle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-export default function AdminLabPayoutsPage() {
+export function AdminLabPayoutsPage() {
   const [selectedCenter, setSelectedCenter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -223,7 +223,7 @@ export default function AdminLabPayoutsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {batches.map((batch) => (
+                {batches.map((batch: any) => (
                   <TableRow key={batch.id}>
                     <TableCell className="font-mono text-sm">
                       #{batch.id.slice(-8)}
