@@ -31,6 +31,7 @@ import { toast } from '@/hooks/use-toast';
 import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 
 interface LabBooking {
   id: string;
