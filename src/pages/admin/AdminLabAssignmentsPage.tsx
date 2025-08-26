@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,11 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  MapPin, 
-  Map, 
   ExternalLink, 
   UserCheck, 
   Search, 
@@ -28,11 +24,10 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  Timer
+  Timer,
+  ClipboardList
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { GoogleMap, Polygon, useJsApiLoader } from '@react-google-maps/api';
-import { DeliveryMap } from '@/components/delivery/DeliveryMap';
 import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
@@ -54,41 +49,12 @@ interface LabBooking {
   diagnostic_centers?: { name: string } | null;
 }
 
-interface Geofence {
-  id: string;
-  name: string;
-  polygon_coordinates: any;
-  center_id: string;
-  service_type: string;
-  is_active: boolean;
-  center_name?: string;
-}
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '400px'
-};
-
-const center = {
-  lat: 28.6139,
-  lng: 77.2090
-};
-
-const libraries: ["places", "geometry", "drawing"] = ["places", "geometry", "drawing"];
-
 export default function AdminLabAssignmentsPage() {
   const [selectedBooking, setSelectedBooking] = useState<LabBooking | null>(null);
-  const [showGeofenceOverlay, setShowGeofenceOverlay] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const queryClient = useQueryClient();
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries
-  });
 
   // Fetch lab bookings
   const { data: bookings = [], isLoading } = useQuery({
@@ -147,34 +113,6 @@ export default function AdminLabAssignmentsPage() {
       if (error) throw error;
       return data;
     }
-  });
-
-  // Fetch geofences for overlay (reference only)
-  const { data: geofences = [] } = useQuery({
-    queryKey: ['lab-geofences'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('geofences')
-        .select(`
-          id,
-          name,
-          polygon_coordinates,
-          center_id,
-          service_type,
-          is_active,
-          diagnostic_centers(name)
-        `)
-        .eq('service_type', 'lab')
-        .eq('is_active', true);
-
-      if (error) throw error;
-      
-      return data.map(geofence => ({
-        ...geofence,
-        center_name: geofence.diagnostic_centers?.name
-      }));
-    },
-    enabled: showGeofenceOverlay
   });
 
   // Manual assignment mutation
@@ -246,15 +184,6 @@ export default function AdminLabAssignmentsPage() {
     }
   };
 
-  const getGeofenceColor = (centerId: string) => {
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
-    const hash = centerId.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    return colors[Math.abs(hash) % colors.length];
-  };
-
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -306,33 +235,20 @@ export default function AdminLabAssignmentsPage() {
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="geofence-overlay"
-              checked={showGeofenceOverlay}
-              onCheckedChange={setShowGeofenceOverlay}
-            />
-            <Label htmlFor="geofence-overlay" className="text-sm font-medium">
-              Show Service Areas
-            </Label>
-          </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-lab-bookings'] })}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
           
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-lab-bookings'] })}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-          </div>
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
         </div>
       </div>
 
@@ -531,10 +447,6 @@ export default function AdminLabAssignmentsPage() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setSelectedBooking(booking)}>
-                              <MapPin className="h-4 w-4 mr-2" />
-                              Show on Map
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -546,11 +458,11 @@ export default function AdminLabAssignmentsPage() {
           </CardContent>
         </Card>
 
-        {/* Enhanced Assignment Details and Map */}
+        {/* Enhanced Assignment Details */}
         <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Map className="h-5 w-5" />
+              <ClipboardList className="h-5 w-5" />
               <span>Assignment Details</span>
             </CardTitle>
           </CardHeader>
@@ -657,13 +569,6 @@ export default function AdminLabAssignmentsPage() {
                         </p>
                       </div>
                     )}
-
-                    <DeliveryMap
-                      lat={selectedBooking.pickup_lat}
-                      lng={selectedBooking.pickup_lng}
-                      address={selectedBooking.pickup_address}
-                      className="h-40 rounded-lg"
-                    />
                   </div>
                 ) : (
                   <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -760,55 +665,11 @@ export default function AdminLabAssignmentsPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-96 text-center">
-                <Map className="h-16 w-16 text-muted-foreground mb-4" />
+                <ClipboardList className="h-16 w-16 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Select a booking</h3>
                 <p className="text-muted-foreground text-sm max-w-sm">
                   Choose a lab booking from the list to view details and manage assignments.
                 </p>
-              </div>
-            )}
-
-            {/* Google Map */}
-            {isLoaded && (
-              <div className="mt-6">
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={center}
-                  zoom={10}
-                  options={{
-                    styles: [
-                      {
-                        featureType: "all",
-                        elementType: "geometry.fill",
-                        stylers: [{ saturation: -10 }]
-                      }
-                    ]
-                  }}
-                >
-                  {showGeofenceOverlay && geofences.map((geofence) => {
-                    const polygonData = geofence.polygon_coordinates as any;
-                    const coordinates = polygonData?.coordinates?.[0]?.map((coord: number[]) => ({
-                      lat: coord[1],
-                      lng: coord[0]
-                    }));
-
-                    if (!coordinates) return null;
-
-                    return (
-                      <Polygon
-                        key={geofence.id}
-                        paths={coordinates}
-                        options={{
-                          fillColor: getGeofenceColor(geofence.center_id),
-                          fillOpacity: 0.2,
-                          strokeColor: getGeofenceColor(geofence.center_id),
-                          strokeOpacity: 0.8,
-                          strokeWeight: 2
-                        }}
-                      />
-                    );
-                  })}
-                </GoogleMap>
               </div>
             )}
           </CardContent>
