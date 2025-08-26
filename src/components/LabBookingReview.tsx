@@ -342,6 +342,9 @@ const { toast } = useToast();
             <span>Total Amount</span>
             <span>₹{labTest.price}</span>
           </div>
+          <p className="text-sm text-muted-foreground mt-3">
+            * Additional home collection charges applicable. One of our lab partner will call you & confirm the order.
+          </p>
         </CardContent>
       </Card>
 

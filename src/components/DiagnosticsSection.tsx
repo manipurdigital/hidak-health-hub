@@ -317,6 +317,10 @@ const DiagnosticsSection = () => {
                   </div>
                 </div>
 
+                <p className="text-sm text-muted-foreground">
+                  * Additional home collection charges applicable. One of our lab partner will call you & confirm the order.
+                </p>
+
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
