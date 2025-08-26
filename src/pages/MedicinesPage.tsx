@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingMedicinesCarousel } from '@/components/TrendingMedicinesCarousel';
+import { FeatureGuard } from '@/components/FeatureGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -335,7 +336,9 @@ const MedicinesPage = () => {
           )}
 
           {/* Trending medicines carousel */}
-          <TrendingMedicinesCarousel className="mb-12" />
+          <FeatureGuard feature="SHOW_TRENDING_MEDICINES">
+            <TrendingMedicinesCarousel className="mb-12" />
+          </FeatureGuard>
 
           {/* Search and filters */}
           <div className="bg-card p-6 rounded-xl shadow-sm border mb-12">

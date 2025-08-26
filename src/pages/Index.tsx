@@ -33,9 +33,11 @@ const HomePage = () => {
       <Header />
       <main>
         <HeroSection />
-        <div className="container mx-auto px-4 py-8">
-          <TrendingMedicinesCarousel />
-        </div>
+        <FeatureGuard feature="SHOW_TRENDING_MEDICINES">
+          <div className="container mx-auto px-4 py-8">
+            <TrendingMedicinesCarousel />
+          </div>
+        </FeatureGuard>
         <ServicesSection />
         <PharmacySection />
         <DiagnosticsSection />
