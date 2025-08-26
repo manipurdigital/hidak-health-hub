@@ -19,7 +19,7 @@ const HomePage = () => {
   // Redirect admins to their dashboard
   useEffect(() => {
     if (!loading && user && (userRole === 'admin' || userRole === 'analyst')) {
-      navigate('/admin/dashboard', { replace: true });
+      navigate('/admin', { replace: true });
     }
   }, [user, userRole, loading, navigate]);
 
