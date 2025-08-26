@@ -9,8 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Store, MapPin, Edit, Trash2, MapPinned } from 'lucide-react';
+import { Store, MapPin, Edit, Trash2, MapPinned, Eye, Phone, Mail, MapIcon } from 'lucide-react';
 import GeofenceSelector from '@/components/admin/GeofenceSelector';
 import { LatLngDisplay } from '@/components/LatLngDisplay';
 
@@ -19,6 +21,11 @@ interface StoreForm {
   name: string;
   is_active: boolean;
   address?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
 }
 
 export default function AdminStoresPage() {
@@ -32,6 +39,7 @@ export default function AdminStoresPage() {
   
   const [editingStore, setEditingStore] = useState<string | null>(null);
   const [selectedGeofences, setSelectedGeofences] = useState<string[]>([]);
+  const [viewingStore, setViewingStore] = useState<any>(null);
   
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
@@ -128,6 +136,31 @@ export default function AdminStoresPage() {
     }
   });
 
+  // Toggle store status mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ storeId, isActive }: { storeId: string; isActive: boolean }) => {
+      const { error } = await supabase
+        .from('stores')
+        .update({ is_active: isActive })
+        .eq('id', storeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Store status updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['stores'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update store status",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Delete store mutation
   const deleteStoreMutation = useMutation({
     mutationFn: async (storeId: string) => {
@@ -215,7 +248,12 @@ export default function AdminStoresPage() {
       id: store.id,
       name: store.name,
       is_active: store.is_active,
-      address: store.address
+      address: store.address,
+      phone: store.phone,
+      email: store.email,
+      city: store.city,
+      state: store.state,
+      pincode: store.pincode
     });
     setEditingStore(store.id);
     // Reset location when editing
@@ -241,6 +279,10 @@ export default function AdminStoresPage() {
 
   const handleDelete = (storeId: string) => {
     deleteStoreMutation.mutate(storeId);
+  };
+
+  const handleToggleStatus = (storeId: string, currentStatus: boolean) => {
+    toggleStatusMutation.mutate({ storeId, isActive: !currentStatus });
   };
 
   const handleLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
@@ -345,6 +387,58 @@ export default function AdminStoresPage() {
                   value={form.address || ''}
                   onChange={(e) => setForm(prev => ({ ...prev, address: e.target.value }))}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    placeholder="Enter phone number"
+                    value={form.phone || ''}
+                    onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter email address"
+                    value={form.email || ''}
+                    onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="Enter city"
+                    value={form.city || ''}
+                    onChange={(e) => setForm(prev => ({ ...prev, city: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    placeholder="Enter state"
+                    value={form.state || ''}
+                    onChange={(e) => setForm(prev => ({ ...prev, state: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pincode">Pincode</Label>
+                  <Input
+                    id="pincode"
+                    placeholder="Enter pincode"
+                    value={form.pincode || ''}
+                    onChange={(e) => setForm(prev => ({ ...prev, pincode: e.target.value }))}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -465,11 +559,17 @@ export default function AdminStoresPage() {
                 {stores.map((store, index) => (
                   <div key={store.id}>
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{store.name}</h4>
+                      <div className="flex-1 cursor-pointer" onClick={() => setViewingStore(store)}>
+                        <h4 className="font-medium hover:text-primary">{store.name}</h4>
                         <p className="text-sm text-muted-foreground">Code: {store.code}</p>
                         {store.address && (
                           <p className="text-xs text-muted-foreground">{store.address}</p>
+                        )}
+                        {store.phone && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {store.phone}
+                          </p>
                         )}
                         {(store.lat && store.lng) && (
                           <LatLngDisplay 
@@ -482,13 +582,116 @@ export default function AdminStoresPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          store.is_active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {store.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={store.is_active}
+                            onCheckedChange={() => handleToggleStatus(store.id, store.is_active)}
+                            disabled={toggleStatusMutation.isPending}
+                          />
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            store.is_active 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {store.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewingStore(store)}
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <Store className="h-5 w-5" />
+                                Store Details - {store.name}
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                              <div className="space-y-3">
+                                <div>
+                                  <Label className="text-sm font-medium">Store Name</Label>
+                                  <p className="text-sm">{store.name}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-sm font-medium">Store Code</Label>
+                                  <p className="text-sm font-mono">{store.code}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-sm font-medium">Status</Label>
+                                  <span className={`inline-block text-xs px-2 py-1 rounded ${
+                                    store.is_active 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {store.is_active ? 'Active' : 'Inactive'}
+                                  </span>
+                                </div>
+                                {store.phone && (
+                                  <div>
+                                    <Label className="text-sm font-medium flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      Phone
+                                    </Label>
+                                    <p className="text-sm">{store.phone}</p>
+                                  </div>
+                                )}
+                                {store.email && (
+                                  <div>
+                                    <Label className="text-sm font-medium flex items-center gap-1">
+                                      <Mail className="h-3 w-3" />
+                                      Email
+                                    </Label>
+                                    <p className="text-sm">{store.email}</p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="space-y-3">
+                                {store.address && (
+                                  <div>
+                                    <Label className="text-sm font-medium flex items-center gap-1">
+                                      <MapIcon className="h-3 w-3" />
+                                      Address
+                                    </Label>
+                                    <p className="text-sm">{store.address}</p>
+                                  </div>
+                                )}
+                                {(store.city || store.state || store.pincode) && (
+                                  <div>
+                                    <Label className="text-sm font-medium">Location Details</Label>
+                                    <div className="text-sm space-y-1">
+                                      {store.city && <p>City: {store.city}</p>}
+                                      {store.state && <p>State: {store.state}</p>}
+                                      {store.pincode && <p>Pincode: {store.pincode}</p>}
+                                    </div>
+                                  </div>
+                                )}
+                                {(store.lat && store.lng) && (
+                                  <div>
+                                    <Label className="text-sm font-medium">Coordinates</Label>
+                                    <LatLngDisplay 
+                                      latitude={store.lat} 
+                                      longitude={store.lng} 
+                                      variant="detailed"
+                                      showCopyButton={true}
+                                      className="mt-1"
+                                    />
+                                  </div>
+                                )}
+                                <div>
+                                  <Label className="text-sm font-medium">Created</Label>
+                                  <p className="text-sm">{new Date(store.created_at).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                         <Button
                           size="sm"
                           variant="outline"
