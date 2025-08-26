@@ -5,6 +5,18 @@ import { Toaster } from '@/components/ui/toaster';
 import AuthPage from '@/pages/AuthPage';
 import Index from '@/pages/Index';
 import AccountPage from '@/pages/AccountPage';
+import MedicinesPage from '@/pages/MedicinesPage';
+import { MedicineDetailPage } from '@/pages/MedicineDetailPage';
+import LabTestsPage from '@/pages/LabTestsPage';
+import { LabTestDetailPage } from '@/pages/LabTestDetailPage';
+import ReportsPage from '@/pages/ReportsPage';
+import PrescriptionsPage from '@/pages/PrescriptionsPage';
+import DoctorsPage from '@/pages/DoctorsPage';
+import DoctorProfilePage from '@/pages/DoctorProfilePage';
+import WellnessPage from '@/pages/WellnessPage';
+import CheckoutPage from '@/pages/CheckoutPage';
+import { OrderSuccessPage } from '@/pages/OrderSuccessPage';
+import NotFound from '@/pages/NotFound';
 import { AdminGuard } from '@/components/auth/AdminGuard';
 import { AdminLayoutWrapper } from '@/components/AdminLayoutWrapper';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
@@ -55,6 +67,19 @@ function App() {
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/" element={<Index />} />
                   <Route path="/profile" element={<AccountPage />} />
+                  
+                  {/* Public Routes */}
+                  <Route path="/medicines" element={<MedicinesPage />} />
+                  <Route path="/medicines/:id" element={<MedicineDetailPage />} />
+                  <Route path="/lab-tests" element={<LabTestsPage />} />
+                  <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/prescriptions" element={<PrescriptionsPage />} />
+                  <Route path="/doctors" element={<DoctorsPage />} />
+                  <Route path="/doctors/:id" element={<DoctorProfilePage />} />
+                  <Route path="/wellness" element={<WellnessPage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
+                  <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
 
                   {/* Admin Routes */}
                   <Route
@@ -316,7 +341,10 @@ function App() {
                         </AdminLayoutWrapper>
                       </AdminGuard>
                     }
-                  />
+                   />
+                   
+                   {/* Catch all route - must be last */}
+                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
                   </SubscriptionProvider>
