@@ -154,7 +154,7 @@ const { toast } = useToast();
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
               });
-              navigate(`/lab-booking-success/${result.id}`);
+              navigate(`/lab-booking/success/${result.id}`);
             } catch (e) {
               toast({
                 title: 'Payment Verification Failed',
@@ -181,7 +181,7 @@ const { toast } = useToast();
         });
       } else {
         // Pay Later
-        navigate(`/lab-booking-success/${result.id}`);
+        navigate(`/lab-booking/success/${result.id}`);
       }
     } catch (error: any) {
       console.error('Booking error:', error);
