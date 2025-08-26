@@ -15,7 +15,7 @@ import AdminStoresPage from '@/pages/admin/AdminStoresPage';
 import AdminLabTestsPage from '@/pages/admin/AdminLabTestsPage';
 import Labs from '@/pages/admin/Labs';
 import AdminLabAssignmentsPage from '@/pages/admin/AdminLabAssignmentsPage';
-import { AdminLabPayoutsPage } from '@/pages/admin/AdminLabPayoutsPage';
+import AdminLabPayoutsPage from '@/pages/admin/AdminLabPayoutsPage';
 import AdminDeliveryPage from '@/pages/admin/AdminDeliveryPage';
 import AdminDeliveryAssignmentsPage from '@/pages/admin/AdminDeliveryAssignmentsPage';
 import AdminTrackingPage from '@/pages/admin/AdminTrackingPage';

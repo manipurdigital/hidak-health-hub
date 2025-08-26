@@ -339,3 +339,5 @@ export function AdminLabPayoutsPage() {
     </div>
   );
 }
+
+export default AdminLabPayoutsPage;
