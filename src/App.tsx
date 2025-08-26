@@ -24,7 +24,7 @@ import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
 import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
 import DashboardPage from '@/pages/DashboardPage';
-import { DoctorDashboardPage } from '@/pages/doctor/DoctorDashboardPage';
+import DoctorDashboardPage from '@/pages/doctor/DoctorDashboardPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import AdminMedicinesPage from '@/pages/admin/AdminMedicinesPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
@@ -54,6 +54,10 @@ import { CartProvider } from '@/contexts/CartContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
+
+// Doctor components
+import { DoctorGuard } from '@/components/auth/DoctorGuard';
+import DoctorAvailabilityPage from '@/pages/doctor/DoctorAvailabilityPage';
 
 function App() {
   const queryClient = new QueryClient();
@@ -105,10 +109,17 @@ function App() {
                       <DashboardPage />
                     </AuthGuard>
                   } />
+                  
+                  {/* Doctor Routes */}
                   <Route path="/doctor" element={
-                    <AuthGuard>
+                    <DoctorGuard>
                       <DoctorDashboardPage />
-                    </AuthGuard>
+                    </DoctorGuard>
+                  } />
+                  <Route path="/doctor/availability" element={
+                    <DoctorGuard>
+                      <DoctorAvailabilityPage />
+                    </DoctorGuard>
                   } />
                   
                   <Route path="/checkout" element={

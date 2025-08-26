@@ -3415,6 +3415,13 @@ export type Database = {
           | { p_lat: number; p_lng: number; service_type: string }
         Returns: Json[]
       }
+      get_booked_slots: {
+        Args: { doctor_id_param: string; end_date: string; start_date: string }
+        Returns: {
+          consultation_date: string
+          time_slot: string
+        }[]
+      }
       get_cached_recommendations: {
         Args: {
           at_ts: string

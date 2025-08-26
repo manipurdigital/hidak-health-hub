@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,13 +55,14 @@ interface Prescription {
   };
 }
 
-export const DoctorDashboardPage = () => {
+export default function DoctorDashboardPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
   const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Get doctor info
@@ -318,34 +320,13 @@ export const DoctorDashboardPage = () => {
           <p className="text-muted-foreground">Manage consultations and patient care</p>
         </div>
         <div className="flex items-center space-x-4">
-          <Dialog open={isAvailabilityOpen} onOpenChange={setIsAvailabilityOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Calendar className="h-4 w-4 mr-2" />
-                Manage Slots
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Manage Availability</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                {availability.map((slot) => (
-                  <div key={slot.id} className="flex items-center justify-between p-3 border rounded">
-                    <div>
-                      <div className="font-medium">{getDayName(slot.day_of_week)}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {slot.start_time} - {slot.end_time}
-                      </div>
-                    </div>
-                    <Badge variant={slot.is_active ? "default" : "outline"}>
-                      {slot.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            onClick={() => navigate('/doctor/availability')}
+            variant="outline"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Manage Availability
+          </Button>
         </div>
       </div>
 

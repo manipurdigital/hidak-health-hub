@@ -41,7 +41,7 @@ export const useDoctorAvailability = (doctorId: string) => {
   });
 };
 
-// Generate available slots for next 5 days
+// Generate available slots for next 14 days, filtering out booked slots
 export const useAvailableSlots = (doctorId: string, availability: any[]) => {
   return useQuery({
     queryKey: ['available-slots', doctorId, availability],
@@ -56,15 +56,28 @@ export const useAvailableSlots = (doctorId: string, availability: any[]) => {
       }> = [];
 
       const today = new Date();
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 14);
       
-      // Generate next 5 days
-      for (let i = 1; i <= 5; i++) {
+      // Get booked slots for the next 14 days
+      const { data: bookedSlots = [] } = await supabase.rpc('get_booked_slots', {
+        doctor_id_param: doctorId,
+        start_date: today.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0]
+      });
+
+      const bookedSlotsSet = new Set(
+        bookedSlots.map((slot: any) => `${slot.consultation_date}_${slot.time_slot}`)
+      );
+      
+      // Generate slots for next 14 days
+      for (let i = 1; i <= 14; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
         const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
         // Find doctor's availability for this day
-        const dayAvailability = availability.find(av => av.day_of_week === dayOfWeek);
+        const dayAvailability = availability.find(av => av.day_of_week === dayOfWeek && av.is_active);
         
         if (dayAvailability) {
           // Generate 30-minute slots between start and end time
@@ -76,12 +89,14 @@ export const useAvailableSlots = (doctorId: string, availability: any[]) => {
           while (currentTime < endTime) {
             const timeString = currentTime.toTimeString().slice(0, 5);
             const datetime = `${date.toISOString().split('T')[0]}T${timeString}:00`;
+            const dateStr = date.toISOString().split('T')[0];
+            const slotKey = `${dateStr}_${timeString}`;
             
-            // Check if slot is not in the past
+            // Check if slot is not in the past and not already booked
             const slotDateTime = new Date(datetime);
-            if (slotDateTime > new Date()) {
+            if (slotDateTime > new Date() && !bookedSlotsSet.has(slotKey)) {
               slots.push({
-                date: date.toISOString().split('T')[0],
+                date: dateStr,
                 time: timeString,
                 datetime: datetime,
                 dayOfWeek: dayOfWeek,
@@ -93,8 +108,6 @@ export const useAvailableSlots = (doctorId: string, availability: any[]) => {
           }
         }
       }
-
-      // TODO: Filter out already booked slots from consultations table
       
       return slots;
     },
