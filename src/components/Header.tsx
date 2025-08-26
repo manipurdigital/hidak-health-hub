@@ -67,7 +67,7 @@ const Header = () => {
 
   const handleProfile = () => {
     if (user) {
-      navigate("/dashboard");
+      navigate("/profile");
     } else {
       navigate("/auth");
     }
