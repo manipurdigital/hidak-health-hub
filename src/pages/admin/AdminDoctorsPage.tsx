@@ -19,13 +19,20 @@ import {
   Edit,
   Trash2,
   Stethoscope,
-  Star
+  Star,
+  UserPlus,
+  Link,
+  KeyRound,
+  Shield,
+  ShieldCheck,
+  Mail
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
 interface Doctor {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  contact_email: string | null;
   full_name: string;
   specialization: string;
   qualification: string;
@@ -92,12 +99,9 @@ const AdminDoctorsPage = () => {
 
   const handleAddDoctor = async (formData: FormData) => {
     try {
-      // First create a dummy user entry or get the current admin's user_id
-      // For this demo, we'll use a placeholder - in real implementation you'd create a proper user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
       const doctorData = {
-        user_id: currentUser?.id || '',
+        user_id: null, // Will be linked later when account is created
+        contact_email: formData.get('contact_email') as string,
         full_name: formData.get('full_name') as string,
         specialization: formData.get('specialization') as string,
         qualification: formData.get('qualification') as string,
@@ -120,7 +124,7 @@ const AdminDoctorsPage = () => {
 
       toast({
         title: "Success",
-        description: "Doctor added successfully"
+        description: "Doctor added successfully. You can now create their account."
       });
 
       setIsAddDialogOpen(false);
@@ -129,6 +133,117 @@ const AdminDoctorsPage = () => {
       toast({
         title: "Error",
         description: "Failed to add doctor",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCreateAccount = async (doctor: Doctor) => {
+    if (!doctor.contact_email) {
+      toast({
+        title: "Error",
+        description: "Contact email is required to create an account",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: doctor.contact_email,
+        password: Math.random().toString(36).slice(-12), // Random temporary password
+        email_confirm: true,
+        user_metadata: {
+          full_name: doctor.full_name,
+          role: 'doctor'
+        }
+      });
+
+      if (authError) throw authError;
+
+      // Update doctor with user_id
+      const { error: updateError } = await supabase
+        .from('doctors')
+        .update({ user_id: authData.user.id })
+        .eq('id', doctor.id);
+
+      if (updateError) throw updateError;
+
+      // Set user role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: 'doctor'
+        });
+
+      if (roleError) throw roleError;
+
+      toast({
+        title: "Success",
+        description: `Account created for ${doctor.full_name}. They will receive login credentials via email.`
+      });
+
+      fetchDoctors();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create account",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSendPasswordReset = async (doctor: Doctor) => {
+    if (!doctor.contact_email) {
+      toast({
+        title: "Error",
+        description: "Contact email is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(doctor.contact_email, {
+        redirectTo: `${window.location.origin}/auth`
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Password reset email sent to ${doctor.contact_email}`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send password reset",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleToggleVerification = async (doctor: Doctor) => {
+    try {
+      const { error } = await supabase
+        .from('doctors')
+        .update({ is_verified: !doctor.is_verified })
+        .eq('id', doctor.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Doctor ${doctor.is_verified ? 'unverified' : 'verified'} successfully`
+      });
+
+      fetchDoctors();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update verification status",
         variant: "destructive"
       });
     }
@@ -270,6 +385,10 @@ const AdminDoctorsPage = () => {
                     const formData = new FormData(e.currentTarget);
                     handleAddDoctor(formData);
                   }} className="space-y-4">
+                    <div>
+                      <Label htmlFor="contact_email">Contact Email</Label>
+                      <Input id="contact_email" name="contact_email" type="email" required />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="full_name">Full Name</Label>
@@ -349,9 +468,9 @@ const AdminDoctorsPage = () => {
                         <tr className="border-b text-left">
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Doctor</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Specialization</th>
+                          <th className="pb-3 text-sm font-medium text-muted-foreground">Account</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Experience</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Fee</th>
-                          <th className="pb-3 text-sm font-medium text-muted-foreground">Rating</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Status</th>
                           <th className="pb-3 text-sm font-medium text-muted-foreground">Actions</th>
                         </tr>
@@ -363,26 +482,76 @@ const AdminDoctorsPage = () => {
                               <div>
                                 <div className="font-medium">{doctor.full_name}</div>
                                 <div className="text-sm text-muted-foreground">{doctor.qualification}</div>
+                                {doctor.contact_email && (
+                                  <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                    <Mail className="w-3 h-3" />
+                                    {doctor.contact_email}
+                                  </div>
+                                )}
                               </div>
                             </td>
                             <td className="py-4 text-muted-foreground">{doctor.specialization}</td>
-                            <td className="py-4">{doctor.experience_years} years</td>
-                            <td className="py-4">₹{doctor.consultation_fee}</td>
                             <td className="py-4">
-                              <div className="flex items-center gap-1">
-                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span>{doctor.rating.toFixed(1)}</span>
-                                <span className="text-muted-foreground text-sm">({doctor.review_count})</span>
+                              <div className="space-y-2">
+                                {doctor.user_id ? (
+                                  <div className="space-y-1">
+                                    <Badge variant="default" className="text-xs">
+                                      <User className="w-3 h-3 mr-1" />
+                                      Linked
+                                    </Badge>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleSendPasswordReset(doctor)}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        <KeyRound className="w-3 h-3 mr-1" />
+                                        Reset
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1">
+                                    <Badge variant="secondary" className="text-xs">
+                                      <UserPlus className="w-3 h-3 mr-1" />
+                                      No Account
+                                    </Badge>
+                                    {doctor.contact_email && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleCreateAccount(doctor)}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        <UserPlus className="w-3 h-3 mr-1" />
+                                        Create
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </td>
+                            <td className="py-4">{doctor.experience_years} years</td>
+                            <td className="py-4">₹{doctor.consultation_fee}</td>
                             <td className="py-4">
                               <div className="space-y-1">
                                 <Badge variant={doctor.is_available ? "default" : "secondary"}>
                                   {doctor.is_available ? "Available" : "Unavailable"}
                                 </Badge>
-                                <Badge variant={doctor.is_verified ? "default" : "destructive"}>
-                                  {doctor.is_verified ? "Verified" : "Unverified"}
-                                </Badge>
+                                <div className="flex items-center gap-1">
+                                  <Badge 
+                                    variant={doctor.is_verified ? "default" : "destructive"}
+                                    className="cursor-pointer"
+                                    onClick={() => handleToggleVerification(doctor)}
+                                  >
+                                    {doctor.is_verified ? (
+                                      <><ShieldCheck className="w-3 h-3 mr-1" />Verified</>
+                                    ) : (
+                                      <><Shield className="w-3 h-3 mr-1" />Unverified</>
+                                    )}
+                                  </Badge>
+                                </div>
                               </div>
                             </td>
                             <td className="py-4">
