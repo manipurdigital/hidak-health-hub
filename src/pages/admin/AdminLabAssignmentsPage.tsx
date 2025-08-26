@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,13 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, Map, ExternalLink, UserCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { GoogleMap, Polygon, useJsApiLoader } from '@react-google-maps/api';
 import { DeliveryMap } from '@/components/delivery/DeliveryMap';
 import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
-import { LatLngDisplay } from '@/components/LatLngDisplay';
 
 interface LabBooking {
   id: string;
@@ -25,7 +24,6 @@ interface LabBooking {
   total_amount: number;
   patient_phone: string;
   center_name?: string;
-  assignment_reason?: string;
   pickup_lat?: number;
   pickup_lng?: number;
   pickup_address?: any;
@@ -124,7 +122,7 @@ export default function AdminLabAssignmentsPage() {
     }
   });
 
-  // Fetch geofences for overlay
+  // Fetch geofences for overlay (reference only)
   const { data: geofences = [] } = useQuery({
     queryKey: ['lab-geofences'],
     queryFn: async () => {
@@ -180,7 +178,6 @@ export default function AdminLabAssignmentsPage() {
     }
   });
 
-
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'pending': return 'secondary';
@@ -208,14 +205,14 @@ export default function AdminLabAssignmentsPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Lab Assignments</h1>
+        <h1 className="text-3xl font-bold">Lab Assignment Management</h1>
         <div className="flex items-center space-x-2">
           <Switch
             id="geofence-overlay"
             checked={showGeofenceOverlay}
             onCheckedChange={setShowGeofenceOverlay}
           />
-          <Label htmlFor="geofence-overlay">Show Geofences</Label>
+          <Label htmlFor="geofence-overlay">Show Service Areas</Label>
         </div>
       </div>
 
@@ -268,12 +265,12 @@ export default function AdminLabAssignmentsPage() {
           </CardContent>
         </Card>
 
-        {/* Map and Details */}
+        {/* Assignment Details and Map */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Map className="h-5 w-5" />
-              <span>Assignment Map</span>
+              <span>Manual Assignment</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -363,11 +360,11 @@ export default function AdminLabAssignmentsPage() {
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground p-3 bg-amber-50 rounded border border-amber-200">
-                    No pickup location data available for this booking. This booking was created before location tracking was implemented.
+                    No pickup location data available for this booking.
                   </div>
                 )}
 
-                {/* Assignment Section */}
+                {/* Manual Assignment Section */}
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm">Manual Assignment</h4>
                   
@@ -395,7 +392,6 @@ export default function AdminLabAssignmentsPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                      
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -403,14 +399,37 @@ export default function AdminLabAssignmentsPage() {
                         <UserCheck className="h-4 w-4 text-green-600" />
                         <span>Assigned to: {selectedBooking.center_name}</span>
                       </div>
+                      <Select 
+                        value=""
+                        onValueChange={(centerId) => {
+                          if (centerId && centerId !== selectedBooking.center_id) {
+                            assignMutation.mutate({
+                              bookingId: selectedBooking.id,
+                              centerId
+                            });
+                          }
+                        }}
+                        disabled={assignMutation.isPending}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Reassign to different center" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {diagnosticCenters.filter(c => c.id !== selectedBooking.center_id).map((center) => (
+                            <SelectItem key={center.id} value={center.id}>
+                              {center.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                   
-                    {assignMutation.isPending && (
-                      <div className="text-sm text-muted-foreground">
-                        Processing assignment...
-                      </div>
-                    )}
+                  {assignMutation.isPending && (
+                    <div className="text-sm text-muted-foreground">
+                      Processing assignment...
+                    </div>
+                  )}
                 </div>
               </div>
             )}

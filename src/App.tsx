@@ -1,199 +1,224 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ServiceabilityProvider } from '@/contexts/ServiceabilityContext';
+import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
+import { CartProvider } from '@/contexts/CartContext';
+import { ConsentManager } from '@/components/ConsentManager';
+import { AccessibilityWrapper } from '@/components/AccessibilityWrapper';
+import { SkipLink } from '@/components/SkipLink';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { CartProvider } from "@/contexts/CartContext";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
-import { ServiceabilityProvider } from "@/contexts/ServiceabilityContext";
-import { SupportChatWidget } from "@/components/support/SupportChatWidget";
-import { FeatureGuard } from "@/components/FeatureGuard";
-import { AuthGuard, PublicRoute, GuestRoute } from "@/components/auth/AuthGuard";
-import { AdminLayout } from "@/components/AdminLayout";
-import { CenterLayout } from "@/components/CenterLayout";
-import { CenterGuard } from "@/components/CenterGuard";
-import { AdminAnalyticsDashboard } from "./pages/admin/AdminAnalyticsDashboard";
-import AdminReportsPage from "./pages/admin/AdminReportsPage";
-import AdminTrackingPage from "./pages/admin/AdminTrackingPage";
-import Index from "./pages/Index";
-import MedicinesPage from "./pages/MedicinesPage";
-import LabTestsPage from "./pages/LabTestsPage";
-import LabSignupPage from "./pages/LabSignupPage";
-import PharmacySignupPage from "./pages/PharmacySignupPage";
-import DeliveryPartnerSignupPage from "./pages/DeliveryPartnerSignupPage";
-import DoctorsPage from "./pages/DoctorsPage";
-import WellnessPage from "./pages/WellnessPage";
-import CarePlanPage from "./pages/CarePlanPage";
-import AuthPage from "./pages/AuthPage";
-import DashboardPage from "./pages/DashboardPage";
-import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
-import AdminMedicinesPage from "./pages/admin/AdminMedicinesPage";
-import AdminLabTestsPage from "./pages/admin/AdminLabTestsPage";
-import AdminDoctorsPage from "./pages/admin/AdminDoctorsPage";
-import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
-import { LabDashboardPage } from "./pages/lab/LabDashboardPage";
-import { DoctorDashboardPage } from "./pages/doctor/DoctorDashboardPage";
-import RiderJobsPage from "./pages/rider/RiderJobsPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import ReportsPage from "./pages/ReportsPage";
-import ConsultationChatPage from "./pages/ConsultationChatPage";
-import PrescriptionsPage from "./pages/PrescriptionsPage";
-import CareSubscriptionPage from "./pages/CareSubscriptionPage";
-import NotFound from "./pages/NotFound";
-import { MedicineDetailPage } from "./pages/MedicineDetailPage";
-import { OrderSuccessPage } from "./pages/OrderSuccessPage";
-import { LabTestDetailPage } from "./pages/LabTestDetailPage";
-import { LabBookingSuccessPage } from "./pages/LabBookingSuccessPage";
-import { DoctorProfilePage } from "./pages/DoctorProfilePage";
-import { ConsultationSuccessPage } from "./pages/ConsultationSuccessPage";
-import { ConsultationRoomPage } from "./pages/ConsultationRoomPage";
-import { CenterDashboardPage } from "./pages/center/CenterDashboardPage";
-import { CenterJobsPage } from "./pages/center/CenterJobsPage";
-import CenterJobTrackingPage from "./pages/center/CenterJobTrackingPage";
-import PublicTrackingPage from "./pages/track/PublicTrackingPage";
-import AdminGeofencingPage from "./pages/admin/AdminGeofencingPage";
-import AdminLocationsPage from "./pages/admin/AdminLocationsPage";
-import AdminLabAssignmentsPage from "./pages/admin/AdminLabAssignmentsPage";
-import AdminDeliveryAssignmentsPage from "./pages/admin/AdminDeliveryAssignmentsPage";
-import AdminDeliveryPlaygroundPage from "./pages/admin/AdminDeliveryPlaygroundPage";
-import AccountPage from "./pages/AccountPage";
-import FeaturesPage from "./pages/FeaturesPage";
-import SearchResults from "./pages/SearchResults";
-import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
-import AdminRLSAuditPage from "./pages/admin/AdminRLSAuditPage";
-import AdminTrackingTestPage from "./pages/admin/AdminTrackingTestPage";
-import AdminPaymentReconciliationPage from "./pages/admin/AdminPaymentReconciliationPage";
-import AdminPerformancePage from "./pages/admin/AdminPerformancePage";
-import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
-import AdminPartnerApplicationsPage from "./pages/admin/AdminPartnerApplicationsPage";
-import AdminStoresPage from "./pages/admin/AdminStoresPage";
-import Labs from "./pages/admin/Labs";
-import AdminSchemaExportPage from "./pages/admin/AdminSchemaExportPage";
-import AdminCodeExportPage from "./pages/admin/AdminCodeExportPage";
-import AdminBackupRestorePage from "./pages/admin/AdminBackupRestorePage";
+// Layout components
+import { MainLayout } from '@/components/MainLayout';
+import { AdminLayout } from '@/components/AdminLayout';
+import { CenterLayout } from '@/components/CenterLayout';
 
-const queryClient = new QueryClient();
+// Guard components
+import { AdminGuard } from '@/components/AdminGuard';
+import { CenterGuard } from '@/components/CenterGuard';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <GoogleMapsProvider>
+// Public pages
+import { HomePage } from '@/pages/HomePage';
+import { LoginPage } from '@/pages/LoginPage';
+import { SignupPage } from '@/pages/SignupPage';
+import { AboutPage } from '@/pages/AboutPage';
+import { ContactPage } from '@/pages/ContactPage';
+import { PrivacyPage } from '@/pages/PrivacyPage';
+import { TermsPage } from '@/pages/TermsPage';
+import { RefundPage } from '@/pages/RefundPage';
+import { ShippingPage } from '@/pages/ShippingPage';
+import { FaqPage } from '@/pages/FaqPage';
+import { CareersPage } from '@/pages/CareersPage';
+import { PressPage } from '@/pages/PressPage';
+import { PartnersPage } from '@/pages/PartnersPage';
+import { InvestorsPage } from '@/pages/InvestorsPage';
+import { BlogPage } from '@/pages/BlogPage';
+import { BlogPostPage } from '@/pages/BlogPostPage';
+import { SitemapPage } from '@/pages/SitemapPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
+
+// Service pages
+import { LabTestsPage } from '@/pages/LabTestsPage';
+import { LabTestDetailPage } from '@/pages/LabTestDetailPage';
+import { MedicinesPage } from '@/pages/MedicinesPage';
+import { MedicineDetailPage } from '@/pages/MedicineDetailPage';
+import { ConsultationPage } from '@/pages/ConsultationPage';
+import { DoctorDetailPage } from '@/pages/DoctorDetailPage';
+import { HealthPackagesPage } from '@/pages/HealthPackagesPage';
+import { HealthPackageDetailPage } from '@/pages/HealthPackageDetailPage';
+
+// User pages
+import { ProfilePage } from '@/pages/ProfilePage';
+import { OrdersPage } from '@/pages/OrdersPage';
+import { OrderDetailPage } from '@/pages/OrderDetailPage';
+import { CartPage } from '@/pages/CartPage';
+import { CheckoutPage } from '@/pages/CheckoutPage';
+import { PaymentSuccessPage } from '@/pages/PaymentSuccessPage';
+import { PaymentFailurePage } from '@/pages/PaymentFailurePage';
+import { SubscriptionPage } from '@/pages/SubscriptionPage';
+import { WishlistPage } from '@/pages/WishlistPage';
+import { AddressesPage } from '@/pages/AddressesPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
+import { HealthRecordsPage } from '@/pages/HealthRecordsPage';
+import { FamilyMembersPage } from '@/pages/FamilyMembersPage';
+import { PrescriptionUploadPage } from '@/pages/PrescriptionUploadPage';
+
+// Center pages
+import { CenterDashboardPage } from '@/pages/center/CenterDashboardPage';
+import { CenterJobsPage } from '@/pages/center/CenterJobsPage';
+import { CenterPaymentsPage } from '@/pages/center/CenterPaymentsPage';
+import { CenterJobTrackingPage } from '@/pages/center/CenterJobTrackingPage';
+
+// Admin pages
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminOrdersPage } from '@/pages/admin/AdminOrdersPage';
+import { AdminMedicinesPage } from '@/pages/admin/AdminMedicinesPage';
+import { AdminLabTestsPage } from '@/pages/admin/AdminLabTestsPage';
+import AdminLabAssignmentsPage from '@/pages/admin/AdminLabAssignmentsPage';
+import AdminLabPayoutsPage from '@/pages/admin/AdminLabPayoutsPage';
+import { AdminDoctorsPage } from '@/pages/admin/AdminDoctorsPage';
+import { AdminHealthPackagesPage } from '@/pages/admin/AdminHealthPackagesPage';
+import { AdminCategoriesPage } from '@/pages/admin/AdminCategoriesPage';
+import { AdminInventoryPage } from '@/pages/admin/AdminInventoryPage';
+import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage';
+import { AdminCentersPage } from '@/pages/admin/AdminCentersPage';
+import { AdminGeofencesPage } from '@/pages/admin/AdminGeofencesPage';
+import { AdminDeliveryPage } from '@/pages/admin/AdminDeliveryPage';
+import { AdminNotificationsPage } from '@/pages/admin/AdminNotificationsPage';
+import { AdminAnalyticsPage } from '@/pages/admin/AdminAnalyticsPage';
+import { AdminContentPage } from '@/pages/admin/AdminContentPage';
+import { AdminPromotionsPage } from '@/pages/admin/AdminPromotionsPage';
+import { AdminSubscriptionsPage } from '@/pages/admin/AdminSubscriptionsPage';
+import { AdminPaymentsPage } from '@/pages/admin/AdminPaymentsPage';
+import { AdminSupportPage } from '@/pages/admin/AdminSupportPage';
+import { AdminLogsPage } from '@/pages/admin/AdminLogsPage';
+import { AdminBackupPage } from '@/pages/admin/AdminBackupPage';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <ServiceabilityProvider>
-          <AuthProvider>
+          <GoogleMapsProvider>
             <SubscriptionProvider>
               <CartProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-            
-            <div id="main-content">
-            <Routes>
-              {/* Public Routes - No authentication required */}
-              <Route path="/" element={<Index />} />
-              <Route path="/features" element={<FeaturesPage />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/medicines" element={<MedicinesPage />} />
-              <Route path="/medicines/:id" element={<MedicineDetailPage />} />
-              <Route path="/medicine/:id" element={<MedicineDetailPage />} /> {/* Handle singular route for search results */}
-              <Route path="/lab-tests" element={<LabTestsPage />} />
-              <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
-        <Route path="/lab-signup" element={<LabSignupPage />} />
-        <Route path="/pharmacy-signup" element={<PharmacySignupPage />} />
-        <Route path="/delivery-partner-signup" element={<DeliveryPartnerSignupPage />} />
-              <Route path="/doctors" element={<DoctorsPage />} />
-              <Route path="/doctors/:id" element={<DoctorProfilePage />} />
-              <Route path="/wellness" element={<WellnessPage />} />
-              {/* <Route path="/care-plan" element={<CarePlanPage />} /> */}
-              
-              {/* Guest Only Routes - Redirect authenticated users */}
-              <Route path="/auth" element={<GuestRoute><AuthPage /></GuestRoute>} />
-              
-              {/* Protected Routes - Authentication required */}
-              <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
-              <Route path="/account" element={<AuthGuard><AccountPage /></AuthGuard>} />
-              <Route path="/checkout" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
-              <Route path="/reports" element={<AuthGuard><ReportsPage /></AuthGuard>} />
-              <Route path="/prescriptions" element={<AuthGuard><PrescriptionsPage /></AuthGuard>} />
-              {/* <Route path="/care-plus" element={<AuthGuard><CareSubscriptionPage /></AuthGuard>} /> */}
-              
-              {/* Consultation Routes - Authentication required */}
-              <Route path="/consultation/:consultationId" element={<AuthGuard><ConsultationChatPage /></AuthGuard>} />
-              <Route path="/consult/:consultId" element={<AuthGuard><ConsultationRoomPage /></AuthGuard>} />
-              <Route path="/consult-success/:consultId" element={<AuthGuard><ConsultationSuccessPage /></AuthGuard>} />
-              
-              {/* Success Pages - Authentication required */}
-              <Route path="/order-success/:orderId" element={<AuthGuard><OrderSuccessPage /></AuthGuard>} />
-              <Route path="/lab-booking-success/:bookingId" element={<AuthGuard><LabBookingSuccessPage /></AuthGuard>} />
-              
-              {/* Admin Routes - Admin role required */}
-              <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminLayout /></AuthGuard>}>
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="dashboard" element={<AdminAnalyticsDashboard />} />
-                <Route path="reports" element={<AdminReportsPage />} />
-                <Route path="tracking" element={<AdminTrackingPage />} />
-                <Route path="geofencing" element={<AdminGeofencingPage />} />
-                <Route path="locations" element={<AdminLocationsPage />} />
-                <Route path="medicines" element={<AdminMedicinesPage />} />
-                <Route path="lab-tests" element={<AdminLabTestsPage />} />
-                <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
-                <Route path="delivery-assignments" element={<AdminDeliveryAssignmentsPage />} />
-                <Route path="delivery-playground" element={<AdminDeliveryPlaygroundPage />} />
-                <Route path="users" element={<AdminUsersPage />} />
-                <Route path="doctors" element={<AdminDoctorsPage />} />
-                <Route path="settings/security" element={<AdminSecurityPage />} />
-                <Route path="security/rls-audit" element={<AdminRLSAuditPage />} />
-                <Route path="tracking-test" element={<AdminTrackingTestPage />} />
-                <Route path="reports/reconciliation" element={<AdminPaymentReconciliationPage />} />
-                <Route path="analytics/perf" element={<AdminPerformancePage />} />
-                <Route path="categories" element={<AdminCategoriesPage />} />
-                <Route path="partner-applications" element={<AdminPartnerApplicationsPage />} />
-                <Route path="stores" element={<AdminStoresPage />} />
-                <Route path="labs" element={<Labs />} />
-                <Route path="schema-export" element={<AdminSchemaExportPage />} />
-                <Route path="code-export" element={<AdminCodeExportPage />} />
-                <Route path="backup-restore" element={<AdminBackupRestorePage />} />
-              </Route>
-              
-              {/* Lab Routes - Lab role required */}
-              <Route path="/lab" element={<AuthGuard requiredRole="lab"><LabDashboardPage /></AuthGuard>} />
-              
-              {/* Doctor Routes - Doctor role required */}
-              <Route path="/doctor" element={<AuthGuard requiredRole="doctor"><DoctorDashboardPage /></AuthGuard>} />
-              
-              {/* Rider Routes - Rider role required */}
-              <Route path="/rider/jobs" element={<AuthGuard requiredRole="rider"><RiderJobsPage /></AuthGuard>} />
-              
-              {/* Center Routes - Center role required */}
-              <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
-                <Route index element={<Navigate to="/center/dashboard" replace />} />
-                <Route path="dashboard" element={<CenterDashboardPage />} />
-                <Route path="jobs" element={<CenterJobsPage />} />
-                <Route path="tracking/:jobType/:jobId" element={<CenterJobTrackingPage />} />
-              </Route>
-              
-              {/* Public Tracking Routes - No authentication required */}
-              <Route path="/track/:jobType/:jobId/:token" element={<PublicTrackingPage />} />
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            
-            {/* Support Chat Widget - Available site-wide except admin pages */}
-            <FeatureGuard feature="ENABLE_SUPPORT_CHAT">
-              <SupportChatWidget />
-            </FeatureGuard>
-            </div>
-          </BrowserRouter>
+                <BrowserRouter>
+                  <div className="min-h-screen bg-background font-sans antialiased">
+                    <ConsentManager />
+                    <AccessibilityWrapper>
+                      <SkipLink />
+                      <Toaster />
+                      <Routes>
+                        {/* Public Routes */}
+                        <Route path="/" element={<MainLayout />}>
+                          <Route index element={<HomePage />} />
+                          <Route path="login" element={<LoginPage />} />
+                          <Route path="signup" element={<SignupPage />} />
+                          <Route path="about" element={<AboutPage />} />
+                          <Route path="contact" element={<ContactPage />} />
+                          <Route path="privacy" element={<PrivacyPage />} />
+                          <Route path="terms" element={<TermsPage />} />
+                          <Route path="refund" element={<RefundPage />} />
+                          <Route path="shipping" element={<ShippingPage />} />
+                          <Route path="faq" element={<FaqPage />} />
+                          <Route path="careers" element={<CareersPage />} />
+                          <Route path="press" element={<PressPage />} />
+                          <Route path="partners" element={<PartnersPage />} />
+                          <Route path="investors" element={<InvestorsPage />} />
+                          <Route path="blog" element={<BlogPage />} />
+                          <Route path="blog/:slug" element={<BlogPostPage />} />
+                          <Route path="sitemap" element={<SitemapPage />} />
+                          
+                          {/* Service Routes */}
+                          <Route path="lab-tests" element={<LabTestsPage />} />
+                          <Route path="lab-tests/:id" element={<LabTestDetailPage />} />
+                          <Route path="medicines" element={<MedicinesPage />} />
+                          <Route path="medicines/:id" element={<MedicineDetailPage />} />
+                          <Route path="consultation" element={<ConsultationPage />} />
+                          <Route path="doctors/:id" element={<DoctorDetailPage />} />
+                          <Route path="health-packages" element={<HealthPackagesPage />} />
+                          <Route path="health-packages/:id" element={<HealthPackageDetailPage />} />
+                          
+                          {/* User Routes */}
+                          <Route path="profile" element={<ProfilePage />} />
+                          <Route path="orders" element={<OrdersPage />} />
+                          <Route path="orders/:id" element={<OrderDetailPage />} />
+                          <Route path="cart" element={<CartPage />} />
+                          <Route path="checkout" element={<CheckoutPage />} />
+                          <Route path="payment/success" element={<PaymentSuccessPage />} />
+                          <Route path="payment/failure" element={<PaymentFailurePage />} />
+                          <Route path="subscription" element={<SubscriptionPage />} />
+                          <Route path="wishlist" element={<WishlistPage />} />
+                          <Route path="addresses" element={<AddressesPage />} />
+                          <Route path="notifications" element={<NotificationsPage />} />
+                          <Route path="health-records" element={<HealthRecordsPage />} />
+                          <Route path="family-members" element={<FamilyMembersPage />} />
+                          <Route path="prescription-upload" element={<PrescriptionUploadPage />} />
+                        </Route>
+
+                        {/* Center Routes */}
+                        <Route path="/center" element={<CenterGuard><CenterLayout /></CenterGuard>}>
+                          <Route index element={<CenterDashboardPage />} />
+                          <Route path="jobs" element={<CenterJobsPage />} />
+                          <Route path="payments" element={<CenterPaymentsPage />} />
+                          <Route path="tracking/lab/:id" element={<CenterJobTrackingPage />} />
+                        </Route>
+
+                        {/* Admin Routes */}
+                        <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+                          <Route index element={<AdminDashboardPage />} />
+                          <Route path="users" element={<AdminUsersPage />} />
+                          <Route path="orders" element={<AdminOrdersPage />} />
+                          <Route path="medicines" element={<AdminMedicinesPage />} />
+                          <Route path="lab-tests" element={<AdminLabTestsPage />} />
+                          <Route path="lab-assignments" element={<AdminLabAssignmentsPage />} />
+                          <Route path="lab-payouts" element={<AdminLabPayoutsPage />} />
+                          <Route path="doctors" element={<AdminDoctorsPage />} />
+                          <Route path="health-packages" element={<AdminHealthPackagesPage />} />
+                          <Route path="categories" element={<AdminCategoriesPage />} />
+                          <Route path="inventory" element={<AdminInventoryPage />} />
+                          <Route path="reports" element={<AdminReportsPage />} />
+                          <Route path="settings" element={<AdminSettingsPage />} />
+                          <Route path="centers" element={<AdminCentersPage />} />
+                          <Route path="geofences" element={<AdminGeofencesPage />} />
+                          <Route path="delivery" element={<AdminDeliveryPage />} />
+                          <Route path="notifications" element={<AdminNotificationsPage />} />
+                          <Route path="analytics" element={<AdminAnalyticsPage />} />
+                          <Route path="content" element={<AdminContentPage />} />
+                          <Route path="promotions" element={<AdminPromotionsPage />} />
+                          <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+                          <Route path="payments" element={<AdminPaymentsPage />} />
+                          <Route path="support" element={<AdminSupportPage />} />
+                          <Route path="logs" element={<AdminLogsPage />} />
+                          <Route path="backup" element={<AdminBackupPage />} />
+                        </Route>
+
+                        {/* 404 Route */}
+                        <Route path="*" element={<NotFoundPage />} />
+                      </Routes>
+                    </AccessibilityWrapper>
+                  </div>
+                </BrowserRouter>
               </CartProvider>
             </SubscriptionProvider>
-          </AuthProvider>
+          </GoogleMapsProvider>
         </ServiceabilityProvider>
-      </GoogleMapsProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

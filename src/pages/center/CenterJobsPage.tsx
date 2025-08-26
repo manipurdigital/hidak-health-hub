@@ -1,12 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Clock, 
   MapPin, 
@@ -17,11 +15,14 @@ import {
   Truck,
   AlertCircle,
   FileText,
-  Navigation
+  Navigation,
+  ExternalLink
 } from 'lucide-react';
 import { useCenterBookings, useUpdateLabBooking } from '@/hooks/center-hooks';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { DeliveryMap } from '@/components/delivery/DeliveryMap';
+import { WhatsAppShareButton } from '@/components/WhatsAppShareButton';
 
 export function CenterJobsPage() {
   const { data: bookings = [], isLoading, refetch } = useCenterBookings();
@@ -155,13 +156,102 @@ export function CenterJobsPage() {
     return bookings.filter(booking => booking.status === status);
   };
 
+  const renderPickupLocation = (booking: any) => {
+    if (!booking.pickup_lat || !booking.pickup_lng) {
+      return (
+        <div className="text-sm text-muted-foreground p-3 bg-amber-50 rounded border border-amber-200">
+          <div className="flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-amber-600 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800">Location Data Unavailable</p>
+              <p className="text-amber-600">Please contact patient for exact pickup address</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-2">
+          <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Pickup Location</p>
+            <div className="text-xs text-muted-foreground mb-2">
+              {booking.pickup_lat.toFixed(6)}, {booking.pickup_lng.toFixed(6)}
+            </div>
+            
+            {booking.pickup_address && (
+              <div className="text-sm text-muted-foreground mb-3">
+                {(() => {
+                  try {
+                    const addr = typeof booking.pickup_address === 'string' 
+                      ? JSON.parse(booking.pickup_address) 
+                      : booking.pickup_address;
+                    return [
+                      addr.address_line_1,
+                      addr.address_line_2,
+                      addr.city,
+                      addr.state,
+                      addr.pincode
+                    ].filter(Boolean).join(', ');
+                  } catch {
+                    return 'Address information available';
+                  }
+                })()}
+              </div>
+            )}
+
+            <div className="flex gap-2 mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = `https://maps.google.com/?q=${booking.pickup_lat},${booking.pickup_lng}`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Open in Maps
+              </Button>
+              
+              <WhatsAppShareButton
+                bookingData={{
+                  id: booking.id,
+                  patient_name: booking.patient_name,
+                  patient_phone: booking.patient_phone,
+                  booking_date: booking.booking_date,
+                  time_slot: booking.time_slot || '',
+                  test_name: booking.test?.name || 'Lab Test'
+                }}
+                pickupLocation={{
+                  lat: booking.pickup_lat,
+                  lng: booking.pickup_lng,
+                  address: booking.pickup_address
+                }}
+                size="sm"
+              />
+            </div>
+
+            <DeliveryMap
+              lat={booking.pickup_lat}
+              lng={booking.pickup_lng}
+              address={booking.pickup_address}
+              className="h-32 rounded"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const BookingCard = ({ booking }: { booking: any }) => (
     <Card className="mb-4">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="font-semibold text-lg">{booking.patient_name}</h3>
-            <p className="text-muted-foreground">Lab Test Collection</p>
+            <p className="text-muted-foreground">{booking.test?.name || 'Lab Test Collection'}</p>
           </div>
           {getStatusBadge(booking.status)}
         </div>
@@ -183,15 +273,7 @@ export function CenterJobsPage() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-              <div className="text-sm">
-                <p>Sample Collection Address</p>
-                <p className="text-muted-foreground">
-                  Contact for exact address details
-                </p>
-              </div>
-            </div>
+            {renderPickupLocation(booking)}
           </div>
         </div>
 
@@ -281,9 +363,9 @@ export function CenterJobsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-foreground">Lab Bookings</h1>
+        <h1 className="text-3xl font-bold text-foreground">Lab Collection Jobs</h1>
         <p className="text-muted-foreground">
-          Manage your assigned lab sample collections
+          Manage your assigned lab sample collections and track payments
         </p>
       </div>
 
