@@ -180,7 +180,7 @@ export function AreaSearchBar({ onLocationSelect, placeholder = "Search for an a
 
       {/* Search Results Dropdown */}
       {isOpen && (query || isLoading) && (
-        <Card className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto border shadow-lg">
+        <Card className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto border shadow-lg bg-background">
           <div ref={resultsRef} className="py-2">
             {isLoading ? (
               <div className="px-4 py-3 text-sm text-muted-foreground">
