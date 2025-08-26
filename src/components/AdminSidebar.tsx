@@ -149,6 +149,14 @@ export function AdminSidebar() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
+                    <Link to="/admin/labs">
+                      <Activity className="mr-2 h-4 w-4" />
+                      Lab Centers
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
                     <Link to="/admin/lab-assignments">
                       <MapPin className="mr-2 h-4 w-4" />
                       Assignments
