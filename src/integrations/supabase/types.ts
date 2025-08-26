@@ -3955,8 +3955,16 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
+      rider_complete_by_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: undefined
+      }
       rider_start: {
         Args: { p_order_id: string }
+        Returns: undefined
+      }
+      rider_start_by_assignment: {
+        Args: { p_assignment_id: string }
         Returns: undefined
       }
       search_medicines_brand_or_composition: {

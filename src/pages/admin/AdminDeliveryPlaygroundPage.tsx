@@ -191,65 +191,148 @@ on conflict (code) do update set is_active = true;`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="order-id">Order ID (UUID)</Label>
-              <Input
-                id="order-id"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value)}
-                placeholder="<order_id>"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Step 1: Start Trip</Label>
-                <div className="flex gap-2">
-                  <Textarea
-                    readOnly
-                    value={`select public.rider_start('${orderId}');`}
-                    className="font-mono text-sm"
-                    rows={1}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* By Order ID */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="order-id">Order ID (UUID)</Label>
+                  <Input
+                    id="order-id"
+                    value={orderId}
+                    onChange={(e) => setOrderId(e.target.value)}
+                    placeholder="<order_id>"
                   />
-                  <Button
-                    onClick={() => copyToClipboard(
-                      `select public.rider_start('${orderId}');`,
-                      "Rider Start"
-                    )}
-                    className="min-w-[100px]"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
-                  </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Sets status to "on_the_way" and updates picked_up_at
-                </p>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Step 1: Start Trip (by Order ID)</Label>
+                    <div className="flex gap-2">
+                      <Textarea
+                        readOnly
+                        value={`select public.rider_start('${orderId}');`}
+                        className="font-mono text-sm"
+                        rows={1}
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(
+                          `select public.rider_start('${orderId}');`,
+                          "Rider Start"
+                        )}
+                        className="min-w-[100px]"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Sets status to "on_the_way" and updates picked_up_at
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Step 2: Complete Delivery (by Order ID)</Label>
+                    <div className="flex gap-2">
+                      <Textarea
+                        readOnly
+                        value={`select public.rider_complete('${orderId}');`}
+                        className="font-mono text-sm"
+                        rows={1}
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(
+                          `select public.rider_complete('${orderId}');`,
+                          "Rider Complete"
+                        )}
+                        className="min-w-[100px]"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Sets status to "delivered" and updates delivered_at
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Step 2: Complete Delivery</Label>
-                <div className="flex gap-2">
-                  <Textarea
-                    readOnly
-                    value={`select public.rider_complete('${orderId}');`}
-                    className="font-mono text-sm"
-                    rows={1}
-                  />
-                  <Button
-                    onClick={() => copyToClipboard(
-                      `select public.rider_complete('${orderId}');`,
-                      "Rider Complete"
-                    )}
-                    className="min-w-[100px]"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
-                  </Button>
+              {/* By Assignment ID */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Alternative: Using Assignment ID</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Rider can also use the delivery assignment ID (easier from the assignments table)
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Sets status to "delivered" and updates delivered_at
-                </p>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Get Assignment ID for Order</Label>
+                    <div className="flex gap-2">
+                      <Textarea
+                        readOnly
+                        value={`-- Get assignment ID for order number\nwith a as (\n  select da.id\n  from public.orders o\n  join public.delivery_assignments da on da.order_id = o.id\n  where o.order_number = '${orderNumber}'\n  limit 1\n)\nselect id from a;`}
+                        className="font-mono text-sm"
+                        rows={8}
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(
+                          `-- Get assignment ID for order number\nwith a as (\n  select da.id\n  from public.orders o\n  join public.delivery_assignments da on da.order_id = o.id\n  where o.order_number = '${orderNumber}'\n  limit 1\n)\nselect id from a;`,
+                          "Get Assignment ID"
+                        )}
+                        className="min-w-[100px]"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Start Trip (by Assignment ID)</Label>
+                    <div className="flex gap-2">
+                      <Textarea
+                        readOnly
+                        value={`select public.rider_start_by_assignment('<assignment_id>');`}
+                        className="font-mono text-sm"
+                        rows={1}
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(
+                          `select public.rider_start_by_assignment('<assignment_id>');`,
+                          "Rider Start by Assignment"
+                        )}
+                        className="min-w-[100px]"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Complete Delivery (by Assignment ID)</Label>
+                    <div className="flex gap-2">
+                      <Textarea
+                        readOnly
+                        value={`select public.rider_complete_by_assignment('<assignment_id>');`}
+                        className="font-mono text-sm"
+                        rows={1}
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(
+                          `select public.rider_complete_by_assignment('<assignment_id>');`,
+                          "Rider Complete by Assignment"
+                        )}
+                        className="min-w-[100px]"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
