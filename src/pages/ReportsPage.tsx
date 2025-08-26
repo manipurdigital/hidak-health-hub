@@ -160,45 +160,62 @@ const ReportsPage = () => {
 
   const handleDownload = async (report: LabReport) => {
     try {
-      // Get a signed URL for secure download
+      // Extract file path from the public URL
       const urlParts = report.report_url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-      const filePath = `${user?.id}/${fileName}`;
+      const bucketIndex = urlParts.findIndex(part => part === 'lab-reports');
+      if (bucketIndex === -1) {
+        throw new Error('Invalid report URL format');
+      }
+      
+      const filePath = urlParts.slice(bucketIndex + 1).join('/');
+      console.log('Downloading file from path:', filePath);
 
+      // Get a signed URL for secure download
       const { data, error } = await supabase.storage
         .from('lab-reports')
-        .createSignedUrl(filePath, 60); // URL valid for 60 seconds
+        .createSignedUrl(filePath, 300); // URL valid for 5 minutes
 
       if (error) {
         console.error('Error creating signed URL:', error);
-        // Fallback to direct download
-        const link = document.createElement('a');
-        link.href = report.report_url;
-        link.download = `${report.report_name}.pdf`;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        return;
+        throw error;
       }
 
-      // Download using signed URL
+      if (!data?.signedUrl) {
+        throw new Error('No signed URL received');
+      }
+
+      // Use fetch to download the file and create a blob
+      const response = await fetch(data.signedUrl);
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      
+      // Create object URL and download
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = data.signedUrl;
+      link.href = objectUrl;
       link.download = `${report.report_name}.pdf`;
+      link.style.display = 'none';
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up object URL
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 
       toast({
         title: "Download Started",
         description: "Your report download has started",
       });
+      
     } catch (error) {
       console.error('Error downloading report:', error);
       toast({
         title: "Download Failed",
-        description: "Failed to download report. Please try again.",
+        description: `Failed to download report: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }
