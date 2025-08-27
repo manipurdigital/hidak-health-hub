@@ -250,9 +250,12 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
 }
 
 async function processDirectRow(row: any, supabase: any, result: ImportResult, jobItemId: string, downloadImages: boolean) {
+  // Handle column aliases for composition
+  const compositionText = row.composition_text || row['Salt Composition'] || row['Salt Composition (Generic)'] || row['salt_composition'];
+  
   // Validate required fields
-  if (!row.name || !row.price || !row.composition_text || !row.stock_quantity) {
-    throw new Error('Missing required fields (name, price, composition_text, stock_quantity)');
+  if (!row.name || !row.price || !compositionText || !row.stock_quantity) {
+    throw new Error('Missing required fields (name, price, composition_text/Salt Composition, stock_quantity)');
   }
 
   // Parse requires_prescription field robustly
@@ -269,7 +272,6 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
       .from('medicine_categories')
       .select('id')
       .eq('name', row.category)
-      .eq('is_active', true)
       .limit(1);
     
     if (categoryData && categoryData.length > 0) {
@@ -282,7 +284,7 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     .from('medicines')
     .select('id')
     .eq('name', row.name)
-    .eq('composition_text', row.composition_text)
+    .eq('composition_text', compositionText)
     .limit(1);
 
   if (existing && existing.length > 0) {
@@ -323,32 +325,13 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     }
   }
 
-  // Generate composition keys if composition_text is provided
-  let compositionData = {};
-  if (row.composition_text) {
-    const normalized = normalizeComposition(row.composition_text);
-    compositionData = {
-      composition_text: row.composition_text,
-      composition_key: generateCompositionKey(normalized),
-      composition_family_key: generateCompositionFamilyKey(normalized)
-    };
-  } else if (row.name && !row.brand) {
-    // Try to extract composition from name if no explicit composition provided
-    const { composition } = extractMedicineDetails(row.name);
-    if (composition) {
-      const normalized = normalizeComposition(composition);
-      compositionData = {
-        composition_text: composition,
-        composition_key: generateCompositionKey(normalized),
-        composition_family_key: generateCompositionFamilyKey(normalized)
-      };
-    }
-  }
-
+  // Generate composition keys using the resolved composition text
+  const normalized = normalizeComposition(compositionText);
+  
   // Prepare medicine data to match the form exactly
   const medicineData = {
     name: row.name,
-    composition_text: row.composition_text,
+    composition_text: compositionText,
     category_id: categoryId,
     price: parseFloat(row.price) || 0,
     original_price: parseFloat(row.original_price) || parseFloat(row.price) || 0,
@@ -361,8 +344,8 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     description: row.description || '',
     is_active: row.is_active !== 'false',
     // Generate composition keys
-    composition_key: generateCompositionKey(normalizeComposition(row.composition_text)),
-    composition_family_key: generateCompositionFamilyKey(normalizeComposition(row.composition_text))
+    composition_key: generateCompositionKey(normalized),
+    composition_family_key: generateCompositionFamilyKey(normalized)
   };
 
   // Insert medicine

@@ -52,7 +52,6 @@ serve(async (req) => {
       const { data: categories, error: categoriesError } = await supabase
         .from('medicine_categories')
         .select('name')
-        .eq('is_active', true)
         .order('name');
 
       if (categoriesError) {
@@ -120,7 +119,7 @@ serve(async (req) => {
       // Instructions data
       instructionsData = [
         { field: "name", description: "Required. Medicine name/brand name", example: "Calpol 650" },
-        { field: "composition_text", description: "Required. Active ingredients and strength", example: "Paracetamol 650 mg" },
+        { field: "composition_text", description: "Required. Active ingredients and strength. Aliases: 'Salt Composition', 'Salt Composition (Generic)'", example: "Paracetamol 650 mg" },
         { field: "category", description: "Required. Must match exactly from Categories sheet", example: "Pain Relief" },
         { field: "price", description: "Required. Selling price in rupees", example: "25.50" },
         { field: "original_price", description: "Optional. MRP/original price", example: "30.00" },
