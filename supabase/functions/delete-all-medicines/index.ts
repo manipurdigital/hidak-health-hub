@@ -34,9 +34,18 @@ serve(async (req) => {
       })
     }
 
+    // Create client with user token for auth verification
+    const userToken = authHeader.replace('Bearer ', '')
+    const userSupabase = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    })
+
     // Verify user authentication
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser()
     
     if (authError || !user) {
       console.error('Auth error:', authError)
