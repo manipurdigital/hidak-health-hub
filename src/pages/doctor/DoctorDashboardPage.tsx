@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,10 @@ import {
   MessageSquare,
   ArrowRight,
   Stethoscope,
-  FileText
+  FileText,
+  Timer
 } from 'lucide-react';
-import { format, isToday, isTomorrow } from 'date-fns';
+import { format, isToday, isTomorrow, isPast, differenceInHours } from 'date-fns';
 import { useDoctorUpcomingConsultations, useDoctorInfo } from '@/hooks/use-doctor-upcoming';
 
 export default function DoctorDashboardPage() {
@@ -34,13 +36,30 @@ export default function DoctorDashboardPage() {
     return format(date, 'MMM dd');
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, consultation?: any) => {
     switch (status) {
       case 'scheduled':
         return <Badge variant="outline" className="text-blue-600 border-blue-200"><Clock className="h-3 w-3 mr-1" />Scheduled</Badge>;
       case 'in_progress':
         return <Badge className="bg-orange-500 hover:bg-orange-600"><Video className="h-3 w-3 mr-1" />In Progress</Badge>;
       case 'completed':
+        // Show follow-up status for completed consultations
+        if (consultation?.follow_up_expires_at) {
+          const expiresAt = new Date(consultation.follow_up_expires_at);
+          const isExpired = isPast(expiresAt);
+          const hoursLeft = Math.max(0, differenceInHours(expiresAt, new Date()));
+          
+          if (isExpired) {
+            return <Badge className="bg-gray-500 hover:bg-gray-600">Follow-up Closed</Badge>;
+          } else {
+            return (
+              <Badge className="bg-green-500 hover:bg-green-600">
+                <Timer className="h-3 w-3 mr-1" />
+                Follow-up ({hoursLeft}h left)
+              </Badge>
+            );
+          }
+        }
         return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
@@ -59,6 +78,10 @@ export default function DoctorDashboardPage() {
   );
   const inProgressCount = upcomingConsultations.filter(c => c.status === 'in_progress').length;
   const scheduledCount = upcomingConsultations.filter(c => c.status === 'scheduled').length;
+  const activeFollowUpCount = upcomingConsultations.filter(c => {
+    if (c.status !== 'completed' || !c.follow_up_expires_at) return false;
+    return !isPast(new Date(c.follow_up_expires_at));
+  }).length;
 
   if (isLoading) {
     return (
@@ -122,12 +145,12 @@ export default function DoctorDashboardPage() {
         
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-900">Upcoming</CardTitle>
-            <Clock className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-green-900">Follow-ups Active</CardTitle>
+            <Timer className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900">{scheduledCount}</div>
-            <p className="text-xs text-green-700 mt-1">Scheduled consultations</p>
+            <div className="text-2xl font-bold text-green-900">{activeFollowUpCount}</div>
+            <p className="text-xs text-green-700 mt-1">72-hour windows open</p>
           </CardContent>
         </Card>
         
@@ -216,7 +239,7 @@ export default function DoctorDashboardPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {getStatusBadge(consultation.status)}
+                    {getStatusBadge(consultation.status, consultation)}
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,10 +20,12 @@ import {
   FileText, 
   Video,
   User,
-  Stethoscope
+  Stethoscope,
+  Timer,
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, differenceInHours, isPast } from 'date-fns';
 
 interface ConsultationDetail {
   id: string;
@@ -35,6 +38,8 @@ interface ConsultationDetail {
   doctor_notes: string;
   total_amount: number;
   created_at: string;
+  completed_at: string | null;
+  follow_up_expires_at: string | null;
   profiles: {
     full_name: string;
     phone: string;
@@ -75,6 +80,26 @@ export default function DoctorConsultationDetailPage() {
       return consultation;
     },
     enabled: !!consultationId,
+  });
+
+  // Query for patient message count in follow-up window
+  const { data: patientMessageCount = 0 } = useQuery({
+    queryKey: ['patient-message-count', consultationId, consultation?.completed_at],
+    queryFn: async () => {
+      if (!consultationId || !consultation?.completed_at) return 0;
+
+      const { count, error } = await supabase
+        .from('consultation_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('consultation_id', consultationId)
+        .eq('sender_type', 'patient')
+        .gte('sent_at', consultation.completed_at);
+
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!consultationId && !!consultation?.completed_at,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const updateStatusMutation = useMutation({
@@ -145,6 +170,24 @@ export default function DoctorConsultationDetailPage() {
     }
   };
 
+  const getFollowUpInfo = () => {
+    if (!consultation?.completed_at || !consultation?.follow_up_expires_at) return null;
+
+    const expiresAt = new Date(consultation.follow_up_expires_at);
+    const now = new Date();
+    const hoursLeft = differenceInHours(expiresAt, now);
+    const isExpired = isPast(expiresAt);
+
+    return {
+      expiresAt,
+      hoursLeft: Math.max(0, hoursLeft),
+      isExpired,
+      patientMessagesLeft: Math.max(0, 10 - patientMessageCount)
+    };
+  };
+
+  const followUpInfo = getFollowUpInfo();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -179,6 +222,35 @@ export default function DoctorConsultationDetailPage() {
           </p>
         </div>
       </div>
+
+      {/* Follow-up Window Status */}
+      {consultation.status === 'completed' && followUpInfo && (
+        <Card className={`border-l-4 ${followUpInfo.isExpired ? 'border-l-red-500 bg-red-50' : 'border-l-blue-500 bg-blue-50'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Timer className={`h-5 w-5 ${followUpInfo.isExpired ? 'text-red-600' : 'text-blue-600'}`} />
+              <div>
+                <h3 className="font-medium">
+                  {followUpInfo.isExpired ? 'Follow-up Window Closed' : 'Follow-up Window Active'}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {followUpInfo.isExpired ? (
+                    `Closed on ${format(followUpInfo.expiresAt, 'MMM dd, yyyy HH:mm')}`
+                  ) : (
+                    <>
+                      {followUpInfo.hoursLeft > 0 ? `${followUpInfo.hoursLeft} hours remaining` : 'Less than 1 hour remaining'} • 
+                      Patient has {followUpInfo.patientMessagesLeft} messages left
+                    </>
+                  )}
+                </p>
+              </div>
+              {followUpInfo.isExpired && (
+                <AlertCircle className="h-4 w-4 text-red-600 ml-auto" />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Patient Information */}
@@ -318,7 +390,7 @@ export default function DoctorConsultationDetailPage() {
                 onClick={() => navigate(`/consultation/${consultation.id}/chat`)}
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Open Chat
+                {consultation.status === 'completed' && followUpInfo?.isExpired ? 'View Chat History' : 'Open Chat'}
               </Button>
 
               <Button

@@ -237,11 +237,13 @@ export type Database = {
       }
       consultations: {
         Row: {
+          completed_at: string | null
           consultation_date: string
           consultation_type: string | null
           created_at: string
           doctor_id: string
           doctor_notes: string | null
+          follow_up_expires_at: string | null
           id: string
           paid_at: string | null
           patient_id: string
@@ -255,11 +257,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completed_at?: string | null
           consultation_date: string
           consultation_type?: string | null
           created_at?: string
           doctor_id: string
           doctor_notes?: string | null
+          follow_up_expires_at?: string | null
           id?: string
           paid_at?: string | null
           patient_id: string
@@ -273,11 +277,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completed_at?: string | null
           consultation_date?: string
           consultation_type?: string | null
           created_at?: string
           doctor_id?: string
           doctor_notes?: string | null
+          follow_up_expires_at?: string | null
           id?: string
           paid_at?: string | null
           patient_id?: string
@@ -3207,6 +3213,10 @@ export type Database = {
           revenue: number
           specialization: string
         }[]
+      }
+      count_patient_messages_after_completion: {
+        Args: { p_completed_at: string; p_consultation_id: string }
+        Returns: number
       }
       create_booking_notification: {
         Args: {
