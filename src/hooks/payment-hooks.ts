@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -86,6 +87,49 @@ export const useCreateLabBooking = () => {
       toast({
         title: "Booking Failed",
         description: error.message || "Failed to create booking. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// Consultation Booking Creation  
+export const useCreateConsultationBooking = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (bookingData: {
+      doctorId: string;
+      consultationDate: string;
+      timeSlot: string;
+      consultationType?: string;
+      patientNotes?: string;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Please sign in to book a consultation.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-consultation-booking', {
+        body: bookingData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Booking Failed",
+        description: error.message || "Failed to create consultation booking. Please try again.",
         variant: "destructive",
       });
     },

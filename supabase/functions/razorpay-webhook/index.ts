@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -298,7 +299,7 @@ async function handlePaymentCaptured(supabaseClient: any, event: any, correlatio
     amount: payment.amount 
   });
 
-  // Use a single transaction to update both orders and lab_bookings
+  // Use a single transaction to update both orders and lab_bookings and consultations
   const { error: txError } = await supabaseClient.rpc('process_payment_captured', {
     p_razorpay_order_id: orderId,
     p_razorpay_payment_id: payment.id,
@@ -428,8 +429,44 @@ async function updatePaymentStatusManually(
     }
   }
 
-  if ((!orders || orders.length === 0) && (!bookings || bookings.length === 0)) {
-    logStep(correlationId, "No orders or bookings found for Razorpay order", { orderId });
-    throw new Error(`No orders or bookings found for Razorpay order ID: ${orderId}`);
+  // Update consultations
+  const { data: consultations, error: consultationError } = await supabaseClient
+    .from('consultations')
+    .select('id')
+    .eq('razorpay_order_id', orderId);
+
+  if (consultations && consultations.length > 0) {
+    for (const consultation of consultations) {
+      logStep(correlationId, "Updating consultation", { consultationId: consultation.id, status });
+      
+      const consultationStatus = status === 'paid' ? 'scheduled' : 'cancelled';
+      const updateData = {
+        payment_status: status,
+        razorpay_payment_id: payment.id,
+        status: consultationStatus,
+        updated_at: timestamp
+      };
+      
+      if (status === 'paid') {
+        updateData.paid_at = timestamp;
+      }
+      
+      const { error: updateError } = await supabaseClient
+        .from('consultations')
+        .update(updateData)
+        .eq('id', consultation.id);
+
+      if (updateError) {
+        logStep(correlationId, "Error updating consultation", { consultationId: consultation.id, error: updateError });
+        throw new Error(`Failed to update consultation ${consultation.id}: ${updateError.message}`);
+      } else {
+        logStep(correlationId, "Consultation updated successfully", { consultationId: consultation.id, status });
+      }
+    }
+  }
+
+  if ((!orders || orders.length === 0) && (!bookings || bookings.length === 0) && (!consultations || consultations.length === 0)) {
+    logStep(correlationId, "No orders, bookings, or consultations found for Razorpay order", { orderId });
+    throw new Error(`No orders, bookings, or consultations found for Razorpay order ID: ${orderId}`);
   }
 }

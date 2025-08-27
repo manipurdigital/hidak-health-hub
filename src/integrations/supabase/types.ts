@@ -243,9 +243,12 @@ export type Database = {
           doctor_id: string
           doctor_notes: string | null
           id: string
+          paid_at: string | null
           patient_id: string
           patient_notes: string | null
           payment_status: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           status: string | null
           time_slot: string
           total_amount: number
@@ -258,9 +261,12 @@ export type Database = {
           doctor_id: string
           doctor_notes?: string | null
           id?: string
+          paid_at?: string | null
           patient_id: string
           patient_notes?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string | null
           time_slot: string
           total_amount: number
@@ -273,9 +279,12 @@ export type Database = {
           doctor_id?: string
           doctor_notes?: string | null
           id?: string
+          paid_at?: string | null
           patient_id?: string
           patient_notes?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string | null
           time_slot?: string
           total_amount?: number

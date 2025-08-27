@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { CalendarIcon, Star, Clock, Globe, GraduationCap, MapPin, Stethoscope, MessageCircle } from 'lucide-react';
+import { CalendarIcon, Star, Clock, Globe, GraduationCap, MapPin, Stethoscope, MessageCircle, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import SubscriptionBenefits from './SubscriptionBenefits';
 import { cn } from '@/lib/utils';
+import { openRazorpayCheckout, useVerifyPayment } from '@/hooks/payment-hooks';
 
 interface Doctor {
   id: string;
@@ -42,12 +44,15 @@ const ConsultationsSection = () => {
   const [bookingDoctor, setBookingDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [selectedConsultationType, setSelectedConsultationType] = useState('text');
   const [patientNotes, setPatientNotes] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
   
   const { user } = useAuth();
-  const { hasActiveSubscription, canBookConsultation, extraDiscount } = useSubscription();
+  const { hasActiveSubscription, canBookConsultation } = useSubscription();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const verifyPayment = useVerifyPayment();
 
   const timeSlots = [
     '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
@@ -57,6 +62,12 @@ const ConsultationsSection = () => {
   const specialties = [
     'All', 'Cardiology', 'Dermatology', 'Pediatrics', 'Orthopedics', 
     'Gynecology', 'Neurology', 'General Medicine', 'ENT', 'Psychiatry'
+  ];
+
+  const consultationTypes = [
+    { value: 'text', label: 'Text Chat', icon: MessageCircle },
+    { value: 'audio', label: 'Audio Call', icon: MessageCircle },
+    { value: 'video', label: 'Video Call', icon: MessageCircle }
   ];
 
   useEffect(() => {
@@ -119,59 +130,96 @@ const ConsultationsSection = () => {
       return;
     }
     
-    if (!canBookConsultation) {
-      toast({
-        title: "Consultation Limit Reached",
-        description: "You've reached your monthly consultation limit. Upgrade your Care+ plan for more consultations.",
-        variant: "destructive"
-      });
-      navigate('/care-plus');
-      return;
-    }
-    
     setBookingDoctor(doctor);
   };
 
   const handleBookingSubmit = async () => {
     if (!bookingDoctor || !selectedDate || !selectedTimeSlot || !user) return;
 
+    setIsBooking(true);
+    
     try {
-      const consultationFee = hasActiveSubscription ? 0 : bookingDoctor.consultation_fee;
-      const { data: consultation, error } = await supabase
-        .from('consultations')
-        .insert([{
-          patient_id: user.id,
-          doctor_id: bookingDoctor.id,
-          consultation_date: format(selectedDate, 'yyyy-MM-dd'),
-          time_slot: selectedTimeSlot,
-          total_amount: consultationFee,
-          patient_notes: patientNotes || null,
-          status: 'scheduled'
-        }])
-        .select()
-        .single();
+      console.log('Creating consultation booking...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Please sign in to book a consultation.');
+      }
 
-      if (error) throw error;
-
-      toast({
-        title: "Consultation Booked!",
-        description: `Your consultation with ${bookingDoctor.full_name} has been scheduled for ${format(selectedDate, 'PPP')} at ${selectedTimeSlot}`,
+      // Create consultation booking with payment
+      const { data, error } = await supabase.functions.invoke('create-consultation-booking', {
+        body: {
+          doctorId: bookingDoctor.id,
+          consultationDate: format(selectedDate, 'yyyy-MM-dd'),
+          timeSlot: selectedTimeSlot,
+          consultationType: selectedConsultationType,
+          patientNotes: patientNotes || null
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
-      // Navigate to consultation success page
-      navigate(`/consult-success/${consultation.id}`);
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Failed to create booking');
 
-      setBookingDoctor(null);
-      setSelectedDate(undefined);
-      setSelectedTimeSlot('');
-      setPatientNotes('');
+      console.log('Consultation booking created:', data);
+
+      // Open Razorpay checkout
+      openRazorpayCheckout({
+        key: data.razorpay_key_id,
+        amount: Math.round(data.amount * 100), // Convert to paise
+        currency: 'INR',
+        name: 'MediCare Consultation',
+        description: `Consultation with ${data.doctor_name}`,
+        order_id: data.razorpay_order_id,
+        handler: (response: any) => {
+          console.log('Payment successful:', response);
+          
+          // Navigate to success page
+          navigate(`/consult-success/${data.consultation_id}`);
+          
+          // Clean up form
+          setBookingDoctor(null);
+          setSelectedDate(undefined);
+          setSelectedTimeSlot('');
+          setSelectedConsultationType('text');
+          setPatientNotes('');
+
+          toast({
+            title: "Payment Successful!",
+            description: `Your consultation with ${data.doctor_name} has been confirmed.`,
+          });
+        },
+        prefill: {
+          name: user.user_metadata?.full_name || '',
+          email: user.email || '',
+          contact: user.phone || ''
+        },
+        theme: {
+          color: '#3B82F6'
+        },
+        modal: {
+          ondismiss: () => {
+            console.log('Payment dismissed');
+            toast({
+              title: "Payment Cancelled",
+              description: "Your consultation booking was not completed. Please try again.",
+              variant: "destructive"
+            });
+          }
+        }
+      });
+
     } catch (error) {
       console.error('Error booking consultation:', error);
       toast({
         title: "Booking Failed",
-        description: "Failed to book consultation. Please try again.",
+        description: error.message || "Failed to book consultation. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsBooking(false);
     }
   };
 
@@ -201,7 +249,7 @@ const ConsultationsSection = () => {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">Consult with Doctors</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Book online consultations with verified doctors and get expert medical advice
+            Book online consultations with verified doctors. Payment required to confirm booking.
           </p>
         </div>
 
@@ -297,7 +345,13 @@ const ConsultationsSection = () => {
                           <p className="text-xs text-muted-foreground line-through">₹{doctor.consultation_fee}</p>
                         </div>
                       ) : (
-                        <span className="text-lg font-bold text-primary">₹{doctor.consultation_fee}</span>
+                        <div>
+                          <span className="text-lg font-bold text-primary">₹{doctor.consultation_fee}</span>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <CreditCard className="w-3 h-3" />
+                            Prepaid only
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -329,12 +383,51 @@ const ConsultationsSection = () => {
             <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <CardHeader>
                 <CardTitle>Book Consultation with {bookingDoctor.full_name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Payment is required to confirm your booking
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="bg-muted p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{bookingDoctor.specialization}</span>
-                    <span className="text-lg font-bold text-primary">₹{bookingDoctor.consultation_fee}</span>
+                    <div className="text-right">
+                      {hasActiveSubscription ? (
+                        <div>
+                          <span className="text-lg font-bold text-green-600">FREE</span>
+                          <p className="text-xs text-muted-foreground line-through">₹{bookingDoctor.consultation_fee}</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-lg font-bold text-primary">₹{bookingDoctor.consultation_fee}</span>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CreditCard className="w-3 h-3" />
+                            Prepaid
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Consultation Type</label>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {consultationTypes.map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <Button
+                          key={type.value}
+                          variant={selectedConsultationType === type.value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedConsultationType(type.value)}
+                          className="text-xs flex flex-col gap-1 h-auto py-2"
+                        >
+                          <Icon className="w-4 h-4" />
+                          {type.label}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -402,17 +495,26 @@ const ConsultationsSection = () => {
                       setBookingDoctor(null);
                       setSelectedDate(undefined);
                       setSelectedTimeSlot('');
+                      setSelectedConsultationType('text');
                       setPatientNotes('');
                     }}
+                    disabled={isBooking}
                   >
                     Cancel
                   </Button>
                   <Button 
                     className="flex-1"
                     onClick={handleBookingSubmit}
-                    disabled={!selectedDate || !selectedTimeSlot}
+                    disabled={!selectedDate || !selectedTimeSlot || isBooking}
                   >
-                    Book Consultation
+                    {isBooking ? (
+                      <>Processing...</>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Pay & Book
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>

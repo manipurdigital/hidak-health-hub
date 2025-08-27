@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle, Calendar, Clock, Video, MessageSquare, Phone, User } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Video, MessageSquare, Phone, User, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -62,12 +63,53 @@ export function ConsultationSuccessPage() {
     }
   };
 
-  const consultationSteps = [
-    { icon: CheckCircle, label: 'Consultation Booked', completed: true },
-    { icon: Calendar, label: 'Waiting for Appointment', completed: false },
-    { icon: User, label: 'Consultation in Progress', completed: false },
-    { icon: CheckCircle, label: 'Consultation Completed', completed: false },
-  ];
+  const getPaymentStatusBadge = () => {
+    switch (consultation.payment_status) {
+      case 'paid':
+        return <Badge variant="secondary" className="text-green-600 bg-green-50">Payment Confirmed</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="text-orange-600 border-orange-200">Processing Payment</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Payment Failed</Badge>;
+      default:
+        return <Badge variant="outline">Payment Status Unknown</Badge>;
+    }
+  };
+
+  const getStatusSteps = () => {
+    const isPaid = consultation.payment_status === 'paid';
+    const isScheduled = consultation.status === 'scheduled';
+    
+    return [
+      { 
+        icon: CheckCircle, 
+        label: 'Consultation Booked', 
+        completed: true 
+      },
+      { 
+        icon: CreditCard, 
+        label: 'Payment Confirmed', 
+        completed: isPaid 
+      },
+      { 
+        icon: Calendar, 
+        label: 'Appointment Scheduled', 
+        completed: isPaid && isScheduled 
+      },
+      { 
+        icon: User, 
+        label: 'Consultation in Progress', 
+        completed: false 
+      },
+      { 
+        icon: CheckCircle, 
+        label: 'Consultation Completed', 
+        completed: false 
+      }
+    ];
+  };
+
+  const consultationSteps = getStatusSteps();
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -77,11 +119,23 @@ export function ConsultationSuccessPage() {
           <Card className="text-center mb-8">
             <CardContent className="p-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                {consultation.payment_status === 'pending' ? (
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                )}
               </div>
-              <h1 className="text-2xl font-bold text-green-600 mb-2">Consultation Booked!</h1>
+              <h1 className="text-2xl font-bold text-green-600 mb-2">
+                {consultation.payment_status === 'paid' 
+                  ? 'Consultation Confirmed!' 
+                  : 'Consultation Booking Created'
+                }
+              </h1>
               <p className="text-muted-foreground mb-4">
-                Your consultation has been scheduled successfully. You'll receive a reminder before the appointment.
+                {consultation.payment_status === 'paid'
+                  ? 'Your consultation has been confirmed and scheduled successfully.'
+                  : 'Your consultation booking is being processed. Payment confirmation pending.'
+                }
               </p>
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Consultation ID</p>
@@ -89,6 +143,34 @@ export function ConsultationSuccessPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Payment Status */}
+          {consultation.payment_status !== 'paid' && (
+            <Card className="mb-8 border-orange-200 bg-orange-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-700">
+                  <CreditCard className="w-5 h-5" />
+                  Payment Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <span>Current Status:</span>
+                  {getPaymentStatusBadge()}
+                </div>
+                {consultation.payment_status === 'pending' && (
+                  <p className="text-sm text-orange-700 mt-2">
+                    We're processing your payment. This page will automatically update once confirmed.
+                  </p>
+                )}
+                {consultation.payment_status === 'failed' && (
+                  <p className="text-sm text-red-700 mt-2">
+                    Payment failed. Please contact support or try booking again.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Consultation Status */}
           <Card className="mb-8">
@@ -174,14 +256,17 @@ export function ConsultationSuccessPage() {
                 </div>
               </div>
 
-              {consultation.payment_status === 'paid' && (
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Amount Paid</span>
-                  <Badge variant="secondary" className="text-green-600">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Amount</span>
+                <div className="text-right">
+                  <Badge variant="secondary" className="text-primary">
                     ₹{consultation.total_amount}
                   </Badge>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {getPaymentStatusBadge()}
+                  </div>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 
@@ -197,6 +282,9 @@ export function ConsultationSuccessPage() {
                 <li>• Join the consultation room 5 minutes early</li>
                 <li>• Have your medical history and current medications ready</li>
                 <li>• You can reschedule up to 2 hours before the appointment</li>
+                {consultation.payment_status === 'pending' && (
+                  <li className="text-orange-600">• Your consultation will be confirmed once payment is processed</li>
+                )}
               </ul>
             </CardContent>
           </Card>
@@ -213,8 +301,12 @@ export function ConsultationSuccessPage() {
             <Button 
               onClick={() => navigate(`/consult/${consultId}`)} 
               className="flex-1"
+              disabled={consultation.payment_status !== 'paid'}
             >
-              Join Consultation Room
+              {consultation.payment_status === 'paid' 
+                ? 'Join Consultation Room' 
+                : 'Awaiting Payment'
+              }
             </Button>
           </div>
         </div>
