@@ -61,6 +61,11 @@ import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
 
 // Doctor components
 import DoctorAvailabilityPage from '@/pages/doctor/DoctorAvailabilityPage';
+import { CenterGuard } from '@/components/CenterGuard';
+import { CenterLayout } from '@/components/CenterLayout';
+import { CenterJobsPage } from '@/pages/center/CenterJobsPage';
+import { CenterPaymentsPage } from '@/pages/center/CenterPaymentsPage';
+import CenterJobTrackingPage from '@/pages/center/CenterJobTrackingPage';
 
 function App() {
   const queryClient = new QueryClient();
@@ -415,6 +420,18 @@ function App() {
                          <DoctorLayout />
                        </DoctorGuard>
                      } />
+
+                     {/* Center Routes */}
+                     <Route path="/center/*" element={
+                       <CenterGuard>
+                         <CenterLayout />
+                       </CenterGuard>
+                     }>
+                       <Route index element={<CenterJobsPage />} />
+                       <Route path="jobs" element={<CenterJobsPage />} />
+                       <Route path="payments" element={<CenterPaymentsPage />} />
+                       <Route path="tracking/:type/:id" element={<CenterJobTrackingPage />} />
+                     </Route>
                     
                     {/* Catch all route - must be last */}
                     <Route path="*" element={<NotFound />} />
