@@ -318,10 +318,10 @@ export function ConsultationSuccessPage() {
           <div className="flex gap-4">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/dashboard')} 
+              onClick={() => navigate('/')} 
               className="flex-1"
             >
-              View Dashboard
+              Back to Home
             </Button>
             <Button 
               onClick={() => navigate(`/consult/${consultId}`)} 

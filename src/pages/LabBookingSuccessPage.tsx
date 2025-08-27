@@ -217,8 +217,8 @@ export function LabBookingSuccessPage() {
 
           {/* Actions */}
           <div className="flex gap-4">
-            <Button variant="outline" onClick={() => navigate('/dashboard')} className="flex-1">
-              View Dashboard
+            <Button variant="outline" onClick={() => navigate('/')} className="flex-1">
+              Back to Home
             </Button>
             <Button onClick={() => navigate('/')} className="flex-1">
               Book More Tests
