@@ -20,6 +20,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log("=== INITIATE CONSULTATION PAYMENT START ===");
     // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -40,6 +41,7 @@ serve(async (req) => {
     }
 
     const { doctorId, consultationDate, timeSlot, consultationType, notes } = await req.json();
+    console.log("Request data:", { doctorId, consultationDate, timeSlot, consultationType });
 
     if (!doctorId || !consultationDate || !timeSlot) {
       throw new Error("Missing required fields: doctorId, consultationDate, timeSlot");
@@ -90,6 +92,9 @@ serve(async (req) => {
     const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
     const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
     
+    console.log("Razorpay Key ID present:", !!razorpayKeyId);
+    console.log("Razorpay Key Secret present:", !!razorpayKeySecret);
+    
     if (!razorpayKeyId || !razorpayKeySecret) {
       throw new Error("Razorpay credentials not configured");
     }
@@ -108,10 +113,12 @@ serve(async (req) => {
     if (!razorpayResponse.ok) {
       const errorData = await razorpayResponse.text();
       console.error("Razorpay API error:", errorData);
-      throw new Error("Failed to create Razorpay order");
+      console.error("Razorpay response status:", razorpayResponse.status);
+      throw new Error(`Failed to create Razorpay order: ${errorData}`);
     }
 
     const razorpayOrder = await razorpayResponse.json();
+    console.log("Razorpay order created successfully:", razorpayOrder.id);
 
     return new Response(JSON.stringify({
       success: true,
@@ -126,6 +133,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    console.error("=== ERROR in initiate-consultation-payment ===");
     console.error("Error initiating consultation payment:", error);
     return new Response(JSON.stringify({ 
       success: false, 
