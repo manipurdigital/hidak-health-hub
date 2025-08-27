@@ -3,24 +3,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTriggerNotification } from './notification-hooks';
 
-// Fetch bookings for center staff
-export const useCenterBookings = () => {
+// Get center bookings for the logged-in center staff
+export function useCenterBookings() {
   return useQuery({
     queryKey: ['center-bookings'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_bookings')
-        .select(`
-          *,
-          test:lab_tests(name, price, category)
-        `)
-        .order('created_at', { ascending: false });
-      
+      // Get user's center from center_staff table
+      const { data: staffData, error: staffError } = await supabase
+        .from('center_staff')
+        .select('center_id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('is_active', true)
+        .single();
+
+      if (staffError) throw staffError;
+
+      // Get bookings for this center using the RPC function
+      const { data, error } = await supabase.rpc('get_center_bookings', {
+        p_center_id: staffData.center_id
+      });
+
       if (error) throw error;
       return data;
     },
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
-};
+}
 
 // Update lab booking status and details
 export const useUpdateLabBooking = () => {
@@ -77,6 +85,105 @@ export const useUpdateLabBooking = () => {
     },
   });
 };
+
+// Get center metrics and KPIs
+export function useCenterMetrics(dateFrom?: string, dateTo?: string) {
+  return useQuery({
+    queryKey: ['center-metrics', dateFrom, dateTo],
+    queryFn: async () => {
+      // Get user's center from center_staff table
+      const { data: staffData, error: staffError } = await supabase
+        .from('center_staff')
+        .select('center_id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('is_active', true)
+        .single();
+
+      if (staffError) throw staffError;
+
+      // Get metrics for this center
+      const { data, error } = await supabase.rpc('get_center_metrics', {
+        p_center_id: staffData.center_id,
+        p_date_from: dateFrom || undefined,
+        p_date_to: dateTo || undefined
+      });
+
+      if (error) throw error;
+      return data?.[0] || null;
+    },
+  });
+}
+
+// Get center details
+export function useCenterDetails() {
+  return useQuery({
+    queryKey: ['center-details'],
+    queryFn: async () => {
+      // Get user's center from center_staff table
+      const { data: staffData, error: staffError } = await supabase
+        .from('center_staff')
+        .select(`
+          center_id,
+          role,
+          diagnostic_centers!inner(
+            id,
+            name,
+            email,
+            contact_phone,
+            address,
+            platform_commission_rate
+          )
+        `)
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('is_active', true)
+        .single();
+
+      if (staffError) throw staffError;
+      return staffData;
+    },
+  });
+}
+
+// Admin function to link center account
+export function useAdminLinkCenterAccount() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      userId, 
+      centerId, 
+      role = 'center' 
+    }: {
+      userId: string;
+      centerId: string;
+      role?: string;
+    }) => {
+      const { error } = await supabase.rpc('admin_link_center_account', {
+        p_user_id: userId,
+        p_center_id: centerId,
+        p_role: role
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['center-staff'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast({
+        title: "Success",
+        description: "Center account linked successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to link center account",
+        variant: "destructive",
+      });
+    },
+  });
+}
 
 // Helper function to get notification data based on status
 const getNotificationData = (status: string, booking: any) => {

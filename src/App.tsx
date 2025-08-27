@@ -51,6 +51,7 @@ import AdminSecurityPage from '@/pages/admin/AdminSecurityPage';
 import AdminBackupRestorePage from '@/pages/admin/AdminBackupRestorePage';
 import AdminSchemaExportPage from '@/pages/admin/AdminSchemaExportPage';
 import AdminCodeExportPage from '@/pages/admin/AdminCodeExportPage';
+import { CenterAccountLinking } from './components/admin/CenterAccountLinking';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 import { ServiceabilityProvider } from '@/contexts/ServiceabilityContext';
 import { CartProvider } from '@/contexts/CartContext';
@@ -386,12 +387,22 @@ function App() {
                       </AdminGuard>
                     }
                   />
-                   <Route
+                     <Route
                      path="/admin/code-export"
                      element={
                        <AdminGuard>
                          <AdminLayoutWrapper>
                            <AdminCodeExportPage />
+                         </AdminLayoutWrapper>
+                       </AdminGuard>
+                     }
+                    />
+                    <Route
+                     path="/admin/center-accounts"
+                     element={
+                       <AdminGuard>
+                         <AdminLayoutWrapper>
+                           <CenterAccountLinking />
                          </AdminLayoutWrapper>
                        </AdminGuard>
                      }

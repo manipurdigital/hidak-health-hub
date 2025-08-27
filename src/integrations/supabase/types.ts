@@ -2972,6 +2972,10 @@ export type Database = {
           total_tests: number
         }[]
       }
+      admin_link_center_account: {
+        Args: { p_center_id: string; p_role?: string; p_user_id: string }
+        Returns: undefined
+      }
       admin_link_doctor_account: {
         Args: { p_doctor_id: string; p_email: string }
         Returns: undefined
@@ -3579,6 +3583,40 @@ export type Database = {
           top_n?: number
         }
         Returns: Json
+      }
+      get_center_bookings: {
+        Args: { p_center_id: string }
+        Returns: {
+          booking_date: string
+          collected_at: string
+          collector_name: string
+          created_at: string
+          eta: string
+          id: string
+          patient_name: string
+          patient_phone: string
+          pickup_address: Json
+          pickup_lat: number
+          pickup_lng: number
+          special_instructions: string
+          status: string
+          test_name: string
+          time_slot: string
+          total_amount: number
+        }[]
+      }
+      get_center_metrics: {
+        Args: { p_center_id: string; p_date_from?: string; p_date_to?: string }
+        Returns: {
+          assigned_bookings: number
+          avg_collection_time: unknown
+          collected_bookings: number
+          collection_rate: number
+          pending_bookings: number
+          pending_revenue: number
+          total_bookings: number
+          total_revenue: number
+        }[]
       }
       get_daily_job_count: {
         Args: {
