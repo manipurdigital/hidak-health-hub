@@ -127,7 +127,7 @@ export default function DoctorDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-900">{scheduledCount}</div>
-            <p className="text-xs text-green-700 mt-1">Next 7 days</p>
+            <p className="text-xs text-green-700 mt-1">Scheduled consultations</p>
           </CardContent>
         </Card>
         
@@ -156,7 +156,7 @@ export default function DoctorDashboardPage() {
               Upcoming Appointments
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Next 7 days • {upcomingConsultations.length} appointments
+              Priority sorted • {upcomingConsultations.length} consultations
             </p>
           </div>
           <Button 
@@ -171,9 +171,9 @@ export default function DoctorDashboardPage() {
           {upcomingConsultations.length === 0 ? (
             <div className="text-center py-8">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-medium text-lg mb-2">No upcoming appointments</h3>
+              <h3 className="font-medium text-lg mb-2">No consultations found</h3>
               <p className="text-muted-foreground">
-                You have no scheduled consultations for the next 7 days.
+                You have no consultations scheduled.
               </p>
             </div>
           ) : (
@@ -187,11 +187,11 @@ export default function DoctorDashboardPage() {
                   <div className="flex items-center gap-4">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {consultation.profiles.full_name?.split(' ').map(n => n[0]).join('')}
+                        {consultation.profiles?.full_name?.split(' ').map(n => n[0]).join('') || 'UN'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h4 className="font-medium">{consultation.profiles.full_name}</h4>
+                      <h4 className="font-medium">{consultation.profiles?.full_name || 'Unknown Patient'}</h4>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -208,6 +208,11 @@ export default function DoctorDashboardPage() {
                           {consultation.consultation_type}
                         </span>
                       </div>
+                      {consultation.patient_notes && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          📝 {consultation.patient_notes.substring(0, 60)}...
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
