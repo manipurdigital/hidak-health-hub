@@ -1,257 +1,47 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Clock, MessageSquare, FileText, Plus, Edit2, Users, Video } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { useAuth } from '@/contexts/AuthContext';
-
-interface Consultation {
-  id: string;
-  patient_id: string;
-  consultation_date: string;
-  time_slot: string;
-  status: string;
-  consultation_type: string;
-  patient_notes: string;
-  doctor_notes: string;
-  profiles: {
-    full_name: string;
-    phone: string;
-    email: string;
-  };
-}
-
-interface DoctorAvailability {
-  id: string;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
-  is_active: boolean;
-}
-
-interface Prescription {
-  id: string;
-  prescription_number: string;
-  diagnosis: string;
-  medications: any[];
-  instructions: string;
-  status: string;
-  created_at: string;
-  consultations: {
-    profiles: {
-      full_name: string;
-    };
-  };
-}
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  Calendar, 
+  Clock, 
+  Users, 
+  Video, 
+  TrendingUp,
+  Activity,
+  MessageSquare,
+  ArrowRight,
+  Stethoscope,
+  FileText
+} from 'lucide-react';
+import { format, isToday, isTomorrow } from 'date-fns';
+import { useDoctorUpcomingConsultations, useDoctorInfo } from '@/hooks/use-doctor-upcoming';
 
 export default function DoctorDashboardPage() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
-  const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false);
-  const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
-  const { toast } = useToast();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
+  const { data: doctorInfo, isLoading: doctorLoading } = useDoctorInfo();
+  const { data: upcomingConsultations = [], isLoading: consultationsLoading } = useDoctorUpcomingConsultations();
 
-  // Get doctor info
-  const { data: doctorInfo } = useQuery({
-    queryKey: ['doctor-info', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
+  const isLoading = doctorLoading || consultationsLoading;
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id
-  });
-
-  // Fetch consultations
-  const { data: consultations = [], isLoading } = useQuery({
-    queryKey: ['doctor-consultations', selectedDate, doctorInfo?.id],
-    queryFn: async () => {
-      if (!doctorInfo?.id) return [];
-
-      const { data, error } = await supabase
-        .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_patient_id_fkey(full_name, phone, email)
-        `)
-        .eq('doctor_id', doctorInfo.id)
-        .eq('consultation_date', selectedDate)
-        .order('time_slot');
-
-      if (error) throw error;
-      return data.map(item => ({
-        ...item,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
-      })) as unknown as Consultation[];
-    },
-    enabled: !!doctorInfo?.id
-  });
-
-  // Fetch doctor availability
-  const { data: availability = [] } = useQuery({
-    queryKey: ['doctor-availability', doctorInfo?.id],
-    queryFn: async () => {
-      if (!doctorInfo?.id) return [];
-
-      const { data, error } = await supabase
-        .from('doctor_availability')
-        .select('*')
-        .eq('doctor_id', doctorInfo.id)
-        .order('day_of_week');
-
-      if (error) throw error;
-      return data as DoctorAvailability[];
-    },
-    enabled: !!doctorInfo?.id
-  });
-
-  // Fetch prescriptions
-  const { data: prescriptions = [] } = useQuery({
-    queryKey: ['doctor-prescriptions', doctorInfo?.id],
-    queryFn: async () => {
-      if (!doctorInfo?.id) return [];
-
-      const { data, error } = await supabase
-        .from('prescriptions')
-        .select(`
-          *,
-          consultations!inner(
-            profiles!consultations_patient_id_fkey(full_name)
-          )
-        `)
-        .eq('doctor_id', doctorInfo.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      return data.map(item => ({
-        ...item,
-        consultations: {
-          profiles: Array.isArray(item.consultations) && item.consultations[0]?.profiles ? 
-            (Array.isArray(item.consultations[0].profiles) ? item.consultations[0].profiles[0] : item.consultations[0].profiles) :
-            { full_name: 'Unknown' }
-        }
-      })) as unknown as Prescription[];
-    },
-    enabled: !!doctorInfo?.id
-  });
-
-  // Update consultation status
-  const updateConsultationMutation = useMutation({
-    mutationFn: async ({ consultationId, status, notes }: { 
-      consultationId: string; 
-      status: string; 
-      notes?: string;
-    }) => {
-      const updateData: any = { status };
-      if (notes) updateData.doctor_notes = notes;
-
-      const { error } = await supabase
-        .from('consultations')
-        .update(updateData)
-        .eq('id', consultationId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['doctor-consultations'] });
-      toast({
-        title: "Success",
-        description: "Consultation updated"
-      });
-    }
-  });
-
-  // Create prescription
-  const createPrescriptionMutation = useMutation({
-    mutationFn: async (prescriptionData: {
-      consultation_id: string;
-      patient_id: string;
-      diagnosis: string;
-      medications: any[];
-      instructions: string;
-    }) => {
-      const { error } = await supabase
-        .from('prescriptions')
-        .insert({
-          ...prescriptionData,
-          doctor_id: doctorInfo?.id,
-          prescription_number: `RX-${Date.now()}` // Auto-generate prescription number
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['doctor-prescriptions'] });
-      setIsPrescriptionOpen(false);
-      setSelectedConsultation(null);
-      toast({
-        title: "Success",
-        description: "Prescription created successfully"
-      });
-    }
-  });
-
-  // Manage availability
-  const updateAvailabilityMutation = useMutation({
-    mutationFn: async (availabilityData: {
-      day_of_week: number;
-      start_time: string;
-      end_time: string;
-    }) => {
-      // First, delete existing availability for this day
-      await supabase
-        .from('doctor_availability')
-        .delete()
-        .eq('doctor_id', doctorInfo?.id)
-        .eq('day_of_week', availabilityData.day_of_week);
-
-      // Then insert new availability
-      const { error } = await supabase
-        .from('doctor_availability')
-        .insert({
-          doctor_id: doctorInfo?.id,
-          ...availabilityData
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['doctor-availability'] });
-      toast({
-        title: "Success",
-        description: "Availability updated"
-      });
-    }
-  });
+  const getDateLabel = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isToday(date)) return 'Today';
+    if (isTomorrow(date)) return 'Tomorrow';
+    return format(date, 'MMM dd');
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Scheduled</Badge>;
+        return <Badge variant="outline" className="text-blue-600 border-blue-200"><Clock className="h-3 w-3 mr-1" />Scheduled</Badge>;
       case 'in_progress':
-        return <Badge variant="default"><Video className="h-3 w-3 mr-1" />In Progress</Badge>;
+        return <Badge className="bg-orange-500 hover:bg-orange-600"><Video className="h-3 w-3 mr-1" />In Progress</Badge>;
       case 'completed':
-        return <Badge variant="default" className="bg-green-500">Completed</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
@@ -259,50 +49,16 @@ export default function DoctorDashboardPage() {
     }
   };
 
-  const handleStartConsultation = (consultation: Consultation) => {
-    updateConsultationMutation.mutate({
-      consultationId: consultation.id,
-      status: 'in_progress'
-    });
+  const handleConsultationClick = (consultationId: string) => {
+    navigate(`/doctor/consultation/${consultationId}`);
   };
 
-  const handleCompleteConsultation = (consultation: Consultation) => {
-    updateConsultationMutation.mutate({
-      consultationId: consultation.id,
-      status: 'completed'
-    });
-  };
-
-  const handleCreatePrescription = (consultation: Consultation) => {
-    setSelectedConsultation(consultation);
-    setIsPrescriptionOpen(true);
-  };
-
-  const handlePrescriptionSubmit = (formData: FormData) => {
-    if (!selectedConsultation) return;
-
-    const medications = [
-      {
-        name: formData.get('medication_name') as string,
-        dosage: formData.get('dosage') as string,
-        frequency: formData.get('frequency') as string,
-        duration: formData.get('duration') as string
-      }
-    ];
-
-    createPrescriptionMutation.mutate({
-      consultation_id: selectedConsultation.id,
-      patient_id: selectedConsultation.patient_id,
-      diagnosis: formData.get('diagnosis') as string,
-      medications,
-      instructions: formData.get('instructions') as string
-    });
-  };
-
-  const getDayName = (dayNumber: number) => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[dayNumber];
-  };
+  // Quick stats
+  const todayConsultations = upcomingConsultations.filter(c => 
+    isToday(new Date(c.consultation_date))
+  );
+  const inProgressCount = upcomingConsultations.filter(c => c.status === 'in_progress').length;
+  const scheduledCount = upcomingConsultations.filter(c => c.status === 'scheduled').length;
 
   if (isLoading) {
     return (
@@ -314,302 +70,201 @@ export default function DoctorDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Doctor Dashboard</h1>
-          <p className="text-muted-foreground">Manage consultations and patient care</p>
+          <h1 className="text-3xl font-bold">Good morning, Dr. {doctorInfo?.full_name?.split(' ')[0]}</h1>
+          <p className="text-muted-foreground">Here's what's happening with your practice today</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
+          <Button 
+            onClick={() => navigate('/doctor/profile')}
+            variant="outline"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Profile
+          </Button>
           <Button 
             onClick={() => navigate('/doctor/availability')}
             variant="outline"
           >
             <Calendar className="h-4 w-4 mr-2" />
-            Manage Availability
+            Availability
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Consultations</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-blue-900">Today's Appointments</CardTitle>
+            <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{consultations.length}</div>
+            <div className="text-2xl font-bold text-blue-900">{todayConsultations.length}</div>
+            <p className="text-xs text-blue-700 mt-1">
+              {todayConsultations.filter(c => c.status === 'completed').length} completed
+            </p>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-orange-900">In Progress</CardTitle>
+            <Activity className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {consultations.filter(c => c.status === 'completed').length}
-            </div>
+            <div className="text-2xl font-bold text-orange-900">{inProgressCount}</div>
+            <p className="text-xs text-orange-700 mt-1">Active consultations</p>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Video className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-green-900">Upcoming</CardTitle>
+            <Clock className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {consultations.filter(c => c.status === 'in_progress').length}
-            </div>
+            <div className="text-2xl font-bold text-green-900">{scheduledCount}</div>
+            <p className="text-xs text-green-700 mt-1">Next 7 days</p>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-purple-900">Rating</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {consultations.filter(c => c.status === 'scheduled').length}
+            <div className="text-2xl font-bold text-purple-900">
+              {doctorInfo?.rating ? `${doctorInfo.rating.toFixed(1)}★` : 'N/A'}
             </div>
+            <p className="text-xs text-purple-700 mt-1">
+              {doctorInfo?.review_count || 0} reviews
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Date Filter */}
+      {/* Upcoming Appointments - Priority Section */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div>
-              <Label>Consultation Date</Label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Stethoscope className="h-5 w-5" />
+              Upcoming Appointments
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Next 7 days • {upcomingConsultations.length} appointments
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Consultation Queue */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Consultation Queue - {format(new Date(selectedDate), 'MMM dd, yyyy')}</CardTitle>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/doctor/appointments')}
+          >
+            View All
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {consultations.map((consultation) => (
-                <TableRow key={consultation.id}>
-                  <TableCell>
+          {upcomingConsultations.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-medium text-lg mb-2">No upcoming appointments</h3>
+              <p className="text-muted-foreground">
+                You have no scheduled consultations for the next 7 days.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {upcomingConsultations.slice(0, 5).map((consultation) => (
+                <div
+                  key={consultation.id}
+                  onClick={() => handleConsultationClick(consultation.id)}
+                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {consultation.profiles.full_name?.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
-                      <div className="font-medium">{consultation.profiles.full_name}</div>
-                      <div className="text-sm text-muted-foreground">{consultation.profiles.phone}</div>
+                      <h4 className="font-medium">{consultation.profiles.full_name}</h4>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {getDateLabel(consultation.consultation_date)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {consultation.time_slot}
+                        </span>
+                        <span className="flex items-center gap-1 capitalize">
+                          {consultation.consultation_type === 'video' && <Video className="h-3 w-3" />}
+                          {consultation.consultation_type === 'audio' && <MessageSquare className="h-3 w-3" />}
+                          {consultation.consultation_type === 'text' && <MessageSquare className="h-3 w-3" />}
+                          {consultation.consultation_type}
+                        </span>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {consultation.time_slot}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{consultation.consultation_type}</Badge>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(consultation.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      {consultation.status === 'scheduled' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleStartConsultation(consultation)}
-                        >
-                          <Video className="h-4 w-4 mr-1" />
-                          Start
-                        </Button>
-                      )}
-                      
-                      {consultation.status === 'in_progress' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCreatePrescription(consultation)}
-                          >
-                            <FileText className="h-4 w-4 mr-1" />
-                            Prescribe
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleCompleteConsultation(consultation)}
-                          >
-                            Complete
-                          </Button>
-                        </>
-                      )}
-                      
-                      <Button
-                        size="sm"
-                        variant="outline"
-                      >
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        Chat
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(consultation.status)}
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Recent Prescriptions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Prescriptions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Prescription #</TableHead>
-                <TableHead>Patient</TableHead>
-                <TableHead>Diagnosis</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {prescriptions.map((prescription) => (
-                <TableRow key={prescription.id}>
-                  <TableCell className="font-mono text-sm">
-                    {prescription.prescription_number}
-                  </TableCell>
-                  <TableCell>
-                    {prescription.consultations.profiles.full_name}
-                  </TableCell>
-                  <TableCell>{prescription.diagnosis}</TableCell>
-                  <TableCell>
-                    {format(new Date(prescription.created_at), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="default">{prescription.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Create Prescription Dialog */}
-      <Dialog open={isPrescriptionOpen} onOpenChange={setIsPrescriptionOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create Prescription</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            handlePrescriptionSubmit(formData);
-          }} className="space-y-4">
-            <div>
-              <Label>Patient</Label>
-              <Input
-                value={selectedConsultation?.profiles.full_name || ''}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="diagnosis">Diagnosis</Label>
-              <Textarea
-                id="diagnosis"
-                name="diagnosis"
-                placeholder="Enter diagnosis..."
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="medication_name">Medication</Label>
-                <Input
-                  id="medication_name"
-                  name="medication_name"
-                  placeholder="Medicine name"
-                  required
-                />
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/doctor/appointments')}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <Label htmlFor="dosage">Dosage</Label>
-                <Input
-                  id="dosage"
-                  name="dosage"
-                  placeholder="e.g., 500mg"
-                  required
-                />
+                <h3 className="font-medium">Manage Appointments</h3>
+                <p className="text-sm text-muted-foreground">View and manage all consultations</p>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="frequency">Frequency</Label>
-                <Input
-                  id="frequency"
-                  name="frequency"
-                  placeholder="e.g., 2 times daily"
-                  required
-                />
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/doctor/prescriptions')}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <FileText className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <Label htmlFor="duration">Duration</Label>
-                <Input
-                  id="duration"
-                  name="duration"
-                  placeholder="e.g., 7 days"
-                  required
-                />
+                <h3 className="font-medium">Prescriptions</h3>
+                <p className="text-sm text-muted-foreground">Create and manage prescriptions</p>
               </div>
             </div>
-
-            <div>
-              <Label htmlFor="instructions">Instructions</Label>
-              <Textarea
-                id="instructions"
-                name="instructions"
-                placeholder="Additional instructions for the patient..."
-              />
+          </CardContent>
+        </Card>
+        
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/doctor/availability')}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Clock className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Set Availability</h3>
+                <p className="text-sm text-muted-foreground">Update your working hours</p>
+              </div>
             </div>
-
-            <div className="flex space-x-2">
-              <Button type="submit" disabled={createPrescriptionMutation.isPending}>
-                {createPrescriptionMutation.isPending ? 'Creating...' : 'Create Prescription'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsPrescriptionOpen(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-};
+}

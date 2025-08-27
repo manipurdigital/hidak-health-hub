@@ -1,0 +1,337 @@
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  Clock, 
+  Phone, 
+  Mail, 
+  MessageSquare, 
+  FileText, 
+  Video,
+  User,
+  Stethoscope
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+
+interface ConsultationDetail {
+  id: string;
+  patient_id: string;
+  consultation_date: string;
+  time_slot: string;
+  status: string;
+  consultation_type: string;
+  patient_notes: string;
+  doctor_notes: string;
+  total_amount: number;
+  created_at: string;
+  profiles: {
+    full_name: string;
+    phone: string;
+    email: string;
+  };
+}
+
+export default function DoctorConsultationDetailPage() {
+  const { consultationId } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [doctorNotes, setDoctorNotes] = useState('');
+  const [isUpdatingNotes, setIsUpdatingNotes] = useState(false);
+
+  const { data: consultation, isLoading } = useQuery({
+    queryKey: ['consultation-detail', consultationId],
+    queryFn: async () => {
+      if (!consultationId) throw new Error('Consultation ID required');
+
+      const { data, error } = await supabase
+        .from('consultations')
+        .select(`
+          *,
+          profiles!consultations_patient_id_fkey(full_name, phone, email)
+        `)
+        .eq('id', consultationId)
+        .single();
+
+      if (error) throw error;
+      
+      const consultation = {
+        ...data,
+        profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
+      } as unknown as ConsultationDetail;
+
+      setDoctorNotes(consultation.doctor_notes || '');
+      return consultation;
+    },
+    enabled: !!consultationId,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ status, notes }: { status: string; notes?: string }) => {
+      const updateData: any = { status };
+      if (notes !== undefined) updateData.doctor_notes = notes;
+
+      const { error } = await supabase
+        .from('consultations')
+        .update(updateData)
+        .eq('id', consultationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultation-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['doctor-upcoming-consultations'] });
+      toast({
+        title: "Success",
+        description: "Consultation updated successfully"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleStatusChange = (status: string) => {
+    updateStatusMutation.mutate({ status });
+  };
+
+  const handleSaveNotes = () => {
+    setIsUpdatingNotes(true);
+    updateStatusMutation.mutate({ 
+      status: consultation?.status || 'scheduled', 
+      notes: doctorNotes 
+    });
+    setIsUpdatingNotes(false);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Scheduled</Badge>;
+      case 'in_progress':
+        return <Badge variant="default"><Video className="h-3 w-3 mr-1" />In Progress</Badge>;
+      case 'completed':
+        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+      case 'cancelled':
+        return <Badge variant="destructive">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getConsultationTypeIcon = (type: string) => {
+    switch (type) {
+      case 'video':
+        return <Video className="h-4 w-4" />;
+      case 'audio':
+        return <Phone className="h-4 w-4" />;
+      default:
+        return <MessageSquare className="h-4 w-4" />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!consultation) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Consultation not found</p>
+        <Button onClick={() => navigate('/doctor/dashboard')} className="mt-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Consultation Details</h1>
+          <p className="text-muted-foreground">
+            {format(new Date(consultation.consultation_date), 'MMMM dd, yyyy')} at {consultation.time_slot}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Patient Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Patient Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback>
+                  {consultation.profiles.full_name?.split(' ').map(n => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-semibold">{consultation.profiles.full_name}</h3>
+                <p className="text-sm text-muted-foreground">Patient</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{consultation.profiles.phone}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{consultation.profiles.email}</span>
+              </div>
+            </div>
+
+            {consultation.patient_notes && (
+              <>
+                <Separator />
+                <div>
+                  <Label className="text-sm font-medium">Patient's Note</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {consultation.patient_notes}
+                  </p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Consultation Details */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Stethoscope className="h-5 w-5" />
+              Consultation Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Date & Time</Label>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {format(new Date(consultation.consultation_date), 'MMM dd, yyyy')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{consultation.time_slot}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Status & Type</Label>
+                <div>{getStatusBadge(consultation.status)}</div>
+                <div className="flex items-center gap-2">
+                  {getConsultationTypeIcon(consultation.consultation_type)}
+                  <span className="text-sm capitalize">{consultation.consultation_type}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Consultation Fee</Label>
+              <p className="text-lg font-semibold">₹{consultation.total_amount}</p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <Label htmlFor="doctor-notes" className="text-sm font-medium">
+                Doctor's Notes
+              </Label>
+              <Textarea
+                id="doctor-notes"
+                value={doctorNotes}
+                onChange={(e) => setDoctorNotes(e.target.value)}
+                placeholder="Add your consultation notes, diagnosis, recommendations..."
+                rows={6}
+              />
+              <Button 
+                onClick={handleSaveNotes} 
+                disabled={isUpdatingNotes}
+                size="sm"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Save Notes
+              </Button>
+            </div>
+
+            <Separator />
+
+            <div className="flex gap-2 flex-wrap">
+              {consultation.status === 'scheduled' && (
+                <Button
+                  onClick={() => handleStatusChange('in_progress')}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <Video className="h-4 w-4 mr-2" />
+                  Start Consultation
+                </Button>
+              )}
+              
+              {consultation.status === 'in_progress' && (
+                <Button
+                  onClick={() => handleStatusChange('completed')}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  Complete Consultation
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/consultation/${consultation.id}/chat`)}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Open Chat
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/doctor/prescriptions/new?consultation=${consultation.id}`)}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Create Prescription
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

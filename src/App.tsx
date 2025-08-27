@@ -22,6 +22,7 @@ import { AdminGuard } from '@/components/auth/AdminGuard';
 import { DoctorGuard } from '@/components/auth/DoctorGuard';
 import { AdminLayoutWrapper } from '@/components/AdminLayoutWrapper';
 import { DoctorPendingPage } from '@/pages/doctor/DoctorPendingPage';
+import { DoctorLayout } from '@/components/DoctorLayout';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
 import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
@@ -396,8 +397,13 @@ function App() {
                      }
                     />
                     
-                    {/* Doctor Routes */}
-                    <Route path="/doctor/pending" element={<DoctorPendingPage />} />
+                     {/* Doctor Routes */}
+                     <Route path="/doctor/pending" element={<DoctorPendingPage />} />
+                     <Route path="/doctor/*" element={
+                       <DoctorGuard>
+                         <DoctorLayout />
+                       </DoctorGuard>
+                     } />
                     
                     {/* Catch all route - must be last */}
                     <Route path="*" element={<NotFound />} />
