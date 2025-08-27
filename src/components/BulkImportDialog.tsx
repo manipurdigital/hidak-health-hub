@@ -83,11 +83,11 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
   const { toast } = useToast();
 
   const downloadTemplate = () => {
-    const template = `name,brand,manufacturer,price,original_price,description,dosage,pack_size,requires_prescription,image_url,source_url
-Paracetamol 500mg,Dolo,Micro Labs,5.50,8.00,"Pain and fever relief",500mg,10 tablets,false,,
-Amoxicillin 250mg,Amoxil,GSK,45.00,60.00,"Antibiotic for bacterial infections",250mg,10 capsules,true,,
-Aspirin 75mg,Disprin,Reckitt,12.00,15.00,"Blood thinner and pain relief",75mg,10 tablets,false,,
-,,,,,,,,,,"Optional: Add source_url column for URL-based imports"`;
+    const template = `name,composition_text,category,price,original_price,stock_quantity,requires_prescription,manufacturer,dosage,pack_size,image_url,description,source_url
+Calpol 650,Paracetamol 650 mg,Pain Relief,25.50,30.00,100,false,GSK,650mg,10 tablets,,"Pain and fever relief tablet",
+Amoxicillin 250mg,Amoxicillin 250 mg,Antibiotics,45.00,60.00,50,true,Cipla,250mg,10 capsules,,"Antibiotic for bacterial infections",
+Aspirin 75mg,Acetylsalicylic Acid 75 mg,Cardiovascular,12.00,15.00,75,false,Bayer,75mg,30 tablets,,"Blood thinner and pain relief",
+,,,,,,,,,,,,"Optional: Add source_url column for URL-based imports"`;
     
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

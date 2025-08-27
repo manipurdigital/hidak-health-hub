@@ -29,28 +29,46 @@ serve(async (req) => {
     if (templateType === "medicines") {
       templateData = [
         {
-          name: "Paracetamol 500mg",
-          brand: "Crocin",
+          name: "Calpol 650",
+          composition_text: "Paracetamol 650 mg",
+          category: "Pain Relief",
           price: 25.50,
           original_price: 30.00,
           stock_quantity: 100,
           requires_prescription: "No",
-          description: "Pain relief and fever reducer",
           manufacturer: "GSK",
-          dosage: "500mg",
-          pack_size: "10 tablets"
+          dosage: "650mg",
+          pack_size: "10 tablets",
+          image_url: "",
+          description: "Pain and fever relief tablet"
         },
         {
           name: "Amoxicillin 250mg",
-          brand: "Novamox",
+          composition_text: "Amoxicillin 250 mg",
+          category: "Antibiotics", 
           price: 45.00,
-          original_price: 50.00,
+          original_price: 60.00,
           stock_quantity: 50,
           requires_prescription: "Yes",
-          description: "Antibiotic for bacterial infections",
           manufacturer: "Cipla",
           dosage: "250mg",
-          pack_size: "10 capsules"
+          pack_size: "10 capsules",
+          image_url: "",
+          description: "Antibiotic for bacterial infections"
+        },
+        {
+          name: "Aspirin 75mg",
+          composition_text: "Acetylsalicylic Acid 75 mg",
+          category: "Cardiovascular",
+          price: 12.00,
+          original_price: 15.00,
+          stock_quantity: 75,
+          requires_prescription: "No",
+          manufacturer: "Bayer",
+          dosage: "75mg", 
+          pack_size: "30 tablets",
+          image_url: "",
+          description: "Blood thinner and pain relief"
         }
       ];
       filename = "medicines_bulk_upload_template.xlsx";
