@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building, Plus, Edit, Percent, UserPlus } from 'lucide-react';
+import { Building, Plus, Edit, Percent, User, Link, KeyRound } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CenterCommissionForm } from '@/components/admin/CenterCommissionForm';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,12 +25,10 @@ interface DiagnosticCenter {
   created_at: string;
 }
 
-
 export default function Labs() {
   const [selectedCenter, setSelectedCenter] = useState<DiagnosticCenter | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [linkAccountOpen, setLinkAccountOpen] = useState(false);
-  const [selectedCenterForLink, setSelectedCenterForLink] = useState<DiagnosticCenter | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,7 +37,7 @@ export default function Labs() {
   
   // Link account form state
   const [linkEmail, setLinkEmail] = useState('');
-  const [linkRole, setLinkRole] = useState('center');
+  const [selectedCenterForLink, setSelectedCenterForLink] = useState<DiagnosticCenter | null>(null);
   
   const queryClient = useQueryClient();
 
@@ -126,7 +123,6 @@ export default function Labs() {
     }
   });
 
-
   const linkAccountMutation = useMutation({
     mutationFn: async () => {
       if (!selectedCenterForLink || !linkEmail.trim()) {
@@ -134,8 +130,7 @@ export default function Labs() {
       }
       const { error } = await supabase.rpc('admin_link_center_account_by_email', {
         p_center_id: selectedCenterForLink.id,
-        p_email: linkEmail.trim(),
-        p_role: linkRole
+        p_email: linkEmail.trim()
       });
       if (error) {
         if (error.message === 'user_not_found') {
@@ -143,9 +138,6 @@ export default function Labs() {
         }
         if (error.message === 'center_not_found') {
           throw new Error('Center not found');
-        }
-        if (error.message === 'invalid_role') {
-          throw new Error('Invalid role specified');
         }
         throw error;
       }
@@ -157,7 +149,6 @@ export default function Labs() {
       });
       setLinkAccountOpen(false);
       setLinkEmail('');
-      setLinkRole('center');
       setSelectedCenterForLink(null);
       queryClient.invalidateQueries({ queryKey: ['center-staff-relationships'] });
     },
@@ -186,6 +177,39 @@ export default function Labs() {
     linkAccountMutation.mutate();
   };
 
+  const handleSendPasswordReset = async (center: DiagnosticCenter) => {
+    if (!center.email) {
+      toast({
+        title: "Error",
+        description: "Contact email is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(center.email, {
+        redirectTo: `${window.location.origin}/auth`
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Password reset email sent to ${center.email}`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send password reset",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const isCenterLinked = (centerId: string) => {
+    return centerStaff.some(staff => staff.center_id === centerId);
+  };
 
   if (isLoading) {
     return <div className="p-6">Loading diagnostic centers...</div>;
@@ -198,83 +222,77 @@ export default function Labs() {
         <div className="flex gap-2">
           <Dialog open={linkAccountOpen} onOpenChange={setLinkAccountOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Link Account
+              <Button variant="outline" disabled={unlinkedCenters.length === 0}>
+                <Link className="h-4 w-4 mr-2" />
+                Link Existing Account
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Link User to Diagnostic Center</DialogTitle>
+                <DialogTitle>Link Existing Account</DialogTitle>
                 <DialogDescription>
                   Link an existing user account to a diagnostic center by their email address.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="center-select">Select Center</Label>
-                  <Select 
-                    value={selectedCenterForLink?.id || ''} 
-                    onValueChange={(value) => {
-                      const center = centers.find(c => c.id === value);
-                      setSelectedCenterForLink(center || null);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a diagnostic center" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {centers.map((center) => (
-                        <SelectItem key={center.id} value={center.id}>
-                          {center.name}
-                        </SelectItem>  
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {unlinkedCenters.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">All centers have been linked to accounts.</p>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="link-email">User Email</Label>
-                  <Input
-                    id="link-email"
-                    type="email"
-                    value={linkEmail}
-                    onChange={(e) => setLinkEmail(e.target.value)}
-                    placeholder="user@example.com"
-                  />
-                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="link-email">User Email</Label>
+                    <Input
+                      id="link-email"
+                      type="email"
+                      value={linkEmail}
+                      onChange={(e) => setLinkEmail(e.target.value)}
+                      placeholder="user@example.com"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="link-role">Role</Label>
-                  <Select value={linkRole} onValueChange={setLinkRole}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="center">Center Admin</SelectItem>
-                      <SelectItem value="center_staff">Center Staff</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="center-select">Select Center Profile</Label>
+                    <Select 
+                      value={selectedCenterForLink?.id || ''} 
+                      onValueChange={(value) => {
+                        const center = unlinkedCenters.find(c => c.id === value);
+                        setSelectedCenterForLink(center || null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a diagnostic center" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unlinkedCenters.map((center) => (
+                          <SelectItem key={center.id} value={center.id}>
+                            {center.name}
+                          </SelectItem>  
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setLinkAccountOpen(false);
-                      setLinkEmail('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleLinkAccount}
-                    disabled={!linkEmail.trim() || !selectedCenterForLink || linkAccountMutation.isPending}
-                  >
-                    {linkAccountMutation.isPending ? 'Linking...' : 'Link Account'}
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setLinkAccountOpen(false);
+                        setLinkEmail('');
+                        setSelectedCenterForLink(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleLinkAccount}
+                      disabled={!linkEmail.trim() || !selectedCenterForLink || linkAccountMutation.isPending}
+                    >
+                      {linkAccountMutation.isPending ? 'Linking...' : 'Link Account'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </DialogContent>
           </Dialog>
 
@@ -341,6 +359,7 @@ export default function Labs() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Contact</TableHead>
+                <TableHead>Account</TableHead>
                 <TableHead>Commission Rate</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -359,6 +378,30 @@ export default function Labs() {
                     <div>
                       <div className="text-sm">{center.email}</div>
                       <div className="text-sm text-muted-foreground">{center.contact_phone}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {isCenterLinked(center.id) ? (
+                        <>
+                          <Badge variant="default" className="text-xs flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            Linked
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSendPasswordReset(center)}
+                            className="h-6 px-2"
+                          >
+                            <KeyRound className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">
+                          No Account
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
