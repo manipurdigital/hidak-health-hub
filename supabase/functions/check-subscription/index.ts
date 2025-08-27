@@ -25,7 +25,19 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    if (userError) {
+      // Instead of throwing error, return graceful response
+      return new Response(JSON.stringify({
+        has_subscription: false,
+        subscription: null,
+        usage: [],
+        current_month: new Date().toISOString().slice(0, 7),
+        error: `Authentication error: ${userError.message}`
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
     
     const user = userData.user;
     if (!user) {

@@ -85,6 +85,7 @@ export const useDoctorUpcomingConsultations = () => {
     },
     enabled: !!user?.id,
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    staleTime: 10000, // Cache for 10 seconds to reduce repeated calls
   });
 };
 
@@ -106,5 +107,6 @@ export const useDoctorInfo = () => {
       return data;
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes since doctor info rarely changes
   });
 };
