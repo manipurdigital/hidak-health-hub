@@ -13,6 +13,8 @@ export interface UpcomingConsultation {
   doctor_notes: string;
   total_amount: number;
   created_at: string;
+  completed_at: string | null;
+  follow_up_expires_at: string | null;
   profiles: {
     full_name: string;
     phone: string;

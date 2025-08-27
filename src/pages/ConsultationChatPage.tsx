@@ -18,24 +18,40 @@ export default function ConsultationChatPage() {
     queryFn: async () => {
       if (!consultationId) throw new Error('Consultation ID required');
 
-      const { data, error } = await supabase
+      // Get consultation data
+      const { data: consultationData, error: consultationError } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_patient_id_fkey(full_name),
-          doctors(full_name, user_id)
-        `)
+        .select('*')
         .eq('id', consultationId)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (consultationError) throw consultationError;
+
+      // Get patient profile
+      const { data: patientProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', consultationData.patient_id)
+        .single();
+
+      // Get doctor info
+      const { data: doctorInfo } = await supabase
+        .from('doctors')
+        .select('full_name, user_id')
+        .eq('id', consultationData.doctor_id)
+        .single();
+
+      return {
+        ...consultationData,
+        patient_profile: patientProfile,
+        doctor_info: doctorInfo
+      };
     },
     enabled: !!consultationId && !!user,
   });
 
   const isPatient = consultation?.patient_id === user?.id;
-  const isDoctor = consultation?.doctors?.user_id === user?.id;
+  const isDoctor = consultation?.doctor_info?.user_id === user?.id;
 
   if (isLoading) {
     return (
@@ -71,7 +87,7 @@ export default function ConsultationChatPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">
-            Consultation with {isPatient ? consultation.doctors?.full_name : consultation.profiles?.full_name}
+            Consultation with {isPatient ? consultation.doctor_info?.full_name : consultation.patient_profile?.full_name}
           </h1>
           <p className="text-muted-foreground">
             {consultation.consultation_date} at {consultation.time_slot}
