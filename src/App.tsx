@@ -28,6 +28,7 @@ import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
 import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
 import DashboardPage from '@/pages/DashboardPage';
 import DoctorDashboardPage from '@/pages/doctor/DoctorDashboardPage';
+import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import AdminMedicinesPage from '@/pages/admin/AdminMedicinesPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
@@ -130,6 +131,13 @@ function App() {
                     </DoctorGuard>
                   } />
                   
+                  {/* Lab Routes */}
+                  <Route path="/lab" element={
+                    <AuthGuard requiredRole="lab">
+                      <LabDashboardPage />
+                    </AuthGuard>
+                  } />
+
                   <Route path="/checkout" element={
                     <AuthGuard>
                       <CheckoutPage />
