@@ -75,6 +75,11 @@ export function ConsultationSuccessPage() {
   };
 
   const getPaymentStatusBadge = () => {
+    // Handle waived payments for subscription users
+    if (consultation.payment_status === 'waived') {
+      return <Badge variant="secondary" className="text-green-600 bg-green-50">Covered by Care+</Badge>;
+    }
+    
     // Only show "Payment Confirmed" if payment_status is 'paid' AND razorpay_payment_id exists
     const isActuallyPaid = consultation.payment_status === 'paid' && consultation.razorpay_payment_id;
     
@@ -90,8 +95,9 @@ export function ConsultationSuccessPage() {
   };
 
   const getStatusSteps = () => {
-    // Only consider truly paid if payment_status is 'paid' AND razorpay_payment_id exists
-    const isPaid = consultation.payment_status === 'paid' && consultation.razorpay_payment_id;
+    // Handle waived payments for subscription users and paid consultations
+    const isPaid = consultation.payment_status === 'waived' || 
+                   (consultation.payment_status === 'paid' && consultation.razorpay_payment_id);
     const isScheduled = consultation.status === 'scheduled';
     
     return [
@@ -133,20 +139,24 @@ export function ConsultationSuccessPage() {
           <Card className="text-center mb-8">
             <CardContent className="p-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                {consultation.payment_status === 'pending' || !(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) ? (
+                {consultation.payment_status === 'pending' || 
+                 !(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) && 
+                 consultation.payment_status !== 'waived' ? (
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
                 ) : (
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 )}
               </div>
               <h1 className="text-2xl font-bold text-green-600 mb-2">
-                {consultation.payment_status === 'paid' && consultation.razorpay_payment_id
+                {(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) || 
+                 consultation.payment_status === 'waived'
                   ? 'Consultation Confirmed!' 
                   : 'Consultation Booking Created'
                 }
               </h1>
               <p className="text-muted-foreground mb-4">
-                {consultation.payment_status === 'paid' && consultation.razorpay_payment_id
+                {(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) || 
+                 consultation.payment_status === 'waived'
                   ? 'Your consultation has been confirmed and scheduled successfully.'
                   : 'Your consultation booking is being processed. Payment confirmation pending.'
                 }
@@ -159,7 +169,8 @@ export function ConsultationSuccessPage() {
           </Card>
 
           {/* Payment Status */}
-          {!(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) && (
+          {!(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) && 
+           consultation.payment_status !== 'waived' && (
             <Card className="mb-8 border-orange-200 bg-orange-50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-orange-700">
@@ -315,9 +326,11 @@ export function ConsultationSuccessPage() {
             <Button 
               onClick={() => navigate(`/consult/${consultId}`)} 
               className="flex-1"
-              disabled={!(consultation.payment_status === 'paid' && consultation.razorpay_payment_id)}
+              disabled={!((consultation.payment_status === 'paid' && consultation.razorpay_payment_id) || 
+                        consultation.payment_status === 'waived')}
             >
-              {consultation.payment_status === 'paid' && consultation.razorpay_payment_id
+              {(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) || 
+               consultation.payment_status === 'waived'
                 ? 'Join Consultation Room' 
                 : 'Awaiting Payment'
               }

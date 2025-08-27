@@ -139,9 +139,9 @@ export const useConfirmConsultation = () => {
 
   return useMutation({
     mutationFn: async (confirmData: {
-      razorpay_order_id: string;
-      razorpay_payment_id: string;
-      razorpay_signature: string;
+      order_id: string;
+      payment_id: string;
+      signature: string;
       doctorId: string;
       consultationDate: string;
       timeSlot: string;
@@ -196,11 +196,11 @@ export interface RazorpayOptions {
     email?: string;
     contact?: string;
   };
-  theme: {
-    color: string;
+  theme?: {
+    color?: string;
   };
-  modal: {
-    ondismiss: () => void;
+  modal?: {
+    ondismiss?: () => void;
   };
 }
 

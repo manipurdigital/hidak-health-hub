@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDoctor, useDoctorAvailability, useAvailableSlots } from '@/hooks/doctor-hooks';
 import { useCreateConsultation } from '@/hooks/api-hooks';
+import { useInitiateConsultationPayment, useConfirmConsultation, openRazorpayCheckout } from '@/hooks/payment-hooks';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,6 +25,8 @@ export function DoctorProfilePage() {
   const navigate = useNavigate();
   const { hasActiveSubscription } = useSubscription();
   const createConsultation = useCreateConsultation();
+  const initiatePayment = useInitiateConsultationPayment();
+  const confirmConsultation = useConfirmConsultation();
   const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState<BookingStep>('profile');
@@ -77,23 +80,83 @@ export function DoctorProfilePage() {
     setIsBooking(true);
 
     try {
-      const consultationData = {
-        doctor_id: doctor.id,
-        consultation_date: selectedSlot.date,
-        time_slot: selectedSlot.time,
-        consultation_type: consultationType,
-        total_amount: hasActiveSubscription ? 0 : doctor.consultation_fee,
-        payment_status: hasActiveSubscription ? 'waived' : 'paid', // Simulate payment
-        patient_notes: '',
-      };
+      if (hasActiveSubscription) {
+        // For subscription users, directly create consultation with waived payment
+        const consultationData = {
+          doctor_id: doctor.id,
+          consultation_date: selectedSlot.date,
+          time_slot: selectedSlot.time,
+          consultation_type: consultationType,
+          total_amount: 0,
+          payment_status: 'waived',
+          patient_notes: '',
+        };
 
-      const result = await createConsultation.mutateAsync(consultationData);
-      navigate(`/consult-success/${result.id}`);
+        const result = await createConsultation.mutateAsync(consultationData);
+        navigate(`/consult-success/${result.id}`);
+      } else {
+        // For non-subscription users, initiate payment first
+        const paymentData = await initiatePayment.mutateAsync({
+          doctorId: doctor.id,
+          consultationDate: selectedSlot.date,
+          timeSlot: selectedSlot.time,
+          consultationType,
+          notes: '',
+        });
+
+        // Open Razorpay checkout immediately
+        await openRazorpayCheckout({
+          order_id: paymentData.order_id,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          key: paymentData.key_id,
+          name: "Healthcare Consultation",
+          description: `Consultation with Dr. ${doctor.full_name}`,
+          prefill: {
+            name: "",
+            email: "",
+            contact: "",
+          },
+          handler: async (response: any) => {
+            try {
+              // Confirm consultation after successful payment
+              const result = await confirmConsultation.mutateAsync({
+                order_id: paymentData.order_id,
+                payment_id: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                doctorId: doctor.id,
+                consultationDate: selectedSlot.date,
+                timeSlot: selectedSlot.time,
+                consultationType,
+                notes: '',
+              });
+              
+              navigate(`/consult-success/${result.consultation_id}`);
+            } catch (error: any) {
+              console.error('Confirmation error:', error);
+              toast({
+                title: "Booking Confirmation Failed",
+                description: error.message || "Payment succeeded but booking confirmation failed. Please contact support.",
+                variant: "destructive",
+              });
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              toast({
+                title: "Payment Cancelled",
+                description: "No booking was created. You can try again when ready.",
+                variant: "default",
+              });
+            }
+          }
+        });
+      }
     } catch (error: any) {
       console.error('Booking error:', error);
       toast({
         title: "Booking Failed",
-        description: error.message || "Failed to book consultation. Please try again.",
+        description: error.message || "Failed to initiate booking. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -511,6 +574,12 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
       <Card>
         <CardHeader>
           <CardTitle>Review Your Consultation</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {hasActiveSubscription 
+              ? "Review your consultation details before confirming your booking."
+              : "Review your consultation details. You will be redirected to secure payment to confirm the booking."
+            }
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Doctor Summary */}
