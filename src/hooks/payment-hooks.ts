@@ -139,9 +139,9 @@ export const useConfirmConsultation = () => {
 
   return useMutation({
     mutationFn: async (confirmData: {
-      order_id: string;
-      payment_id: string;
-      signature: string;
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
       doctorId: string;
       consultationDate: string;
       timeSlot: string;

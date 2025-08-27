@@ -121,9 +121,9 @@ export function DoctorProfilePage() {
             try {
               // Confirm consultation after successful payment
               const result = await confirmConsultation.mutateAsync({
-                order_id: paymentData.order_id,
-                payment_id: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
+                razorpay_order_id: paymentData.order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
                 doctorId: doctor.id,
                 consultationDate: selectedSlot.date,
                 timeSlot: selectedSlot.time,

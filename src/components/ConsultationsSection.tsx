@@ -168,9 +168,9 @@ const ConsultationsSection = () => {
           try {
             // Step 3: Confirm consultation after payment success
             const confirmationData = await confirmConsultation.mutateAsync({
-              order_id: response.razorpay_order_id,
-              payment_id: response.razorpay_payment_id,
-              signature: response.razorpay_signature,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
               ...bookingData
             });
 
