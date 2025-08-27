@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,6 +32,23 @@ export const DeleteAllMedicinesButton: React.FC = () => {
     setIsDeleting(true);
     
     try {
+      // First check if there are any medicines to delete
+      const { count, error: countError } = await supabase
+        .from('medicines')
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) {
+        throw countError;
+      }
+
+      if (count === 0) {
+        toast.success('No medicines found to delete');
+        setIsDialogOpen(false);
+        setConfirmText('');
+        return;
+      }
+
+      // Use the edge function to delete all medicines
       const { data, error } = await supabase.functions.invoke('delete-all-medicines', {
         method: 'POST'
       });
@@ -42,13 +60,13 @@ export const DeleteAllMedicinesButton: React.FC = () => {
       const response = typeof data === 'string' ? JSON.parse(data) : data;
       
       if (response.success) {
-        toast.success(`Successfully deleted ${response.deletedCount} medicines`);
+        toast.success(`Successfully deleted ${response.deletedCount || count} medicines`);
         setIsDialogOpen(false);
         setConfirmText('');
-        // Optionally trigger a page refresh or refetch medicines
+        // Trigger a page refresh to update the medicines list
         window.location.reload();
       } else {
-        throw new Error(response.message || 'Unknown error');
+        throw new Error(response.message || 'Unknown error occurred');
       }
     } catch (error) {
       console.error('Error deleting medicines:', error);
@@ -85,8 +103,8 @@ export const DeleteAllMedicinesButton: React.FC = () => {
             </p>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>All medicine records</li>
-              <li>Related cart items (will be orphaned)</li>
-              <li>Related order items (historical data will be affected)</li>
+              <li>Related cart items (will be removed)</li>
+              <li>Related import job items (will be removed)</li>
               <li>Search functionality</li>
               <li>User experience across the entire platform</li>
             </ul>
