@@ -395,7 +395,7 @@ export default function DoctorConsultationDetailPage() {
 
               <Button
                 variant="outline"
-                onClick={() => navigate(`/doctor/prescriptions/new?consultation=${consultation.id}`)}
+                onClick={() => navigate('/doctor/prescriptions')}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Create Prescription
