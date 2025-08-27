@@ -68,6 +68,9 @@ const AuthPage = () => {
           case 'lab':
             navigate('/lab');
             break;
+          case 'center':
+            navigate('/center');
+            break;
           default:
             navigate('/');
         }
