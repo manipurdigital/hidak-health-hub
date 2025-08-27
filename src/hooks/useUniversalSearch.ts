@@ -17,16 +17,17 @@ export function useUniversalSearch(query: string, maxPerGroup: number = 5) {
         throw new Error(error.message);
       }
 
-      // Enhance medicine results with composition data
+      // Enhance medicine results with composition data and filter out inactive/deleted medicines
       const enhancedResults = await Promise.all(
         (data || []).map(async (result: any) => {
           if (result.type === 'medicine') {
-            // Get additional composition data from medicines table
+            // Get additional composition data from medicines table and verify medicine exists
             const { data: medicineData } = await supabase
               .from('medicines')
               .select('composition_key, composition_family_key, name, generic_name')
               .eq('id', result.id)
-              .single();
+              .eq('is_active', true)
+              .maybeSingle();
             
             if (medicineData) {
               return {
@@ -36,13 +37,18 @@ export function useUniversalSearch(query: string, maxPerGroup: number = 5) {
                 rank_score: 1.0 // Default score since v2 doesn't return it directly
               };
             }
+            // Return null for inactive/deleted medicines to filter them out
+            return null;
           }
           return result;
         })
       );
 
+      // Filter out null results (inactive/deleted medicines)
+      const validResults = enhancedResults.filter(result => result !== null);
+
       // Filter out results based on feature flags
-      const filteredResults = enhancedResults.filter(result => {
+      const filteredResults = validResults.filter(result => {
         if (result.type === "doctor") {
           return isFeatureEnabled("ENABLE_CONSULTATIONS");
         }

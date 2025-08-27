@@ -26,6 +26,31 @@ const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 const CACHE_MAX_ENTRIES = 50;
 const localCache = new Map<string, { data: SearchResult[]; ts: number }>();
 
+// Helper function to filter out invalid medicines from search results
+async function filterValidMedicines(results: SearchResult[]): Promise<SearchResult[]> {
+  if (!results.length) return results;
+  
+  const medicineResults = results.filter(r => r.type === 'medicine');
+  const nonMedicineResults = results.filter(r => r.type !== 'medicine');
+  
+  if (!medicineResults.length) return results;
+  
+  // Check which medicines still exist and are active
+  const medicineIds = medicineResults.map(r => r.id);
+  const { data: validMedicines } = await supabase
+    .from('medicines')
+    .select('id')
+    .in('id', medicineIds)
+    .eq('is_active', true);
+    
+  const validMedicineIds = new Set((validMedicines || []).map(m => m.id));
+  
+  // Filter out medicines that don't exist or are inactive
+  const validMedicineResults = medicineResults.filter(r => validMedicineIds.has(r.id));
+  
+  return [...validMedicineResults, ...nonMedicineResults];
+}
+
 function getFromCache(key: string): SearchResult[] | null {
   const entry = localCache.get(key);
   if (!entry) return null;
@@ -63,7 +88,7 @@ export function useSearchSuggestions(query: string, maxPerGroup: number = 5) {
         }).abortSignal(signal as AbortSignal);
 
         if (!v2.error && Array.isArray(v2.data)) {
-          const results = (v2.data || []) as SearchResult[];
+          const results = await filterValidMedicines((v2.data || []) as SearchResult[]);
           setInCache(cacheKey, results);
           return results;
         }
@@ -75,7 +100,7 @@ export function useSearchSuggestions(query: string, maxPerGroup: number = 5) {
         }).abortSignal(signal as AbortSignal);
 
         if (!v1.error && Array.isArray(v1.data)) {
-          const results = (v1.data || []) as SearchResult[];
+          const results = await filterValidMedicines((v1.data || []) as SearchResult[]);
           setInCache(cacheKey, results);
           return results;
         }
