@@ -311,21 +311,9 @@ async function handlePaymentCaptured(supabaseClient: any, event: any, correlatio
     return;
   }
 
-  // Use a single transaction to update both orders and lab_bookings and consultations
-  const { error: txError } = await supabaseClient.rpc('process_payment_captured', {
-    p_razorpay_order_id: orderId,
-    p_razorpay_payment_id: payment.id,
-    p_amount: payment.amount,
-    p_currency: payment.currency || 'INR'
-  });
-
-  if (txError) {
-    // If RPC doesn't exist, fall back to manual updates
-    logStep(correlationId, "RPC not found, using manual updates", { orderId });
-    await updatePaymentStatusManually(supabaseClient, orderId, payment, 'paid', correlationId);
-  } else {
-    logStep(correlationId, "Payment captured processed via RPC", { orderId });
-  }
+  // Process manually to enforce strict validations and avoid relying on DB RPCs
+  await updatePaymentStatusManually(supabaseClient, orderId, payment, 'paid', correlationId);
+  logStep(correlationId, "Payment captured processed manually", { orderId });
 }
 
 async function handlePaymentFailed(supabaseClient: any, event: any, correlationId: string) {
@@ -344,21 +332,8 @@ async function handlePaymentFailed(supabaseClient: any, event: any, correlationI
 
 async function handleOrderPaid(supabaseClient: any, event: any, correlationId: string) {
   const order = event.payload.order.entity;
-  logStep(correlationId, "Processing order paid event", { orderId: order.id, amount: order.amount });
-  
-  // Create a synthetic payment captured event
-  await handlePaymentCaptured(supabaseClient, {
-    payload: {
-      payment: {
-        entity: {
-          id: order.id + "_order_paid",
-          order_id: order.id,
-          amount: order.amount,
-          currency: order.currency || 'INR'
-        }
-      }
-    }
-  }, correlationId);
+  // Do not mark as paid on order.paid; wait for payment.captured with verified signature
+  logStep(correlationId, "Ignoring order.paid; awaiting payment.captured", { orderId: order.id, amount: order.amount });
 }
 
 async function updatePaymentStatusManually(
