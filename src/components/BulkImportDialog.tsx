@@ -82,22 +82,47 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
   const [showDetails, setShowDetails] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
-  const downloadTemplate = () => {
-    const template = `name,composition_text,category,price,original_price,stock_quantity,requires_prescription,manufacturer,dosage,pack_size,image_url,description,source_url
-Calpol 650,Paracetamol 650 mg,Pain Relief,25.50,30.00,100,false,GSK,650mg,10 tablets,,"Pain and fever relief tablet",
-Amoxicillin 250mg,Amoxicillin 250 mg,Antibiotics,45.00,60.00,50,true,Cipla,250mg,10 capsules,,"Antibiotic for bacterial infections",
-Aspirin 75mg,Acetylsalicylic Acid 75 mg,Cardiovascular,12.00,15.00,75,false,Bayer,75mg,30 tablets,,"Blood thinner and pain relief",
-,,,,,,,,,,,,"Optional: Add source_url column for URL-based imports"`;
-    
-    const blob = new Blob([template], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'medicine_template.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadTemplate = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-templates', {
+        body: { type: 'medicines' }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        // Convert base64 to blob
+        const byteCharacters = atob(data.data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: data.contentType });
+
+        // Download the file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "Success",
+          description: "Template downloaded successfully with instructions and categories",
+        });
+      }
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download template. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleFileUpload = async () => {
@@ -416,7 +441,7 @@ Aspirin 75mg,Acetylsalicylic Acid 75 mg,Cardiovascular,12.00,15.00,75,false,Baye
                       className="mt-1"
                     />
                     <p className="text-sm text-muted-foreground mt-1">
-                      Supported formats: CSV, Excel (.xlsx, .xls). Include source_url column for URL-based imports.
+                      Download the template Excel file with required fields, instructions, and category list.
                     </p>
                   </div>
 

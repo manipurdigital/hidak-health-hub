@@ -251,8 +251,30 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
 
 async function processDirectRow(row: any, supabase: any, result: ImportResult, jobItemId: string, downloadImages: boolean) {
   // Validate required fields
-  if (!row.name || !row.price) {
-    throw new Error('Missing required fields (name, price)');
+  if (!row.name || !row.price || !row.composition_text || !row.stock_quantity) {
+    throw new Error('Missing required fields (name, price, composition_text, stock_quantity)');
+  }
+
+  // Parse requires_prescription field robustly
+  let requiresPrescription = false;
+  if (row.requires_prescription !== undefined && row.requires_prescription !== null && row.requires_prescription !== '') {
+    const prescValue = String(row.requires_prescription).toLowerCase().trim();
+    requiresPrescription = ['yes', 'true', '1', 'y', 't'].includes(prescValue);
+  }
+
+  // Map category name to category_id
+  let categoryId = null;
+  if (row.category) {
+    const { data: categoryData } = await supabase
+      .from('medicine_categories')
+      .select('id')
+      .eq('name', row.category)
+      .eq('is_active', true)
+      .limit(1);
+    
+    if (categoryData && categoryData.length > 0) {
+      categoryId = categoryData[0].id;
+    }
   }
 
   // Check for duplicates
@@ -260,7 +282,7 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     .from('medicines')
     .select('id')
     .eq('name', row.name)
-    .eq('brand', row.brand || '')
+    .eq('composition_text', row.composition_text)
     .limit(1);
 
   if (existing && existing.length > 0) {
@@ -323,22 +345,24 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     }
   }
 
-  // Prepare medicine data
+  // Prepare medicine data to match the form exactly
   const medicineData = {
     name: row.name,
-    brand: row.brand || '',
-    generic_name: row.generic_name || '',
-    manufacturer: row.manufacturer || '',
+    composition_text: row.composition_text,
+    category_id: categoryId,
     price: parseFloat(row.price) || 0,
     original_price: parseFloat(row.original_price) || parseFloat(row.price) || 0,
-    description: row.description || '',
+    stock_quantity: parseInt(row.stock_quantity) || 0,
+    requires_prescription: requiresPrescription,
+    manufacturer: row.manufacturer || '',
     dosage: row.dosage || '',
     pack_size: row.pack_size || '',
-    requires_prescription: row.requires_prescription === 'true' || row.requires_prescription === true,
     image_url: processedImageUrl,
-    stock_quantity: parseInt(row.stock_quantity) || 10,
+    description: row.description || '',
     is_active: row.is_active !== 'false',
-    ...compositionData
+    // Generate composition keys
+    composition_key: generateCompositionKey(normalizeComposition(row.composition_text)),
+    composition_family_key: generateCompositionFamilyKey(normalizeComposition(row.composition_text))
   };
 
   // Insert medicine
