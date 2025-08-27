@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building, Plus, Edit, Percent } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CenterCommissionForm } from '@/components/admin/CenterCommissionForm';
+import { Textarea } from '@/components/ui/textarea';
 
 interface DiagnosticCenter {
   id: string;
@@ -26,6 +27,12 @@ interface DiagnosticCenter {
 
 export default function Labs() {
   const [selectedCenter, setSelectedCenter] = useState<DiagnosticCenter | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [commissionRate, setCommissionRate] = useState('20'); // percent
   const queryClient = useQueryClient();
 
   const { data: centers = [], isLoading } = useQuery({
@@ -64,6 +71,35 @@ export default function Labs() {
     }
   });
 
+  const createCenterMutation = useMutation({
+    mutationFn: async () => {
+      const rate = Math.max(0, Math.min(100, parseFloat(commissionRate || '20')));
+      const { data, error } = await supabase
+        .from('diagnostic_centers')
+        .insert({
+          name: name.trim(),
+          email: email.trim(),
+          contact_phone: phone.trim(),
+          address: address.trim(),
+          platform_commission_rate: (rate / 100),
+          is_active: true,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: 'Center Added', description: 'Diagnostic center created successfully' });
+      setAddOpen(false);
+      setName(''); setEmail(''); setPhone(''); setAddress(''); setCommissionRate('20');
+      queryClient.invalidateQueries({ queryKey: ['diagnostic-centers'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Create Failed', description: error.message, variant: 'destructive' });
+    }
+  });
+
   const handleToggleStatus = (id: string, currentStatus: boolean) => {
     toggleStatusMutation.mutate({ id, is_active: !currentStatus });
   };
@@ -76,10 +112,53 @@ export default function Labs() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Diagnostic Centers</h1>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Center
-        </Button>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Center
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Add Diagnostic Center</DialogTitle>
+              <DialogDescription>Fill details to create a new partner lab center.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lab name" />
+              </div>
+              <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91…" />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, City, State, Pincode" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="commission">Platform Commission (%)</Label>
+                <Input id="commission" type="number" min={0} max={100} value={commissionRate} onChange={(e) => setCommissionRate(e.target.value)} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={() => createCenterMutation.mutate()}
+                  disabled={!name.trim() || !email.trim() || !address.trim() || createCenterMutation.isPending}
+                >
+                  {createCenterMutation.isPending ? 'Saving…' : 'Save Center'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -147,6 +226,7 @@ export default function Labs() {
                         <DialogContent className="max-w-md">
                           <DialogHeader>
                             <DialogTitle>Update Commission Rate</DialogTitle>
+                            <DialogDescription>Set the platform commission for this center.</DialogDescription>
                           </DialogHeader>
                           {selectedCenter && (
                             <CenterCommissionForm

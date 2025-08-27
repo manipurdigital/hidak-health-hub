@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Search, Link2, Users, Building2 } from 'lucide-react';
 
 interface User {
@@ -136,6 +136,7 @@ export function CenterAccountLinking() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Link User to Center</DialogTitle>
+              <DialogDescription>Select a user and link them to a diagnostic center with the appropriate role.</DialogDescription>
             </DialogHeader>
             
             <div className="space-y-6">
