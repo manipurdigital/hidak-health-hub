@@ -7,10 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, MapPin, Upload, Clock, CheckCircle, AlertCircle, Route } from 'lucide-react';
+import { Calendar, MapPin, Upload, Clock, CheckCircle, AlertCircle, Route, DollarSign, TrendingUp, CreditCard, Receipt } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { FileUpload } from '@/components/FileUpload';
+import { KPICard } from '@/components/dashboard/KPICard';
+import { RevenueChart } from '@/components/dashboard/RevenueChart';
+import { PaymentBreakdown } from '@/components/dashboard/PaymentBreakdown';
+import { useLabCollectionsKPIs, useLabCollectionsByDay } from '@/hooks/analytics-hooks';
 
 interface LabBooking {
   id: string;
@@ -31,8 +35,45 @@ export const LabDashboardPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState(7); // Default to last 7 days
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Calculate date range for analytics
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = subDays(new Date(), dateRange).toISOString().split('T')[0];
+
+  // Fetch revenue analytics
+  const { data: kpiData, isLoading: kpiLoading } = useLabCollectionsKPIs(startDate, endDate);
+  const { data: revenueData, isLoading: revenueLoading } = useLabCollectionsByDay(startDate, endDate);
+
+  // Fetch payment breakdown data
+  const { data: paymentBreakdown, isLoading: paymentLoading } = useQuery({
+    queryKey: ['lab-payment-breakdown', startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lab_bookings')
+        .select('payment_method, total_amount, status')
+        .gte('booking_date', startDate)
+        .lte('booking_date', endDate)
+        .eq('status', 'collected');
+
+      if (error) throw error;
+
+      // Group by payment method
+      const breakdown = data?.reduce((acc: any, booking: any) => {
+        const method = booking.payment_method || 'online';
+        if (!acc[method]) {
+          acc[method] = { category: method, revenue: 0, orders: 0 };
+        }
+        acc[method].revenue += Number(booking.total_amount || 0);
+        acc[method].orders += 1;
+        return acc;
+      }, {});
+
+      return Object.values(breakdown || {});
+    }
+  });
 
   // Fetch today's bookings
   const { data: bookings = [], isLoading } = useQuery({
@@ -207,6 +248,72 @@ export const LabDashboardPage = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* Revenue & Analytics Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPICard
+          title="Total Revenue"
+          value={kpiData?.lab_revenue || 0}
+          format="currency"
+          icon={<DollarSign className="h-4 w-4" />}
+        />
+        <KPICard
+          title="Collections Today"
+          value={kpiData?.collected_bookings || 0}
+          format="number"
+          icon={<CheckCircle className="h-4 w-4" />}
+        />
+        <KPICard
+          title="Collection Rate"
+          value={kpiData?.collection_rate || 0}
+          format="percentage"
+          icon={<TrendingUp className="h-4 w-4" />}
+        />
+        <KPICard
+          title="Center Payouts"
+          value={kpiData?.center_payouts || 0}
+          format="currency"
+          icon={<Receipt className="h-4 w-4" />}
+        />
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RevenueChart
+          data={revenueData?.map(item => ({
+            date: item.collection_date,
+            value: item.revenue
+          }))}
+          isLoading={revenueLoading}
+          title="Revenue Trend"
+        />
+        <PaymentBreakdown
+          data={paymentBreakdown as any}
+          isLoading={paymentLoading}
+          title="Payment Methods"
+        />
+      </div>
+
+      {/* Date Range Filter for Analytics */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-4">
+            <div>
+              <label className="text-sm font-medium">Analytics Period</label>
+              <Select value={dateRange.toString()} onValueChange={(value) => setDateRange(Number(value))}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 90 days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>
