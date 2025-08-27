@@ -676,6 +676,7 @@ export type Database = {
           lat: number | null
           lng: number | null
           name: string
+          platform_commission_rate: number
           service_areas: string[] | null
           updated_at: string
         }
@@ -691,6 +692,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           name: string
+          platform_commission_rate?: number
           service_areas?: string[] | null
           updated_at?: string
         }
@@ -706,6 +708,7 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           name?: string
+          platform_commission_rate?: number
           service_areas?: string[] | null
           updated_at?: string
         }
@@ -1267,15 +1270,19 @@ export type Database = {
           last_distance_meters: number | null
           last_eta_mins: number | null
           paid_at: string | null
+          partner_amount: number | null
           patient_email: string | null
           patient_name: string
           patient_phone: string
+          payment_method: string
           payment_status: string | null
           pickup_address: Json | null
           pickup_lat: number | null
           pickup_lng: number | null
           pickup_window_end: string | null
           pickup_window_start: string | null
+          platform_commission_amount: number | null
+          platform_commission_rate: number | null
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
           reschedule_reason: string | null
@@ -1303,15 +1310,19 @@ export type Database = {
           last_distance_meters?: number | null
           last_eta_mins?: number | null
           paid_at?: string | null
+          partner_amount?: number | null
           patient_email?: string | null
           patient_name: string
           patient_phone: string
+          payment_method?: string
           payment_status?: string | null
           pickup_address?: Json | null
           pickup_lat?: number | null
           pickup_lng?: number | null
           pickup_window_end?: string | null
           pickup_window_start?: string | null
+          platform_commission_amount?: number | null
+          platform_commission_rate?: number | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           reschedule_reason?: string | null
@@ -1339,15 +1350,19 @@ export type Database = {
           last_distance_meters?: number | null
           last_eta_mins?: number | null
           paid_at?: string | null
+          partner_amount?: number | null
           patient_email?: string | null
           patient_name?: string
           patient_phone?: string
+          payment_method?: string
           payment_status?: string | null
           pickup_address?: Json | null
           pickup_lat?: number | null
           pickup_lng?: number | null
           pickup_window_end?: string | null
           pickup_window_start?: string | null
+          platform_commission_amount?: number | null
+          platform_commission_rate?: number | null
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
           reschedule_reason?: string | null
@@ -2945,6 +2960,16 @@ export type Database = {
           revenue_growth: number
           total_orders: number
           total_revenue: number
+        }[]
+      }
+      admin_lab_split_summary: {
+        Args: { p_center_id: string; p_end_date: string; p_start_date: string }
+        Returns: {
+          cod_partner_receipts: number
+          cod_platform_commission_due: number
+          online_partner_payout_due: number
+          online_platform_receipts: number
+          total_tests: number
         }[]
       }
       admin_link_doctor_account: {

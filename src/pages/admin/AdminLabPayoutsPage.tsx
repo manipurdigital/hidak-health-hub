@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DollarSign, Plus, CheckCircle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { LabSplitPreview } from '@/components/admin/LabSplitPreview';
 
 interface DiagnosticCenter {
   id: string;
@@ -162,180 +163,193 @@ export function AdminLabPayoutsPage() {
         <h1 className="text-3xl font-bold">Lab Payout Management</h1>
       </div>
 
-      {/* Create New Payout Batch */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Create New Payout Batch
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="center">Diagnostic Center</Label>
-              <Select value={selectedCenter} onValueChange={setSelectedCenter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select center" />
-                </SelectTrigger>
-                <SelectContent>
-                  {centers.map((center) => (
-                    <SelectItem key={center.id} value={center.id}>
-                      {center.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="start-date">Start Date</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="end-date">End Date</Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-          <Button 
-            onClick={() => createBatchMutation.mutate()}
-            disabled={createBatchMutation.isPending || !selectedCenter || !startDate || !endDate}
-          >
-            {createBatchMutation.isPending ? 'Creating...' : 'Create Payout Batch'}
-          </Button>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="payouts" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="payouts">Payout Batches</TabsTrigger>
+          <TabsTrigger value="split-preview">Split Preview</TabsTrigger>
+        </TabsList>
 
-      {/* Payout Batches Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Payout Batches
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-center text-muted-foreground">Loading payout batches...</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Batch ID</TableHead>
-                  <TableHead>Center</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Paid At</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batches.map((batch) => (
-                  <TableRow key={batch.id}>
-                    <TableCell className="font-mono text-sm">
-                      #{batch.id.slice(-8)}
-                    </TableCell>
-                    <TableCell>{batch.diagnostic_centers?.name}</TableCell>
-                    <TableCell>{getBatchStatusBadge(batch.status)}</TableCell>
-                    <TableCell className="font-semibold">₹{batch.total_amount.toFixed(2)}</TableCell>
-                    <TableCell>{new Date(batch.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      {batch.paid_at ? new Date(batch.paid_at).toLocaleDateString() : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {batch.status === 'pending' && (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setSelectedBatch(batch)}
-                            >
-                              Mark as Paid
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Mark Payout as Paid</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <p className="text-sm text-muted-foreground">
-                                  Batch: #{batch.id.slice(-8)} • Amount: ₹{batch.total_amount.toFixed(2)}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  Center: {batch.diagnostic_centers?.name}
-                                </p>
-                              </div>
-                              <div>
-                                <Label htmlFor="reference">Payment Reference</Label>
-                                <Input
-                                  id="reference"
-                                  placeholder="Transaction ID, check number, etc."
-                                  value={paymentReference}
-                                  onChange={(e) => setPaymentReference(e.target.value)}
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="notes">Notes (optional)</Label>
-                                <Textarea
-                                  id="notes"
-                                  placeholder="Additional notes about this payment"
-                                  value={paymentNotes}
-                                  onChange={(e) => setPaymentNotes(e.target.value)}
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  onClick={() => markPaidMutation.mutate({
-                                    batchId: batch.id,
-                                    reference: paymentReference,
-                                    notes: paymentNotes
-                                  })}
-                                  disabled={markPaidMutation.isPending}
+        <TabsContent value="payouts" className="space-y-6">
+          {/* Create New Payout Batch */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Create New Payout Batch
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="center">Diagnostic Center</Label>
+                  <Select value={selectedCenter} onValueChange={setSelectedCenter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select center" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centers.map((center) => (
+                        <SelectItem key={center.id} value={center.id}>
+                          {center.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="start-date">Start Date</Label>
+                  <Input
+                    id="start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="end-date">End Date</Label>
+                  <Input
+                    id="end-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button 
+                onClick={() => createBatchMutation.mutate()}
+                disabled={createBatchMutation.isPending || !selectedCenter || !startDate || !endDate}
+              >
+                {createBatchMutation.isPending ? 'Creating...' : 'Create Payout Batch'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Payout Batches Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Payout Batches
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <p className="text-center text-muted-foreground">Loading payout batches...</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Batch ID</TableHead>
+                      <TableHead>Center</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Paid At</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {batches.map((batch) => (
+                      <TableRow key={batch.id}>
+                        <TableCell className="font-mono text-sm">
+                          #{batch.id.slice(-8)}
+                        </TableCell>
+                        <TableCell>{batch.diagnostic_centers?.name}</TableCell>
+                        <TableCell>{getBatchStatusBadge(batch.status)}</TableCell>
+                        <TableCell className="font-semibold">₹{batch.total_amount.toFixed(2)}</TableCell>
+                        <TableCell>{new Date(batch.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {batch.paid_at ? new Date(batch.paid_at).toLocaleDateString() : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {batch.status === 'pending' && (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setSelectedBatch(batch)}
                                 >
-                                  {markPaidMutation.isPending ? 'Processing...' : 'Mark as Paid'}
+                                  Mark as Paid
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedBatch(null);
-                                    setPaymentReference('');
-                                    setPaymentNotes('');
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                      {batch.status === 'paid' && (
-                        <div className="text-sm text-muted-foreground">
-                          {batch.reference && (
-                            <div>Ref: {batch.reference}</div>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Mark Payout as Paid</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">
+                                      Batch: #{batch.id.slice(-8)} • Amount: ₹{batch.total_amount.toFixed(2)}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Center: {batch.diagnostic_centers?.name}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="reference">Payment Reference</Label>
+                                    <Input
+                                      id="reference"
+                                      placeholder="Transaction ID, check number, etc."
+                                      value={paymentReference}
+                                      onChange={(e) => setPaymentReference(e.target.value)}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="notes">Notes (optional)</Label>
+                                    <Textarea
+                                      id="notes"
+                                      placeholder="Additional notes about this payment"
+                                      value={paymentNotes}
+                                      onChange={(e) => setPaymentNotes(e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      onClick={() => markPaidMutation.mutate({
+                                        batchId: batch.id,
+                                        reference: paymentReference,
+                                        notes: paymentNotes
+                                      })}
+                                      disabled={markPaidMutation.isPending}
+                                    >
+                                      {markPaidMutation.isPending ? 'Processing...' : 'Mark as Paid'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedBatch(null);
+                                        setPaymentReference('');
+                                        setPaymentNotes('');
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           )}
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                          {batch.status === 'paid' && (
+                            <div className="text-sm text-muted-foreground">
+                              {batch.reference && (
+                                <div>Ref: {batch.reference}</div>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="split-preview">
+          <LabSplitPreview />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
