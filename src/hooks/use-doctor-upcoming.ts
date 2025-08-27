@@ -30,6 +30,8 @@ export const useDoctorUpcomingConsultations = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      console.log('Fetching consultations for doctor user:', user.id);
+
       // First get doctor info
       const { data: doctorInfo, error: doctorError } = await supabase
         .from('doctors')
@@ -37,8 +39,16 @@ export const useDoctorUpcomingConsultations = () => {
         .eq('user_id', user.id)
         .single();
 
-      if (doctorError) throw doctorError;
-      if (!doctorInfo) return [];
+      if (doctorError) {
+        console.error('Error fetching doctor info:', doctorError);
+        throw doctorError;
+      }
+      if (!doctorInfo) {
+        console.log('No doctor found for user:', user.id);
+        return [];
+      }
+
+      console.log('Found doctor:', doctorInfo.id);
 
       // Get all consultations with status priority ordering
       const { data, error } = await supabase
@@ -52,7 +62,12 @@ export const useDoctorUpcomingConsultations = () => {
         .order('consultation_date')
         .order('time_slot');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching consultations:', error);
+        throw error;
+      }
+
+      console.log('Raw consultations data:', data);
 
       // Sort by priority: in_progress > scheduled > pending > completed
       const statusPriority = {
@@ -78,10 +93,13 @@ export const useDoctorUpcomingConsultations = () => {
         return a.time_slot.localeCompare(b.time_slot);
       });
 
-      return sortedData.map(item => ({
+      const result = sortedData.map(item => ({
         ...item,
         profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
       })) as unknown as UpcomingConsultation[];
+
+      console.log('Processed consultations:', result);
+      return result;
     },
     enabled: !!user?.id,
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
