@@ -159,9 +159,18 @@ export const useCreateConsultation = () => {
 
   return useMutation({
     mutationFn: async (consultation: any) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Please sign in to book a consultation.');
+
+      // Ensure patient_id is always set to the authenticated user
+      const consultationData = {
+        ...consultation,
+        patient_id: session.user.id,
+      };
+
       const { data, error } = await supabase
         .from('consultations')
-        .insert(consultation)
+        .insert(consultationData)
         .select()
         .single();
       
