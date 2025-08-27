@@ -38,8 +38,8 @@ export function MedicineDetailPage() {
           title="Medicine Not Found"
           description="The medicine you're looking for doesn't exist or is unavailable."
           action={{
-            label: "Back to Search",
-            onClick: () => navigate(-1)
+            label: "Browse Medicines",
+            onClick: () => navigate('/medicines')
           }}
         />
       </div>
