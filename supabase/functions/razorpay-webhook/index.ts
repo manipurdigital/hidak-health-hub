@@ -311,6 +311,9 @@ async function handlePaymentCaptured(supabaseClient: any, event: any, correlatio
     return;
   }
 
+  // Check if this is a consultation that needs backfill
+  await backfillConsultationIfNeeded(supabaseClient, orderId, payment, correlationId);
+
   // Process manually to enforce strict validations and avoid relying on DB RPCs
   await updatePaymentStatusManually(supabaseClient, orderId, payment, 'paid', correlationId);
   logStep(correlationId, "Payment captured processed manually", { orderId });
@@ -473,5 +476,132 @@ async function updatePaymentStatusManually(
   if ((!orders || orders.length === 0) && (!bookings || bookings.length === 0) && (!consultations || consultations.length === 0)) {
     logStep(correlationId, "No orders, bookings, or consultations found for Razorpay order", { orderId });
     throw new Error(`No orders, bookings, or consultations found for Razorpay order ID: ${orderId}`);
+  }
+}
+
+async function backfillConsultationIfNeeded(supabaseClient: any, orderId: string, payment: any, correlationId: string) {
+  try {
+    // Check if consultation already exists for this order
+    const { data: existingConsultation } = await supabaseClient
+      .from('consultations')
+      .select('id')
+      .eq('razorpay_order_id', orderId)
+      .maybeSingle();
+
+    if (existingConsultation) {
+      logStep(correlationId, "Consultation already exists, skipping backfill", { orderId });
+      return;
+    }
+
+    // Fetch Razorpay order to get notes with booking metadata
+    const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
+    const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+    
+    if (!razorpayKeyId || !razorpayKeySecret) {
+      logStep(correlationId, "Missing Razorpay credentials for backfill", { orderId });
+      return;
+    }
+
+    const auth = btoa(`${razorpayKeyId}:${razorpayKeySecret}`);
+    const razorpayResponse = await fetch(`https://api.razorpay.com/v1/orders/${orderId}`, {
+      headers: {
+        "Authorization": `Basic ${auth}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!razorpayResponse.ok) {
+      logStep(correlationId, "Failed to fetch Razorpay order for backfill", { orderId });
+      return;
+    }
+
+    const razorpayOrder = await razorpayResponse.json();
+    const notes = razorpayOrder.notes;
+
+    if (!notes || !notes.patient_id || !notes.doctor_id) {
+      logStep(correlationId, "No consultation metadata in order notes", { orderId });
+      return;
+    }
+
+    // Verify doctor exists and get consultation fee
+    const { data: doctor, error: doctorError } = await supabaseClient
+      .from('doctors')
+      .select('consultation_fee, full_name')
+      .eq('id', notes.doctor_id)
+      .single();
+
+    if (doctorError || !doctor) {
+      logStep(correlationId, "Doctor not found for backfill", { orderId, doctorId: notes.doctor_id });
+      return;
+    }
+
+    // Verify payment amount matches consultation fee
+    const expectedAmount = Math.round(doctor.consultation_fee * 100);
+    if (payment.amount !== expectedAmount) {
+      logStep(correlationId, "Payment amount mismatch for backfill", { 
+        orderId, 
+        expected: expectedAmount, 
+        actual: payment.amount 
+      });
+      return;
+    }
+
+    // Re-check slot availability
+    const { data: existingBooking } = await supabaseClient
+      .from('consultations')
+      .select('id')
+      .eq('doctor_id', notes.doctor_id)
+      .eq('consultation_date', notes.consultation_date)
+      .eq('time_slot', notes.time_slot)
+      .maybeSingle();
+
+    if (existingBooking) {
+      logStep(correlationId, "Time slot already booked during backfill", { 
+        orderId,
+        doctorId: notes.doctor_id,
+        date: notes.consultation_date,
+        timeSlot: notes.time_slot
+      });
+      return;
+    }
+
+    // Create consultation record from webhook backfill
+    const { data: consultation, error: consultationError } = await supabaseClient
+      .from('consultations')
+      .insert({
+        patient_id: notes.patient_id,
+        doctor_id: notes.doctor_id,
+        consultation_date: notes.consultation_date,
+        time_slot: notes.time_slot,
+        consultation_type: notes.consultation_type || 'text',
+        patient_notes: notes.patient_notes,
+        total_amount: doctor.consultation_fee,
+        status: 'scheduled',
+        payment_status: 'paid',
+        razorpay_order_id: orderId,
+        razorpay_payment_id: payment.id,
+        paid_at: new Date().toISOString()
+      })
+      .select('id')
+      .single();
+
+    if (consultationError) {
+      logStep(correlationId, "Error creating consultation during backfill", { 
+        orderId, 
+        error: consultationError.message 
+      });
+      return;
+    }
+
+    logStep(correlationId, "Successfully backfilled consultation", { 
+      orderId, 
+      consultationId: consultation.id 
+    });
+
+  } catch (error) {
+    logStep(correlationId, "Error during consultation backfill", { 
+      orderId, 
+      error: error.message 
+    });
   }
 }

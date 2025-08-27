@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import SubscriptionBenefits from './SubscriptionBenefits';
 import { cn } from '@/lib/utils';
-import { openRazorpayCheckout, useVerifyPayment } from '@/hooks/payment-hooks';
+import { openRazorpayCheckout, useInitiateConsultationPayment, useConfirmConsultation } from '@/hooks/payment-hooks';
 
 interface Doctor {
   id: string;
@@ -52,7 +52,8 @@ const ConsultationsSection = () => {
   const { hasActiveSubscription, canBookConsultation } = useSubscription();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const verifyPayment = useVerifyPayment();
+  const initiatePayment = useInitiateConsultationPayment();
+  const confirmConsultation = useConfirmConsultation();
 
   const timeSlots = [
     '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
@@ -139,57 +140,60 @@ const ConsultationsSection = () => {
     setIsBooking(true);
     
     try {
-      console.log('Creating consultation booking...');
+      console.log('Initiating consultation payment...');
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Please sign in to book a consultation.');
-      }
+      const bookingData = {
+        doctorId: bookingDoctor.id,
+        consultationDate: format(selectedDate, 'yyyy-MM-dd'),
+        timeSlot: selectedTimeSlot,
+        consultationType: selectedConsultationType,
+        notes: patientNotes || null
+      };
 
-      // Create consultation booking with payment
-      const { data, error } = await supabase.functions.invoke('create-consultation-booking', {
-        body: {
-          doctorId: bookingDoctor.id,
-          consultationDate: format(selectedDate, 'yyyy-MM-dd'),
-          timeSlot: selectedTimeSlot,
-          consultationType: selectedConsultationType,
-          patientNotes: patientNotes || null
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      // Step 1: Initiate payment (creates Razorpay order)
+      const paymentData = await initiatePayment.mutateAsync(bookingData);
+      console.log('Payment initiated:', paymentData);
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error || 'Failed to create booking');
-
-      console.log('Consultation booking created:', data);
-
-      // Open Razorpay checkout
+      // Step 2: Open Razorpay checkout immediately
       openRazorpayCheckout({
-        key: data.razorpay_key_id,
-        amount: Math.round(data.amount * 100), // Convert to paise
+        key: paymentData.key_id,
+        amount: Math.round(paymentData.amount * 100), // Convert to paise
         currency: 'INR',
         name: 'MediCare Consultation',
-        description: `Consultation with ${data.doctor_name}`,
-        order_id: data.razorpay_order_id,
-        handler: (response: any) => {
+        description: `Consultation with ${paymentData.doctor_name}`,
+        order_id: paymentData.order_id,
+        handler: async (response: any) => {
           console.log('Payment successful:', response);
           
-          // Navigate to success page
-          navigate(`/consult-success/${data.consultation_id}`);
-          
-          // Clean up form
-          setBookingDoctor(null);
-          setSelectedDate(undefined);
-          setSelectedTimeSlot('');
-          setSelectedConsultationType('text');
-          setPatientNotes('');
+          try {
+            // Step 3: Confirm consultation after payment success
+            const confirmationData = await confirmConsultation.mutateAsync({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              ...bookingData
+            });
 
-          toast({
-            title: "Payment Successful!",
-            description: `Your consultation with ${data.doctor_name} has been confirmed.`,
-          });
+            console.log('Consultation confirmed:', confirmationData);
+            
+            // Navigate to success page with consultation ID
+            navigate(`/consult-success/${confirmationData.consultation_id}`);
+            
+            // Clean up form
+            setBookingDoctor(null);
+            setSelectedDate(undefined);
+            setSelectedTimeSlot('');
+            setSelectedConsultationType('text');
+            setPatientNotes('');
+
+          } catch (confirmError) {
+            console.error('Error confirming consultation:', confirmError);
+            toast({
+              title: "Confirmation Failed",
+              description: "Payment was successful but consultation confirmation failed. Please contact support.",
+              variant: "destructive"
+            });
+          }
         },
         prefill: {
           name: user.user_metadata?.full_name || '',
@@ -201,10 +205,10 @@ const ConsultationsSection = () => {
         },
         modal: {
           ondismiss: () => {
-            console.log('Payment dismissed');
+            console.log('Payment cancelled/dismissed');
             toast({
               title: "Payment Cancelled",
-              description: "Your consultation booking was not completed. Please try again.",
+              description: "No booking was created. Please try again when ready.",
               variant: "destructive"
             });
           }
@@ -212,10 +216,10 @@ const ConsultationsSection = () => {
       });
 
     } catch (error) {
-      console.error('Error booking consultation:', error);
+      console.error('Error initiating payment:', error);
       toast({
-        title: "Booking Failed",
-        description: error.message || "Failed to book consultation. Please try again.",
+        title: "Payment Failed",
+        description: error.message || "Failed to initiate payment. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -249,7 +253,7 @@ const ConsultationsSection = () => {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">Consult with Doctors</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Book online consultations with verified doctors. Payment required to confirm booking.
+            Book online consultations with verified doctors. Pay first to confirm your booking instantly.
           </p>
         </div>
 
@@ -384,7 +388,7 @@ const ConsultationsSection = () => {
               <CardHeader>
                 <CardTitle>Book Consultation with {bookingDoctor.full_name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Payment is required to confirm your booking
+                  Payment will be processed immediately to confirm your booking
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -400,9 +404,9 @@ const ConsultationsSection = () => {
                       ) : (
                         <div>
                           <span className="text-lg font-bold text-primary">₹{bookingDoctor.consultation_fee}</span>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <CreditCard className="w-3 h-3" />
-                            Prepaid
+                            Pay now
                           </p>
                         </div>
                       )}
@@ -508,11 +512,11 @@ const ConsultationsSection = () => {
                     disabled={!selectedDate || !selectedTimeSlot || isBooking}
                   >
                     {isBooking ? (
-                      <>Processing...</>
+                      <>Processing Payment...</>
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4 mr-2" />
-                        Pay & Book
+                        Pay & Book Now
                       </>
                     )}
                   </Button>

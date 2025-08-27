@@ -93,9 +93,8 @@ export const useCreateLabBooking = () => {
   });
 };
 
-// Consultation Booking Creation  
-export const useCreateConsultationBooking = () => {
-  const queryClient = useQueryClient();
+// Initiate consultation payment (creates order only)
+export const useInitiateConsultationPayment = () => {
   const { toast } = useToast();
 
   return useMutation({
@@ -104,15 +103,58 @@ export const useCreateConsultationBooking = () => {
       consultationDate: string;
       timeSlot: string;
       consultationType?: string;
-      patientNotes?: string;
+      notes?: string;
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Please sign in to book a consultation.');
       }
 
-      const { data, error } = await supabase.functions.invoke('create-consultation-booking', {
+      const { data, error } = await supabase.functions.invoke('initiate-consultation-payment', {
         body: bookingData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      
+      return data;
+    },
+    onError: (error) => {
+      toast({
+        title: "Payment Initiation Failed",
+        description: error.message || "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// Confirm consultation after payment success
+export const useConfirmConsultation = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (confirmData: {
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+      doctorId: string;
+      consultationDate: string;
+      timeSlot: string;
+      consultationType?: string;
+      notes?: string;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Please sign in to confirm consultation.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('confirm-consultation', {
+        body: confirmData,
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -125,11 +167,15 @@ export const useCreateConsultationBooking = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      toast({
+        title: "Consultation Confirmed!",
+        description: "Your consultation has been successfully booked.",
+      });
     },
     onError: (error) => {
       toast({
-        title: "Booking Failed",
-        description: error.message || "Failed to create consultation booking. Please try again.",
+        title: "Confirmation Failed",
+        description: error.message || "Failed to confirm consultation. Please try again.",
         variant: "destructive",
       });
     },
