@@ -23,14 +23,14 @@ interface Prescription {
   created_at: string;
   updated_at: string;
   follow_up_date: string;
-  profiles: {
-    full_name: string;
-    phone: string;
-    email: string;
-  };
   consultations: {
     consultation_date: string;
     time_slot: string;
+    profiles: {
+      full_name: string;
+      phone: string;
+      email: string;
+    };
   };
 }
 
@@ -58,14 +58,14 @@ export default function DoctorPrescriptionsPage() {
         .from('prescriptions')
         .select(`
           *,
-          profiles!prescriptions_patient_id_fkey(
-            full_name,
-            phone,
-            email
-          ),
           consultations(
             consultation_date,
-            time_slot
+            time_slot,
+            profiles!consultations_patient_id_fkey(
+              full_name,
+              phone,
+              email
+            )
           )
         `)
         .eq('doctor_id', doctorInfo.id)
@@ -255,7 +255,7 @@ export default function DoctorPrescriptionsPage() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                       <div className="flex items-center gap-1">
                         <User className="w-4 h-4" />
-                        <span>{prescription.profiles?.full_name}</span>
+                        <span>{prescription.consultations?.profiles?.full_name || 'Unknown Patient'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
