@@ -2976,6 +2976,10 @@ export type Database = {
         Args: { p_center_id: string; p_role?: string; p_user_id: string }
         Returns: undefined
       }
+      admin_link_center_account_by_email: {
+        Args: { p_center_id: string; p_email: string; p_role?: string }
+        Returns: undefined
+      }
       admin_link_doctor_account: {
         Args: { p_doctor_id: string; p_email: string }
         Returns: undefined

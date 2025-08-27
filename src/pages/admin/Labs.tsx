@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building, Plus, Edit, Percent } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Building, Plus, Edit, Percent, UserPlus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CenterCommissionForm } from '@/components/admin/CenterCommissionForm';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,11 +29,18 @@ interface DiagnosticCenter {
 export default function Labs() {
   const [selectedCenter, setSelectedCenter] = useState<DiagnosticCenter | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [linkAccountOpen, setLinkAccountOpen] = useState(false);
+  const [selectedCenterForLink, setSelectedCenterForLink] = useState<DiagnosticCenter | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [commissionRate, setCommissionRate] = useState('20'); // percent
+  
+  // Link account form state
+  const [linkEmail, setLinkEmail] = useState('');
+  const [linkRole, setLinkRole] = useState('center');
+  
   const queryClient = useQueryClient();
 
   const { data: centers = [], isLoading } = useQuery({
@@ -100,8 +108,56 @@ export default function Labs() {
     }
   });
 
+  const linkAccountMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCenterForLink) throw new Error('No center selected');
+      
+      const { error } = await supabase.rpc('admin_link_center_account_by_email', {
+        p_center_id: selectedCenterForLink.id,
+        p_email: linkEmail.trim(),
+        p_role: linkRole
+      });
+      
+      if (error) {
+        if (error.message === 'user_not_found') {
+          throw new Error('No user found with this email address');
+        }
+        if (error.message === 'center_not_found') {
+          throw new Error('Center not found');
+        }
+        if (error.message === 'invalid_role') {
+          throw new Error('Invalid role specified');
+        }
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Account Linked',
+        description: 'User account successfully linked to diagnostic center'
+      });
+      setLinkAccountOpen(false);
+      setLinkEmail('');
+      setLinkRole('center');
+      setSelectedCenterForLink(null);
+      queryClient.invalidateQueries({ queryKey: ['center-staff-relationships'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Link Failed',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
   const handleToggleStatus = (id: string, currentStatus: boolean) => {
     toggleStatusMutation.mutate({ id, is_active: !currentStatus });
+  };
+
+  const handleLinkAccount = () => {
+    if (!linkEmail.trim() || !selectedCenterForLink) return;
+    linkAccountMutation.mutate();
   };
 
   if (isLoading) {
@@ -112,53 +168,131 @@ export default function Labs() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Diagnostic Centers</h1>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Center
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Diagnostic Center</DialogTitle>
-              <DialogDescription>Fill details to create a new partner lab center.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lab name" />
-              </div>
-              <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
+        <div className="flex gap-2">
+          <Dialog open={linkAccountOpen} onOpenChange={setLinkAccountOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Link Account
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Link User to Diagnostic Center</DialogTitle>
+                <DialogDescription>
+                  Link an existing user account to a diagnostic center by their email address.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="center-select">Select Center</Label>
+                  <Select 
+                    value={selectedCenterForLink?.id || ''} 
+                    onValueChange={(value) => {
+                      const center = centers.find(c => c.id === value);
+                      setSelectedCenterForLink(center || null);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a diagnostic center" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centers.map((center) => (
+                        <SelectItem key={center.id} value={center.id}>
+                          {center.name}
+                        </SelectItem>  
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91…" />
+                
+                <div className="space-y-2">
+                  <Label htmlFor="link-email">User Email</Label>
+                  <Input
+                    id="link-email"
+                    type="email"
+                    value={linkEmail}
+                    onChange={(e) => setLinkEmail(e.target.value)}
+                    placeholder="user@example.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="link-role">Role</Label>
+                  <Select value={linkRole} onValueChange={setLinkRole}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="center">Center Admin</SelectItem>
+                      <SelectItem value="center_staff">Center Staff</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setLinkAccountOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleLinkAccount}
+                    disabled={!linkEmail.trim() || !selectedCenterForLink || linkAccountMutation.isPending}
+                  >
+                    {linkAccountMutation.isPending ? 'Linking...' : 'Link Account'}
+                  </Button>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="address">Address</Label>
-                <Textarea id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, City, State, Pincode" />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Center
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add Diagnostic Center</DialogTitle>
+                <DialogDescription>Fill details to create a new partner lab center.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Lab name" />
+                </div>
+                <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91…" />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Textarea id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, City, State, Pincode" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="commission">Platform Commission (%)</Label>
+                  <Input id="commission" type="number" min={0} max={100} value={commissionRate} onChange={(e) => setCommissionRate(e.target.value)} />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+                  <Button
+                    onClick={() => createCenterMutation.mutate()}
+                    disabled={!name.trim() || !email.trim() || !address.trim() || createCenterMutation.isPending}
+                  >
+                    {createCenterMutation.isPending ? 'Saving…' : 'Save Center'}
+                  </Button>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="commission">Platform Commission (%)</Label>
-                <Input id="commission" type="number" min={0} max={100} value={commissionRate} onChange={(e) => setCommissionRate(e.target.value)} />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-                <Button
-                  onClick={() => createCenterMutation.mutate()}
-                  disabled={!name.trim() || !email.trim() || !address.trim() || createCenterMutation.isPending}
-                >
-                  {createCenterMutation.isPending ? 'Saving…' : 'Save Center'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
