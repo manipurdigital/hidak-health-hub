@@ -78,7 +78,7 @@ serve(async (req) => {
     const orderData = {
       amount: amount,
       currency: "INR",
-      receipt: `consult_${user.id}_${Date.now()}`,
+      receipt: `c_${user.id.substring(0, 8)}_${Date.now().toString().slice(-8)}`,
       notes: {
         patient_id: user.id,
         doctor_id: doctorId,
