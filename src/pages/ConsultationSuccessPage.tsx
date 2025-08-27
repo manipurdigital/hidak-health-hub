@@ -16,7 +16,18 @@ export function ConsultationSuccessPage() {
   const { consultId } = useParams<{ consultId: string }>();
   const navigate = useNavigate();
 
-  const { data: consultation, isLoading, error } = useConsultation(consultId!);
+  const { data: consultation, isLoading, error, refetch } = useConsultation(consultId!);
+
+  // Auto-refresh every 5 seconds if payment is pending
+  React.useEffect(() => {
+    if (consultation && consultation.payment_status === 'pending') {
+      const interval = setInterval(() => {
+        refetch();
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [consultation, refetch]);
 
   if (isLoading) {
     return <ConsultationSuccessSkeleton />;
@@ -64,20 +75,23 @@ export function ConsultationSuccessPage() {
   };
 
   const getPaymentStatusBadge = () => {
-    switch (consultation.payment_status) {
-      case 'paid':
-        return <Badge variant="secondary" className="text-green-600 bg-green-50">Payment Confirmed</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="text-orange-600 border-orange-200">Processing Payment</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Payment Failed</Badge>;
-      default:
-        return <Badge variant="outline">Payment Status Unknown</Badge>;
+    // Only show "Payment Confirmed" if payment_status is 'paid' AND razorpay_payment_id exists
+    const isActuallyPaid = consultation.payment_status === 'paid' && consultation.razorpay_payment_id;
+    
+    if (isActuallyPaid) {
+      return <Badge variant="secondary" className="text-green-600 bg-green-50">Payment Confirmed</Badge>;
+    } else if (consultation.payment_status === 'pending') {
+      return <Badge variant="outline" className="text-orange-600 border-orange-200">Processing Payment</Badge>;
+    } else if (consultation.payment_status === 'failed') {
+      return <Badge variant="destructive">Payment Failed</Badge>;
+    } else {
+      return <Badge variant="outline" className="text-yellow-600 border-yellow-200">Payment Required</Badge>;
     }
   };
 
   const getStatusSteps = () => {
-    const isPaid = consultation.payment_status === 'paid';
+    // Only consider truly paid if payment_status is 'paid' AND razorpay_payment_id exists
+    const isPaid = consultation.payment_status === 'paid' && consultation.razorpay_payment_id;
     const isScheduled = consultation.status === 'scheduled';
     
     return [
@@ -119,20 +133,20 @@ export function ConsultationSuccessPage() {
           <Card className="text-center mb-8">
             <CardContent className="p-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                {consultation.payment_status === 'pending' ? (
+                {consultation.payment_status === 'pending' || !(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) ? (
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
                 ) : (
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 )}
               </div>
               <h1 className="text-2xl font-bold text-green-600 mb-2">
-                {consultation.payment_status === 'paid' 
+                {consultation.payment_status === 'paid' && consultation.razorpay_payment_id
                   ? 'Consultation Confirmed!' 
                   : 'Consultation Booking Created'
                 }
               </h1>
               <p className="text-muted-foreground mb-4">
-                {consultation.payment_status === 'paid'
+                {consultation.payment_status === 'paid' && consultation.razorpay_payment_id
                   ? 'Your consultation has been confirmed and scheduled successfully.'
                   : 'Your consultation booking is being processed. Payment confirmation pending.'
                 }
@@ -145,7 +159,7 @@ export function ConsultationSuccessPage() {
           </Card>
 
           {/* Payment Status */}
-          {consultation.payment_status !== 'paid' && (
+          {!(consultation.payment_status === 'paid' && consultation.razorpay_payment_id) && (
             <Card className="mb-8 border-orange-200 bg-orange-50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-orange-700">
@@ -301,9 +315,9 @@ export function ConsultationSuccessPage() {
             <Button 
               onClick={() => navigate(`/consult/${consultId}`)} 
               className="flex-1"
-              disabled={consultation.payment_status !== 'paid'}
+              disabled={!(consultation.payment_status === 'paid' && consultation.razorpay_payment_id)}
             >
-              {consultation.payment_status === 'paid' 
+              {consultation.payment_status === 'paid' && consultation.razorpay_payment_id
                 ? 'Join Consultation Room' 
                 : 'Awaiting Payment'
               }

@@ -296,8 +296,20 @@ async function handlePaymentCaptured(supabaseClient: any, event: any, correlatio
   logStep(correlationId, "Processing payment captured", { 
     paymentId: payment.id, 
     orderId, 
-    amount: payment.amount 
+    amount: payment.amount,
+    captured: payment.captured,
+    status: payment.status
   });
+
+  // Validate payment is actually captured and successful
+  if (payment.status !== 'captured' || !payment.captured) {
+    logStep(correlationId, "Payment not captured, skipping", { 
+      paymentId: payment.id, 
+      status: payment.status, 
+      captured: payment.captured 
+    });
+    return;
+  }
 
   // Use a single transaction to update both orders and lab_bookings and consultations
   const { error: txError } = await supabaseClient.rpc('process_payment_captured', {
@@ -439,6 +451,24 @@ async function updatePaymentStatusManually(
     for (const consultation of consultations) {
       logStep(correlationId, "Updating consultation", { consultationId: consultation.id, status });
       
+      // Verify the payment amount matches the consultation fee
+      const { data: consultationDetails } = await supabaseClient
+        .from('consultations')
+        .select('total_amount')
+        .eq('id', consultation.id)
+        .single();
+
+      // Only update if payment amount matches expected amount (in paise)
+      const expectedAmountPaise = Math.round((consultationDetails?.total_amount || 0) * 100);
+      if (status === 'paid' && payment.amount !== expectedAmountPaise) {
+        logStep(correlationId, "Payment amount mismatch", { 
+          consultationId: consultation.id,
+          expectedAmount: expectedAmountPaise,
+          actualAmount: payment.amount
+        });
+        return; // Skip this update
+      }
+
       const consultationStatus = status === 'paid' ? 'scheduled' : 'cancelled';
       const updateData = {
         payment_status: status,
