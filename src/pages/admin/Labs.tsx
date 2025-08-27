@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building, Plus, Edit, Percent, UserPlus } from 'lucide-react';
+import { Building, Plus, Edit, Percent, UserPlus, Search, User, Mail } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CenterCommissionForm } from '@/components/admin/CenterCommissionForm';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +24,12 @@ interface DiagnosticCenter {
   is_active: boolean;
   platform_commission_rate: number;
   created_at: string;
+}
+
+interface AppUser {
+  id: string;
+  email?: string;
+  user_metadata?: any;
 }
 
 export default function Labs() {
@@ -40,6 +46,9 @@ export default function Labs() {
   // Link account form state
   const [linkEmail, setLinkEmail] = useState('');
   const [linkRole, setLinkRole] = useState('center');
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   
   const queryClient = useQueryClient();
 
@@ -54,6 +63,23 @@ export default function Labs() {
       return data || [];
     }
   });
+
+  // Get centers without linked accounts for the linking functionality
+  const { data: centerStaff = [] } = useQuery({
+    queryKey: ['center-staff-relationships'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('center_staff')
+        .select('center_id')
+        .eq('is_active', true);
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const unlinkedCenters = centers.filter(center => 
+    !centerStaff.some(staff => staff.center_id === center.id)
+  );
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
@@ -108,13 +134,47 @@ export default function Labs() {
     }
   });
 
+  // Search for users when email changes
+  const searchUsers = async (email: string) => {
+    if (!email.trim()) {
+      setUsers([]);
+      return;
+    }
+
+    setSearchingUsers(true);
+    try {
+      const { data, error } = await supabase.auth.admin.listUsers();
+      if (error) throw error;
+      
+      const filteredUsers = data.users.filter((user: any) => 
+        user.email?.toLowerCase().includes(email.toLowerCase())
+      ).map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        user_metadata: user.user_metadata
+      }));
+      setUsers(filteredUsers);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      toast({
+        title: 'Search Failed',
+        description: 'Failed to search for users',
+        variant: 'destructive'
+      });
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
   const linkAccountMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedCenterForLink) throw new Error('No center selected');
+      if (!selectedUser || !selectedCenterForLink) {
+        throw new Error('Please select both a user and a center');
+      }
       
       const { error } = await supabase.rpc('admin_link_center_account_by_email', {
         p_center_id: selectedCenterForLink.id,
-        p_email: linkEmail.trim(),
+        p_email: selectedUser.email!,
         p_role: linkRole
       });
       
@@ -140,6 +200,8 @@ export default function Labs() {
       setLinkEmail('');
       setLinkRole('center');
       setSelectedCenterForLink(null);
+      setSelectedUser(null);
+      setUsers([]);
       queryClient.invalidateQueries({ queryKey: ['center-staff-relationships'] });
     },
     onError: (error: Error) => {
@@ -156,8 +218,21 @@ export default function Labs() {
   };
 
   const handleLinkAccount = () => {
-    if (!linkEmail.trim() || !selectedCenterForLink) return;
+    if (!selectedUser || !selectedCenterForLink) {
+      toast({
+        title: 'Error',
+        description: 'Please select both a user and a center',
+        variant: 'destructive'
+      });
+      return;
+    }
     linkAccountMutation.mutate();
+  };
+
+  const handleEmailChange = (email: string) => {
+    setLinkEmail(email);
+    setSelectedUser(null);
+    searchUsers(email);
   };
 
   if (isLoading) {
@@ -185,6 +260,75 @@ export default function Labs() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="link-email">Search User by Email</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="link-email"
+                      type="email"
+                      value={linkEmail}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      placeholder="Type user's email to search..."
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  {/* User search results */}
+                  {linkEmail && users.length > 0 && (
+                    <div className="border rounded-md max-h-40 overflow-y-auto">
+                      {users.map((user) => (
+                        <div
+                          key={user.id}
+                          className={`p-2 cursor-pointer hover:bg-muted ${
+                            selectedUser?.id === user.id ? 'bg-muted' : ''
+                          }`}
+                          onClick={() => setSelectedUser(user)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            <div>
+                              <div className="text-sm font-medium">{user.email}</div>
+                              {user.user_metadata?.full_name && (
+                                <div className="text-xs text-muted-foreground">
+                                  {user.user_metadata.full_name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {linkEmail && users.length === 0 && !searchingUsers && (
+                    <div className="text-sm text-muted-foreground">
+                      No users found with this email
+                    </div>
+                  )}
+                  
+                  {searchingUsers && (
+                    <div className="text-sm text-muted-foreground">
+                      Searching users...
+                    </div>
+                  )}
+                </div>
+
+                {selectedUser && (
+                  <div className="p-3 bg-muted rounded-md">
+                    <div className="text-sm font-medium">Selected User:</div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      {selectedUser.email}
+                    </div>
+                    {selectedUser.user_metadata?.full_name && (
+                      <div className="text-sm text-muted-foreground">
+                        {selectedUser.user_metadata.full_name}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="space-y-2">
                   <Label htmlFor="center-select">Select Center</Label>
                   <Select 
                     value={selectedCenterForLink?.id || ''} 
@@ -205,17 +349,6 @@ export default function Labs() {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="link-email">User Email</Label>
-                  <Input
-                    id="link-email"
-                    type="email"
-                    value={linkEmail}
-                    onChange={(e) => setLinkEmail(e.target.value)}
-                    placeholder="user@example.com"
-                  />
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="link-role">Role</Label>
@@ -231,12 +364,20 @@ export default function Labs() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setLinkAccountOpen(false)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setLinkAccountOpen(false);
+                      setLinkEmail('');
+                      setSelectedUser(null);
+                      setUsers([]);
+                    }}
+                  >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleLinkAccount}
-                    disabled={!linkEmail.trim() || !selectedCenterForLink || linkAccountMutation.isPending}
+                    disabled={!selectedUser || !selectedCenterForLink || linkAccountMutation.isPending}
                   >
                     {linkAccountMutation.isPending ? 'Linking...' : 'Link Account'}
                   </Button>
