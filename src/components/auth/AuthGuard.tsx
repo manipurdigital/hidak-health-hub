@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'doctor' | 'lab' | 'user' | 'rider';
+  requiredRole?: 'admin' | 'doctor' | 'lab' | 'user' | 'rider' | 'center' | 'center_staff';
   fallbackTo?: string;
 }
 
@@ -53,6 +53,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
         return <Navigate to="/lab" replace />;
       case 'rider':
         return <Navigate to="/rider/jobs" replace />;
+      case 'center':
+      case 'center_staff':
+        return <Navigate to="/center" replace />;
       default:
         return <Navigate to="/dashboard" replace />;
     }
@@ -89,6 +92,9 @@ export const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }
         return <Navigate to="/lab" replace />;
       case 'rider':
         return <Navigate to="/rider/jobs" replace />;
+      case 'center':
+      case 'center_staff':
+        return <Navigate to="/center" replace />;
       default:
         return <Navigate to="/dashboard" replace />;
     }
