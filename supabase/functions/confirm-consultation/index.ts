@@ -26,14 +26,16 @@ serve(async (req) => {
       throw new Error("Missing authorization header");
     }
 
+    const token = authHeader.replace("Bearer ", "");
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    const { data: userResp } = await supabaseClient.auth.getUser();
+    const user = userResp.user;
 
     if (!user) {
       throw new Error("User not authenticated");
@@ -62,7 +64,7 @@ serve(async (req) => {
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const encoder = new TextEncoder();
-    const data = encoder.encode(body);
+    const messageBytes = encoder.encode(body);
     const keyData = encoder.encode(secret);
     
     const cryptoKey = await crypto.subtle.importKey(
@@ -73,12 +75,12 @@ serve(async (req) => {
       ["sign"]
     );
     
-    const signature = await crypto.subtle.sign("HMAC", cryptoKey, data);
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageBytes);
     const expectedSignature = Array.from(new Uint8Array(signature))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    if (expectedSignature !== razorpay_signature) {
+    if (expectedSignature.toLowerCase() !== String(razorpay_signature).toLowerCase()) {
       throw new Error("Invalid payment signature");
     }
 
