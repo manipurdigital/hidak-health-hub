@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BulkUpload } from '@/components/BulkUpload';
 import { URLImportDialog } from '@/components/URLImportDialog';
 import { BulkImportDialog } from '@/components/BulkImportDialog';
+import { DeleteAllMedicinesButton } from '@/components/admin/DeleteAllMedicinesButton';
 import { 
   User, 
   LogOut,
@@ -472,6 +473,7 @@ const AdminMedicinesPage = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <DeleteAllMedicinesButton />
                 <Button
                   variant="outline"
                   onClick={() => setIsUrlImportOpen(true)}
