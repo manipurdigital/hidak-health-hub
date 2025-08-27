@@ -148,6 +148,11 @@ function App() {
                       <OrderSuccessPage />
                     </AuthGuard>
                   } />
+                  <Route path="/order/success/:orderId" element={
+                    <AuthGuard>
+                      <OrderSuccessPage />
+                    </AuthGuard>
+                  } />
 
                   {/* Admin Routes */}
                   <Route
