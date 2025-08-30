@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Video, Mic, MicOff, VideoOff, Phone, PhoneOff } from 'lucide-react';
+import { ArrowLeft, Send, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
+import { VideoConsultation } from '@/components/VideoConsultation';
 
 export function ConsultationRoomPage() {
   const { consultId } = useParams<{ consultId: string }>();
@@ -20,8 +21,7 @@ export function ConsultationRoomPage() {
   
   const [message, setMessage] = useState('');
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
-  const [isAudioMuted, setIsAudioMuted] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [videoCallError, setVideoCallError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: consultation, isLoading: consultationLoading, error: consultationError } = useConsultation(consultId!);
@@ -103,20 +103,17 @@ export function ConsultationRoomPage() {
 
   const handleStartVideoCall = () => {
     setIsVideoCallActive(true);
-    toast({
-      title: "Video Call Started",
-      description: "This is a placeholder. Video calling functionality will be integrated later.",
-    });
+    setVideoCallError(null);
   };
 
   const handleEndVideoCall = () => {
     setIsVideoCallActive(false);
-    setIsAudioMuted(false);
-    setIsVideoMuted(false);
-    toast({
-      title: "Video Call Ended",
-      description: "You can continue chatting via text.",
-    });
+    setVideoCallError(null);
+  };
+
+  const handleVideoCallError = (error: string) => {
+    setVideoCallError(error);
+    setIsVideoCallActive(false);
   };
 
   const getConsultationStatusBadge = () => {
@@ -174,34 +171,17 @@ export function ConsultationRoomPage() {
 
                 {/* Video Call Controls */}
                 <div className="flex items-center gap-2">
-                  {!isVideoCallActive ? (
-                    <Button onClick={handleStartVideoCall} size="sm">
-                      <Video className="w-4 h-4 mr-2" />
-                      Start Video Call
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={isAudioMuted ? "destructive" : "outline"}
-                        size="sm"
-                        onClick={() => setIsAudioMuted(!isAudioMuted)}
-                      >
-                        {isAudioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      </Button>
-                      <Button
-                        variant={isVideoMuted ? "destructive" : "outline"}
-                        size="sm"
-                        onClick={() => setIsVideoMuted(!isVideoMuted)}
-                      >
-                        {isVideoMuted ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleEndVideoCall}
-                      >
-                        <PhoneOff className="w-4 h-4" />
-                      </Button>
+                  <Button 
+                    onClick={handleStartVideoCall} 
+                    size="sm"
+                    disabled={isVideoCallActive}
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    {isVideoCallActive ? "Call Active" : "Start Video Call"}
+                  </Button>
+                  {videoCallError && (
+                    <div className="text-sm text-red-600">
+                      Connection failed
                     </div>
                   )}
                 </div>
@@ -209,25 +189,13 @@ export function ConsultationRoomPage() {
             </CardHeader>
           </Card>
 
-          {/* Video Call Placeholder */}
-          {isVideoCallActive && (
-            <Card className="mb-6">
-              <CardContent className="p-6">
-                <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">Video Call Active</h3>
-                    <p className="text-muted-foreground">
-                      This is a placeholder for the video call interface.
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Video calling SDK integration will be added later.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Video Call Component */}
+          <VideoConsultation
+            consultationId={consultId!}
+            isActive={isVideoCallActive}
+            onEnd={handleEndVideoCall}
+            onError={handleVideoCallError}
+          />
 
           {/* Chat Interface */}
           <Card>
