@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, differenceInHours, isPast } from 'date-fns';
+import { VideoConsultation } from '@/components/VideoConsultation';
 
 interface ConsultationDetail {
   id: string;
@@ -54,6 +55,8 @@ export default function DoctorConsultationDetailPage() {
   const queryClient = useQueryClient();
   const [doctorNotes, setDoctorNotes] = useState('');
   const [isUpdatingNotes, setIsUpdatingNotes] = useState(false);
+  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const { data: consultation, isLoading } = useQuery({
     queryKey: ['consultation-detail', consultationId],
@@ -365,7 +368,7 @@ export default function DoctorConsultationDetailPage() {
 
             <Separator />
 
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               {consultation.status === 'scheduled' && (
                 <Button
                   onClick={() => handleStatusChange('in_progress')}
@@ -374,6 +377,22 @@ export default function DoctorConsultationDetailPage() {
                   <Video className="h-4 w-4 mr-2" />
                   Start Consultation
                 </Button>
+              )}
+              
+              <Button
+                onClick={() => { setVideoError(null); setIsVideoCallActive(true); }}
+                variant="default"
+              >
+                <Video className="h-4 w-4 mr-2" />
+                {isVideoCallActive ? 'Call Active' : 'Start Video Call'}
+              </Button>
+              {isVideoCallActive && (
+                <Button variant="destructive" onClick={() => setIsVideoCallActive(false)}>
+                  End Call
+                </Button>
+              )}
+              {videoError && (
+                <span className="text-sm text-red-600">{videoError}</span>
               )}
               
               {consultation.status === 'in_progress' && (
@@ -401,6 +420,14 @@ export default function DoctorConsultationDetailPage() {
                 Create Prescription
               </Button>
             </div>
+
+            {/* Inline video consultation UI */}
+            <VideoConsultation
+              consultationId={consultation.id}
+              isActive={isVideoCallActive}
+              onEnd={() => setIsVideoCallActive(false)}
+              onError={(err) => setVideoError(err)}
+            />
           </CardContent>
         </Card>
       </div>

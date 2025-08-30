@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.warm-demand-cache]
 verify_jwt = false
+
+[functions.agora-tokens]
+verify_jwt = true
