@@ -54,23 +54,21 @@ export function SearchBar({
   const { data: resultsData, isLoading, error } = useSearchSuggestions(debouncedQuery);
   const results: SearchResult[] = (resultsData as SearchResult[]) ?? [];
   const groups = useGroupedSuggestions(results, 5);
+  const groupsArray = Array.isArray(groups) ? groups : [];
   const { data: trendingData } = useTrendingMedicines(8);
   const trendingMedicines = trendingData ?? [];
-
   // Count total items for keyboard navigation
   const allItems = React.useMemo(() => {
     const items: any[] = [];
     if (!query.trim()) {
       items.push(...trendingMedicines);
     }
-    if (Array.isArray(groups)) {
-      groups.forEach(group => {
+      groupsArray.forEach(group => {
         if (Array.isArray(group.items)) {
           items.push(...group.items);
           if (group.items.length === 5) items.push({ type: 'viewAll', group });
         }
       });
-    }
     return items;
   }, [groups, trendingMedicines, query]);
 
@@ -220,7 +218,7 @@ export function SearchBar({
           onClose={() => setIsOpen(false)}
           query={query}
           onQueryChange={setQuery}
-          groups={groups}
+          groups={groupsArray}
           trendingMedicines={trendingMedicines}
           isLoading={isLoading}
           error={error}
@@ -294,7 +292,7 @@ export function SearchBar({
         >
           <SearchDropdown
             query={query}
-            groups={groups}
+            groups={groupsArray}
             trendingMedicines={trendingMedicines}
             isLoading={isLoading}
             error={error}
