@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { useCreateAddress, useUpdateAddress } from '@/hooks/medicine-hooks';
+import { useCreateAddress, useUpdateAddress } from '@/hooks/medicine-placeholders';
 import { LocationInputField } from '@/components/LocationInputField';
 import { Autocomplete } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
@@ -101,7 +101,7 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
     
     try {
       if (editingAddress) {
-        await updateAddress.mutateAsync({ id: editingAddress.id, ...formData });
+        await updateAddress.mutateAsync({ id: editingAddress.id, data: formData });
       } else {
         await createAddress.mutateAsync(formData);
         

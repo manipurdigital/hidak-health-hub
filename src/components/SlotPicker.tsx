@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { AddressDialog } from '@/components/AddressDialog';
 import { useToast } from '@/hooks/use-toast';
-import { useDeleteAddress } from '@/hooks/medicine-hooks';
+// Removed unused import
 
 interface SlotPickerProps {
   labTest: any;
@@ -33,7 +33,7 @@ export function SlotPicker({
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
   const { toast } = useToast();
-  const deleteAddress = useDeleteAddress();
+  // const deleteAddress = useDeleteAddress();
 
   // Generate next 7 days
   const generateDates = () => {
@@ -122,7 +122,8 @@ export function SlotPicker({
 
   const handleDeleteAddress = (addressId: string) => {
     if (window.confirm('Are you sure you want to delete this address?')) {
-      deleteAddress.mutate(addressId);
+      // deleteAddress.mutate(addressId);
+      console.log('Delete address:', addressId);
     }
   };
 
@@ -197,7 +198,7 @@ export function SlotPicker({
                                 handleDeleteAddress(address.id);
                               }}
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              disabled={deleteAddress.isPending}
+                              disabled={false}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

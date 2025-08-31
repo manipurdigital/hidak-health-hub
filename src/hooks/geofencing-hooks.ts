@@ -24,7 +24,7 @@ export interface CreateGeofenceData {
   center_id?: string;
   store_id?: string;
   service_type: 'delivery' | 'lab_collection';
-  polygon_coordinates: any;
+  polygon: any; // This matches the database column name
   priority?: number;
   is_active?: boolean;
 }
@@ -90,10 +90,7 @@ export const useCreateGeofence = () => {
     mutationFn: async (data: CreateGeofenceData) => {
       const { error } = await supabase
         .from('geofences')
-        .insert({
-          ...data,
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-        });
+         .insert(data);
       
       if (error) throw error;
     },
@@ -188,9 +185,8 @@ export const useCheckServiceability = () => {
       serviceType: 'delivery' | 'lab_collection' 
     }) => {
       const { data, error } = await supabase.rpc('get_available_centers_for_location', {
-        lat,
-        lng,
-        service_type: serviceType,
+        p_lat: lat,
+        p_lng: lng,
       });
       
       if (error) throw error;
@@ -225,7 +221,7 @@ export const useFeePreview = () => {
     mutationFn: async ({ lat, lng }: { lat: number; lng: number }) => {
       const { data, error } = await supabase.rpc('calc_distance_fee_from_geofence' as any, {
         p_service: 'delivery',
-        p_dest_lat: lat,
+        p_dest_p_lat: lat,
         p_dest_lng: lng,
       });
 

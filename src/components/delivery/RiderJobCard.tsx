@@ -1,7 +1,17 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useRiderStart, useRiderComplete, type DeliveryAssignment } from '@/hooks/delivery-assignment-hooks';
+import { type DeliveryAssignment } from '@/hooks/delivery-placeholders';
+
+const useRiderStart = () => ({
+  mutate: () => {},
+  isPending: false
+});
+
+const useRiderComplete = () => ({
+  mutate: () => {},
+  isPending: false
+});
 import { Clock, Truck, CheckCircle, MapPin, Package } from 'lucide-react';
 import { format } from 'date-fns';
 

@@ -15,6 +15,13 @@ interface BaseLocation {
   latitude?: number;
   longitude?: number;
   is_active: boolean;
+  service_type?: string;
+  geofence_id?: string;
+  base_lat?: number;
+  base_lng?: number;
+  base_fare?: number;
+  per_km_fee?: number;
+  priority?: number;
 }
 import { useCentersAndStores } from '@/hooks/geofencing-hooks';
 import { MapPin, Save, X } from 'lucide-react';

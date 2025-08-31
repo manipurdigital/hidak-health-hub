@@ -48,7 +48,7 @@ const CategoryManagement = () => {
     if (editingMedicineCategory) {
       updateMedicineCategory.mutate({
         id: editingMedicineCategory.id,
-        ...medicineFormData
+        data: medicineFormData
       });
       setEditingMedicineCategory(null);
     } else {

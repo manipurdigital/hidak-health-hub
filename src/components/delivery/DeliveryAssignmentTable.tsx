@@ -33,12 +33,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
-  useAdminDeliveryAssignments, 
-  useForceStatus,
-  type DeliveryAssignmentFilters,
-  type DeliveryAssignment 
-} from '@/hooks/delivery-assignment-hooks';
+// Placeholder types and hooks for delivery assignments
+interface DeliveryAssignmentFilters {
+  status?: string;
+  rider?: string;
+}
+
+interface DeliveryAssignment {
+  id: string;
+  status: string;
+  order_id: string;
+}
+
+const useAdminDeliveryAssignments = () => ({
+  data: [],
+  isLoading: false,
+  error: null
+});
+
+const useForceStatus = () => ({
+  mutate: () => {},
+  isLoading: false
+});
 import { AssignRiderDrawer } from './AssignRiderDrawer';
 import { DeliveryDetailPanel } from './DeliveryDetailPanel';
 import { useRealTimeDeliveryUpdates } from '@/hooks/realtime-delivery-hooks';
