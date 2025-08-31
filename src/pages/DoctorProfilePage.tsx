@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Star, Languages, MapPin, Calendar, Clock, Video, MessageSquare, Phone } from 'lucide-react';

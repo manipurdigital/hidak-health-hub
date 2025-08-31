@@ -11,6 +11,18 @@ export interface RecItem {
   score: number;
 }
 
+export interface RecParams {
+  at?: Date;
+  city?: string;
+  pincode?: string;
+  limit?: number;
+}
+
+export const recommendMedicinesForTime = async (params: RecParams): Promise<RecItem[]> => {
+  // Placeholder implementation
+  return [];
+};
+
 export async function getCachedRecommendations(userId: string): Promise<RecItem[]> {
   // Placeholder implementation
   return [];

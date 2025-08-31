@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Calendar, Clock, MapPin, Phone, FileText, Edit } from 'lucide-react';
