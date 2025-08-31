@@ -14,11 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      addresses: {
+        Row: {
+          address_line_1: string
+          address_line_2: string | null
+          city: string
+          country: string | null
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          postal_code: string
+          state: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address_line_1: string
+          address_line_2?: string | null
+          city: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          postal_code: string
+          state: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address_line_1?: string
+          address_line_2?: string | null
+          city?: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          postal_code?: string
+          state?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       center_staff: {
         Row: {
           center_id: string
           created_at: string
           id: string
+          is_active: boolean | null
           role: string
           user_id: string
         }
@@ -26,6 +72,7 @@ export type Database = {
           center_id: string
           created_at?: string
           id?: string
+          is_active?: boolean | null
           role: string
           user_id: string
         }
@@ -33,6 +80,7 @@ export type Database = {
           center_id?: string
           created_at?: string
           id?: string
+          is_active?: boolean | null
           role?: string
           user_id?: string
         }
@@ -132,6 +180,8 @@ export type Database = {
           patient_id: string | null
           payment_status: string | null
           status: string | null
+          time_slot: string | null
+          total_amount: number | null
         }
         Insert: {
           consultation_date: string
@@ -144,6 +194,8 @@ export type Database = {
           patient_id?: string | null
           payment_status?: string | null
           status?: string | null
+          time_slot?: string | null
+          total_amount?: number | null
         }
         Update: {
           consultation_date?: string
@@ -156,6 +208,8 @@ export type Database = {
           patient_id?: string | null
           payment_status?: string | null
           status?: string | null
+          time_slot?: string | null
+          total_amount?: number | null
         }
         Relationships: [
           {
@@ -167,37 +221,102 @@ export type Database = {
           },
         ]
       }
+      courier_locations: {
+        Row: {
+          accuracy_meters: number | null
+          created_at: string | null
+          heading_degrees: number | null
+          id: string
+          latitude: number
+          longitude: number
+          recorded_at: string | null
+          rider_id: string | null
+          speed_kmh: number | null
+        }
+        Insert: {
+          accuracy_meters?: number | null
+          created_at?: string | null
+          heading_degrees?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          recorded_at?: string | null
+          rider_id?: string | null
+          speed_kmh?: number | null
+        }
+        Update: {
+          accuracy_meters?: number | null
+          created_at?: string | null
+          heading_degrees?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          recorded_at?: string | null
+          rider_id?: string | null
+          speed_kmh?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_locations_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_assignments: {
         Row: {
           assigned_at: string | null
           created_at: string
+          customer_address: Json | null
           delivered_at: string | null
+          dest_lat: number | null
+          dest_lng: number | null
           id: string
+          notes: string | null
           order_id: string
+          order_number: string | null
           picked_up_at: string | null
+          rider_code: string | null
           rider_id: string | null
+          rider_name: string | null
           status: string
           updated_at: string
         }
         Insert: {
           assigned_at?: string | null
           created_at?: string
+          customer_address?: Json | null
           delivered_at?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
           id?: string
+          notes?: string | null
           order_id: string
+          order_number?: string | null
           picked_up_at?: string | null
+          rider_code?: string | null
           rider_id?: string | null
+          rider_name?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           assigned_at?: string | null
           created_at?: string
+          customer_address?: Json | null
           delivered_at?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
           id?: string
+          notes?: string | null
           order_id?: string
+          order_number?: string | null
           picked_up_at?: string | null
+          rider_code?: string | null
           rider_id?: string | null
+          rider_name?: string | null
           status?: string
           updated_at?: string
         }
@@ -251,6 +370,48 @@ export type Database = {
           longitude?: number | null
           name?: string
           phone?: string | null
+        }
+        Relationships: []
+      }
+      delivery_partners: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          license_number: string | null
+          phone: string
+          updated_at: string | null
+          user_id: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          license_number?: string | null
+          phone: string
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          license_number?: string | null
+          phone?: string
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_type?: string
         }
         Relationships: []
       }
@@ -334,6 +495,7 @@ export type Database = {
           consultation_fee: number | null
           created_at: string | null
           experience_years: number | null
+          full_name: string | null
           id: string
           is_available: boolean | null
           is_verified: boolean | null
@@ -348,6 +510,7 @@ export type Database = {
           consultation_fee?: number | null
           created_at?: string | null
           experience_years?: number | null
+          full_name?: string | null
           id?: string
           is_available?: boolean | null
           is_verified?: boolean | null
@@ -362,6 +525,7 @@ export type Database = {
           consultation_fee?: number | null
           created_at?: string | null
           experience_years?: number | null
+          full_name?: string | null
           id?: string
           is_available?: boolean | null
           is_verified?: boolean | null
@@ -423,11 +587,16 @@ export type Database = {
           booking_time: string
           created_at: string | null
           id: string
+          last_distance_meters: number | null
+          last_eta_mins: number | null
           notes: string | null
+          patient_name: string | null
+          patient_phone: string | null
           payment_status: string | null
           status: string | null
           test_id: string | null
           total_amount: number
+          tracking_token: string | null
           user_id: string | null
         }
         Insert: {
@@ -435,11 +604,16 @@ export type Database = {
           booking_time: string
           created_at?: string | null
           id?: string
+          last_distance_meters?: number | null
+          last_eta_mins?: number | null
           notes?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
           payment_status?: string | null
           status?: string | null
           test_id?: string | null
           total_amount: number
+          tracking_token?: string | null
           user_id?: string | null
         }
         Update: {
@@ -447,11 +621,16 @@ export type Database = {
           booking_time?: string
           created_at?: string | null
           id?: string
+          last_distance_meters?: number | null
+          last_eta_mins?: number | null
           notes?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
           payment_status?: string | null
           status?: string | null
           test_id?: string | null
           total_amount?: number
+          tracking_token?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -560,6 +739,8 @@ export type Database = {
         Row: {
           category_id: string | null
           composition: string | null
+          composition_family_key: string | null
+          composition_key: string | null
           created_at: string | null
           description: string | null
           discount_price: number | null
@@ -577,11 +758,14 @@ export type Database = {
           price: number
           stock_quantity: number | null
           strength: string | null
+          thumbnail_url: string | null
           updated_at: string | null
         }
         Insert: {
           category_id?: string | null
           composition?: string | null
+          composition_family_key?: string | null
+          composition_key?: string | null
           created_at?: string | null
           description?: string | null
           discount_price?: number | null
@@ -599,11 +783,14 @@ export type Database = {
           price: number
           stock_quantity?: number | null
           strength?: string | null
+          thumbnail_url?: string | null
           updated_at?: string | null
         }
         Update: {
           category_id?: string | null
           composition?: string | null
+          composition_family_key?: string | null
+          composition_key?: string | null
           created_at?: string | null
           description?: string | null
           discount_price?: number | null
@@ -621,6 +808,7 @@ export type Database = {
           price?: number
           stock_quantity?: number | null
           strength?: string | null
+          thumbnail_url?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -787,12 +975,15 @@ export type Database = {
           delivery_address: string | null
           delivery_center_id: string | null
           delivery_phone: string | null
+          dest_lat: number | null
+          dest_lng: number | null
           id: string
           notes: string | null
           order_number: string
           payment_id: string | null
           payment_method: string | null
           payment_status: string | null
+          shipping_address: string | null
           status: string | null
           total_amount: number
           updated_at: string | null
@@ -804,12 +995,15 @@ export type Database = {
           delivery_address?: string | null
           delivery_center_id?: string | null
           delivery_phone?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
           id?: string
           notes?: string | null
           order_number: string
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          shipping_address?: string | null
           status?: string | null
           total_amount: number
           updated_at?: string | null
@@ -821,12 +1015,15 @@ export type Database = {
           delivery_address?: string | null
           delivery_center_id?: string | null
           delivery_phone?: string | null
+          dest_lat?: number | null
+          dest_lng?: number | null
           id?: string
           notes?: string | null
           order_number?: string
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          shipping_address?: string | null
           status?: string | null
           total_amount?: number
           updated_at?: string | null
@@ -849,6 +1046,39 @@ export type Database = {
           },
         ]
       }
+      performance_logs: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          metadata: Json | null
+          method: string
+          response_time_ms: number
+          status_code: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          metadata?: Json | null
+          method: string
+          response_time_ms: number
+          status_code: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          metadata?: Json | null
+          method?: string
+          response_time_ms?: number
+          status_code?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       prescriptions: {
         Row: {
           consultation_id: string | null
@@ -857,6 +1087,7 @@ export type Database = {
           id: string
           patient_id: string | null
           prescription_data: Json
+          prescription_number: string | null
           status: string | null
         }
         Insert: {
@@ -866,6 +1097,7 @@ export type Database = {
           id?: string
           patient_id?: string | null
           prescription_data: Json
+          prescription_number?: string | null
           status?: string | null
         }
         Update: {
@@ -875,6 +1107,7 @@ export type Database = {
           id?: string
           patient_id?: string | null
           prescription_data?: Json
+          prescription_number?: string | null
           status?: string | null
         }
         Relationships: [
@@ -945,6 +1178,30 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      query_cache: {
+        Row: {
+          cache_key: string
+          cache_value: Json
+          created_at: string | null
+          expires_at: string
+          id: string
+        }
+        Insert: {
+          cache_key: string
+          cache_value: Json
+          created_at?: string | null
+          expires_at: string
+          id?: string
+        }
+        Update: {
+          cache_key?: string
+          cache_value?: Json
+          created_at?: string | null
+          expires_at?: string
+          id?: string
         }
         Relationships: []
       }
@@ -1019,36 +1276,51 @@ export type Database = {
       }
       subscription_plans: {
         Row: {
+          billing_cycle: string | null
           created_at: string | null
           description: string | null
           duration_days: number
+          extra_discount_percentage: number | null
           features: Json | null
+          free_delivery: boolean | null
           id: string
           is_active: boolean | null
+          max_consultations: number | null
           name: string
           plan_code: string
+          plan_name: string | null
           price: number
         }
         Insert: {
+          billing_cycle?: string | null
           created_at?: string | null
           description?: string | null
           duration_days: number
+          extra_discount_percentage?: number | null
           features?: Json | null
+          free_delivery?: boolean | null
           id?: string
           is_active?: boolean | null
+          max_consultations?: number | null
           name: string
           plan_code: string
+          plan_name?: string | null
           price: number
         }
         Update: {
+          billing_cycle?: string | null
           created_at?: string | null
           description?: string | null
           duration_days?: number
+          extra_discount_percentage?: number | null
           features?: Json | null
+          free_delivery?: boolean | null
           id?: string
           is_active?: boolean | null
+          max_consultations?: number | null
           name?: string
           plan_code?: string
+          plan_name?: string | null
           price?: number
         }
         Relationships: []
