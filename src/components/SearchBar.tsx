@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
@@ -63,10 +63,14 @@ export function SearchBar({
     if (!query.trim()) {
       items.push(...trendingMedicines);
     }
-    groups.forEach(group => {
-      items.push(...group.items);
-      if (group.items.length === 5) items.push({ type: 'viewAll', group });
-    });
+    if (Array.isArray(groups)) {
+      groups.forEach(group => {
+        if (Array.isArray(group.items)) {
+          items.push(...group.items);
+          if (group.items.length === 5) items.push({ type: 'viewAll', group });
+        }
+      });
+    }
     return items;
   }, [groups, trendingMedicines, query]);
 

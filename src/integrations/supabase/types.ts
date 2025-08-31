@@ -707,6 +707,7 @@ export type Database = {
       }
       lab_tests: {
         Row: {
+          category: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -715,9 +716,13 @@ export type Database = {
           name: string
           normal_range: string | null
           preparation_instructions: string | null
+          preparation_required: boolean | null
           price: number
+          reporting_time: string | null
+          sample_type: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -726,9 +731,13 @@ export type Database = {
           name: string
           normal_range?: string | null
           preparation_instructions?: string | null
+          preparation_required?: boolean | null
           price: number
+          reporting_time?: string | null
+          sample_type?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -737,7 +746,10 @@ export type Database = {
           name?: string
           normal_range?: string | null
           preparation_instructions?: string | null
+          preparation_required?: boolean | null
           price?: number
+          reporting_time?: string | null
+          sample_type?: string | null
         }
         Relationships: []
       }
@@ -745,18 +757,21 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          icon: string | null
           id: string
           name: string
         }
         Insert: {
           created_at?: string | null
           description?: string | null
+          icon?: string | null
           id?: string
           name: string
         }
         Update: {
           created_at?: string | null
           description?: string | null
+          icon?: string | null
           id?: string
           name?: string
         }
@@ -764,14 +779,17 @@ export type Database = {
       }
       medicines: {
         Row: {
+          brand: string | null
           category_id: string | null
           composition: string | null
           composition_family_key: string | null
           composition_key: string | null
           created_at: string | null
           description: string | null
+          discount_percentage: number | null
           discount_price: number | null
           dosage_form: string | null
+          fast_delivery: boolean | null
           generic_name: string | null
           id: string
           image_url: string | null
@@ -780,23 +798,30 @@ export type Database = {
           manufacturer: string | null
           min_stock_level: number | null
           name: string
+          original_price: number | null
           pack_size: string | null
           prescription_required: boolean | null
           price: number
+          rating: number | null
+          requires_prescription: boolean | null
+          review_count: number | null
           stock_quantity: number | null
           strength: string | null
           thumbnail_url: string | null
           updated_at: string | null
         }
         Insert: {
+          brand?: string | null
           category_id?: string | null
           composition?: string | null
           composition_family_key?: string | null
           composition_key?: string | null
           created_at?: string | null
           description?: string | null
+          discount_percentage?: number | null
           discount_price?: number | null
           dosage_form?: string | null
+          fast_delivery?: boolean | null
           generic_name?: string | null
           id?: string
           image_url?: string | null
@@ -805,23 +830,30 @@ export type Database = {
           manufacturer?: string | null
           min_stock_level?: number | null
           name: string
+          original_price?: number | null
           pack_size?: string | null
           prescription_required?: boolean | null
           price: number
+          rating?: number | null
+          requires_prescription?: boolean | null
+          review_count?: number | null
           stock_quantity?: number | null
           strength?: string | null
           thumbnail_url?: string | null
           updated_at?: string | null
         }
         Update: {
+          brand?: string | null
           category_id?: string | null
           composition?: string | null
           composition_family_key?: string | null
           composition_key?: string | null
           created_at?: string | null
           description?: string | null
+          discount_percentage?: number | null
           discount_price?: number | null
           dosage_form?: string | null
+          fast_delivery?: boolean | null
           generic_name?: string | null
           id?: string
           image_url?: string | null
@@ -830,9 +862,13 @@ export type Database = {
           manufacturer?: string | null
           min_stock_level?: number | null
           name?: string
+          original_price?: number | null
           pack_size?: string | null
           prescription_required?: boolean | null
           price?: number
+          rating?: number | null
+          requires_prescription?: boolean | null
+          review_count?: number | null
           stock_quantity?: number | null
           strength?: string | null
           thumbnail_url?: string | null

@@ -18,6 +18,40 @@ export interface SearchResult {
   composition_match_type?: string;
 }
 
+export interface Medicine {
+  id: string;
+  name: string;
+  price: number;
+  brand?: string;
+  original_price?: number;
+  discount_percentage?: number;
+  requires_prescription?: boolean;
+  fast_delivery?: boolean;
+  rating?: number;
+  review_count?: number;
+  thumbnail_url?: string;
+  manufacturer?: string;
+  composition?: string;
+  category_id?: string;
+  description?: string;
+}
+
+export interface LabTest {
+  id: string;
+  name: string;
+  price: number;
+  category?: string;
+  sample_type?: string;
+  reporting_time?: string;
+  preparation_required?: boolean;
+  description?: string;
+  normal_range?: string;
+  preparation_instructions?: string;
+  is_available?: boolean;
+  is_active?: boolean;
+  created_at?: string;
+}
+
 export interface TrendingMedicine {
   id: string;
   name: string;
