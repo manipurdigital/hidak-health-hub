@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import React from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, Filter } from "lucide-react";
