@@ -10,17 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface Prescription {
   id: string;
-  prescription_number: string;
   doctor_id: string;
   patient_id: string;
   consultation_id: string;
-  diagnosis: string;
-  instructions: string;
-  medications: any;
+  prescription_data: any;
   status: string;
   created_at: string;
-  updated_at: string;
-  follow_up_date: string;
 }
 
 const PrescriptionsList = () => {
@@ -116,7 +111,7 @@ const PrescriptionsList = () => {
             <div key={prescription.id} className="p-4 border rounded-lg hover:bg-muted/30 transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-medium">{prescription.prescription_number}</h4>
+                  <h4 className="font-medium">Prescription #{prescription.id.substring(0, 8)}</h4>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                     <User className="w-4 h-4" />
                     <span>Doctor ID: {prescription.doctor_id}</span>
@@ -138,14 +133,13 @@ const PrescriptionsList = () => {
               </div>
               
               <div className="text-sm">
-                <p className="text-muted-foreground mb-1">Diagnosis:</p>
-                <p className="mb-2">{prescription.diagnosis || 'Not specified'}</p>
-                {prescription.instructions && (
-                  <>
-                    <p className="text-muted-foreground mb-1">Instructions:</p>
-                    <p>{prescription.instructions}</p>
-                  </>
-                )}
+                <p className="text-muted-foreground mb-1">Prescription Data:</p>
+                <p className="mb-2">
+                  {typeof prescription.prescription_data === 'object' 
+                    ? JSON.stringify(prescription.prescription_data).substring(0, 100) + '...'
+                    : prescription.prescription_data || 'No data available'
+                  }
+                </p>
               </div>
               
               <div className="text-xs text-muted-foreground mt-2">

@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      center_staff: {
+        Row: {
+          center_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          center_id: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          center_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "center_staff_center_id_fkey"
+            columns: ["center_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       centers: {
         Row: {
           address: string
@@ -135,6 +167,57 @@ export type Database = {
           },
         ]
       }
+      delivery_assignments: {
+        Row: {
+          assigned_at: string | null
+          created_at: string
+          delivered_at: string | null
+          id: string
+          order_id: string
+          picked_up_at: string | null
+          rider_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          order_id: string
+          picked_up_at?: string | null
+          rider_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          order_id?: string
+          picked_up_at?: string | null
+          rider_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_assignments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_centers: {
         Row: {
           address: string
@@ -168,6 +251,42 @@ export type Database = {
           longitude?: number | null
           name?: string
           phone?: string | null
+        }
+        Relationships: []
+      }
+      diagnostic_centers: {
+        Row: {
+          address: string
+          contact_phone: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          platform_commission_rate: number
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          contact_phone?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          platform_commission_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          contact_phone?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          platform_commission_rate?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -253,6 +372,50 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      geofences: {
+        Row: {
+          center_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          polygon: Json
+          priority: number
+          service_type: string
+          updated_at: string
+        }
+        Insert: {
+          center_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          polygon: Json
+          priority?: number
+          service_type: string
+          updated_at?: string
+        }
+        Update: {
+          center_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          polygon?: Json
+          priority?: number
+          service_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofences_center_id_fkey"
+            columns: ["center_id"]
+            isOneToOne: false
+            referencedRelation: "centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lab_bookings: {
         Row: {
@@ -785,6 +948,39 @@ export type Database = {
         }
         Relationships: []
       }
+      riders: {
+        Row: {
+          code: string
+          created_at: string
+          full_name: string
+          id: string
+          is_active: boolean
+          phone: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -855,6 +1051,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_consents: {
+        Row: {
+          created_at: string
+          granted: boolean
+          id: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted?: boolean
+          id?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted?: boolean
+          id?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
