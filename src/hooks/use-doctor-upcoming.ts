@@ -90,7 +90,7 @@ export const useDoctorUpcomingConsultations = () => {
         const dateCompare = new Date(a.consultation_date).getTime() - new Date(b.consultation_date).getTime();
         if (dateCompare !== 0) return dateCompare;
         
-        return a.time_slot.localeCompare(b.time_slot);
+        return a.consultation_time.localeCompare(b.consultation_time);
       });
 
       const result = sortedData.map(item => ({

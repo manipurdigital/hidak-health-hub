@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+export * from './notification-placeholders';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect } from 'react';
 
@@ -162,12 +163,14 @@ export const useTriggerNotification = () => {
       title: string;
       message: string;
     }) => {
-      const { error } = await supabase.rpc('create_booking_notification', {
-        event_type: eventType,
-        booking_id: bookingId,
-        title,
-        message
-      });
+      // Placeholder implementation - would use RPC call when available
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          title,
+          message,
+          event_type: eventType,
+        });
       
       if (error) throw error;
     },

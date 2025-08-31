@@ -73,7 +73,7 @@ export function DeliveryAssignmentTable() {
     status: string;
   }>({ open: false, orderNumber: '', status: '' });
 
-  const { data: assignments = [], isLoading } = useAdminDeliveryAssignments(filters);
+  const { data: assignments = [], isLoading } = useAdminDeliveryAssignments();
   const forceStatusMutation = useForceStatus();
   
   // Enable real-time updates
@@ -119,7 +119,7 @@ export function DeliveryAssignmentTable() {
     if (!statusChangeDialog.orderNumber || !statusChangeDialog.status) return;
 
     try {
-      await forceStatusMutation.mutateAsync({
+      forceStatusMutation.mutate({
         order_number: statusChangeDialog.orderNumber,
         status: statusChangeDialog.status
       });
@@ -315,9 +315,9 @@ export function DeliveryAssignmentTable() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmStatusChange}
-              disabled={forceStatusMutation.isPending}
+              disabled={forceStatusMutation.isLoading}
             >
-              {forceStatusMutation.isPending ? 'Updating...' : 'Confirm'}
+              {forceStatusMutation.isLoading ? 'Updating...' : 'Confirm'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

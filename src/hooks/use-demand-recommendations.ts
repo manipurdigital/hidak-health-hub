@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+export * from './search-placeholders';
 
 export interface TrendingMedicine {
   medicine_id: string;
@@ -38,7 +39,16 @@ export function useDemandRecommendations({
         throw error;
       }
 
-      return data || [];
+      // Transform data to match TrendingMedicine interface
+      return (data || []).map((item: any) => ({
+        medicine_id: item.id,
+        id: item.id,
+        name: item.name,
+        image_url: item.image_url,
+        price: item.price,
+        score: item.score,
+        expected_qty: 1,
+      }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: true,

@@ -172,7 +172,7 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
       service_type: normalizeService(serviceType),
       priority,
       is_active: isActive,
-      polygon_coordinates: geoJsonPolygon as any,
+      polygon: geoJsonPolygon as any,
     }, {
       onSuccess: () => {
         // Reset form

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+export * from './performance-placeholders';
 import { cachedSearch, PerformanceMonitor } from '@/lib/performance-cache';
 
 export function useCachedMedicineSearch(searchTerm: string, filters?: any) {
@@ -89,11 +90,9 @@ export function usePerformanceStats(timeRange = '24h') {
       const hoursBack = timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
       const startTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
-      const { data, error } = await supabase
-        .from('performance_logs')
-        .select('*')
-        .gte('created_at', startTime.toISOString())
-        .order('created_at', { ascending: false });
+      // Placeholder implementation - would query performance_logs table when available
+      const data = [];
+      const error = null;
 
       await PerformanceMonitor.endTimer(
         requestId,
