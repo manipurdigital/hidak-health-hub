@@ -178,6 +178,7 @@ export type Database = {
           id: string
           notes: string | null
           patient_id: string | null
+          patient_notes: string | null
           payment_status: string | null
           status: string | null
           time_slot: string | null
@@ -192,6 +193,7 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_id?: string | null
+          patient_notes?: string | null
           payment_status?: string | null
           status?: string | null
           time_slot?: string | null
@@ -206,6 +208,7 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_id?: string | null
+          patient_notes?: string | null
           payment_status?: string | null
           status?: string | null
           time_slot?: string | null
@@ -268,6 +271,7 @@ export type Database = {
       delivery_assignments: {
         Row: {
           assigned_at: string | null
+          center_payout_amount: number | null
           created_at: string
           customer_address: Json | null
           delivered_at: string | null
@@ -286,6 +290,7 @@ export type Database = {
         }
         Insert: {
           assigned_at?: string | null
+          center_payout_amount?: number | null
           created_at?: string
           customer_address?: Json | null
           delivered_at?: string | null
@@ -304,6 +309,7 @@ export type Database = {
         }
         Update: {
           assigned_at?: string | null
+          center_payout_amount?: number | null
           created_at?: string
           customer_address?: Json | null
           delivered_at?: string | null
@@ -458,6 +464,7 @@ export type Database = {
           doctor_id: string | null
           end_time: string
           id: string
+          is_active: boolean | null
           is_available: boolean | null
           start_time: string
         }
@@ -467,6 +474,7 @@ export type Database = {
           doctor_id?: string | null
           end_time: string
           id?: string
+          is_active?: boolean | null
           is_available?: boolean | null
           start_time: string
         }
@@ -476,6 +484,7 @@ export type Database = {
           doctor_id?: string | null
           end_time?: string
           id?: string
+          is_active?: boolean | null
           is_available?: boolean | null
           start_time?: string
         }
@@ -493,45 +502,60 @@ export type Database = {
         Row: {
           bio: string | null
           consultation_fee: number | null
+          contact_email: string | null
           created_at: string | null
           experience_years: number | null
           full_name: string | null
+          hospital_affiliation: string | null
           id: string
           is_available: boolean | null
           is_verified: boolean | null
+          languages: string[] | null
           name: string
           profile_image_url: string | null
           qualification: string | null
+          rating: number | null
+          review_count: number | null
           specialization: string
           user_id: string | null
         }
         Insert: {
           bio?: string | null
           consultation_fee?: number | null
+          contact_email?: string | null
           created_at?: string | null
           experience_years?: number | null
           full_name?: string | null
+          hospital_affiliation?: string | null
           id?: string
           is_available?: boolean | null
           is_verified?: boolean | null
+          languages?: string[] | null
           name: string
           profile_image_url?: string | null
           qualification?: string | null
+          rating?: number | null
+          review_count?: number | null
           specialization: string
           user_id?: string | null
         }
         Update: {
           bio?: string | null
           consultation_fee?: number | null
+          contact_email?: string | null
           created_at?: string | null
           experience_years?: number | null
           full_name?: string | null
+          hospital_affiliation?: string | null
           id?: string
           is_available?: boolean | null
           is_verified?: boolean | null
+          languages?: string[] | null
           name?: string
           profile_image_url?: string | null
           qualification?: string | null
+          rating?: number | null
+          review_count?: number | null
           specialization?: string
           user_id?: string | null
         }
@@ -585,6 +609,7 @@ export type Database = {
         Row: {
           booking_date: string
           booking_time: string
+          center_payout_amount: number | null
           created_at: string | null
           id: string
           last_distance_meters: number | null
@@ -602,6 +627,7 @@ export type Database = {
         Insert: {
           booking_date: string
           booking_time: string
+          center_payout_amount?: number | null
           created_at?: string | null
           id?: string
           last_distance_meters?: number | null
@@ -619,6 +645,7 @@ export type Database = {
         Update: {
           booking_date?: string
           booking_time?: string
+          center_payout_amount?: number | null
           created_at?: string | null
           id?: string
           last_distance_meters?: number | null
