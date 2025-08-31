@@ -40,11 +40,11 @@ export function RiderJobCard({ assignment }: RiderJobCardProps) {
   const StatusIcon = statusConfig.icon;
 
   const handleStart = () => {
-    riderStartMutation.mutate(assignment.order_id);
+    riderStartMutation.mutate();
   };
 
   const handleComplete = () => {
-    riderCompleteMutation.mutate(assignment.order_id);
+    riderCompleteMutation.mutate();
   };
 
   const formatAddress = (address: any) => {

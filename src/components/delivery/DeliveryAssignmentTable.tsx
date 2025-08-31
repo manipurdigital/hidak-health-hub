@@ -37,6 +37,8 @@ import {
 interface DeliveryAssignmentFilters {
   status?: string;
   rider?: string;
+  order_number?: string;
+  rider_code?: string;
 }
 
 interface DeliveryAssignment {
@@ -119,10 +121,7 @@ export function DeliveryAssignmentTable() {
     if (!statusChangeDialog.orderNumber || !statusChangeDialog.status) return;
 
     try {
-      forceStatusMutation.mutate({
-        order_number: statusChangeDialog.orderNumber,
-        status: statusChangeDialog.status
-      });
+      forceStatusMutation.mutate();
       setStatusChangeDialog({ open: false, orderNumber: '', status: '' });
     } catch (error) {
       // Error handled by hook
