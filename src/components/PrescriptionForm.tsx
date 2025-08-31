@@ -42,21 +42,27 @@ export function PrescriptionForm() {
     queryFn: async () => {
       if (!consultationId) throw new Error('No consultation ID');
       
-      const { data, error } = await supabase
+      // Get consultation first
+      const { data: consultationData, error: consultationError } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_patient_id_fkey(
-            full_name,
-            phone,
-            email
-          )
-        `)
+        .select('*')
         .eq('id', consultationId)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (consultationError) throw consultationError;
+      
+      // Get patient profile separately  
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, phone, email')
+        .eq('user_id', consultationData.patient_id)
+        .single();
+
+      // Combine the data
+      return {
+        ...consultationData,
+        profiles: profileData || null
+      };
     },
     enabled: !!consultationId,
   });
@@ -217,7 +223,7 @@ export function PrescriptionForm() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label className="text-sm font-medium">Patient Name</Label>
-              <p className="text-sm">{consultation.profiles?.full_name || 'N/A'}</p>
+              <p className="text-sm">{consultation.profiles?.full_name || consultation.profiles?.email || 'N/A'}</p>
             </div>
             <div>
               <Label className="text-sm font-medium">Phone</Label>
@@ -226,7 +232,7 @@ export function PrescriptionForm() {
             <div>
               <Label className="text-sm font-medium">Consultation Date</Label>
               <p className="text-sm">
-                {new Date(consultation.consultation_date).toLocaleDateString()} at {consultation.time_slot}
+                {new Date(consultation.consultation_date).toLocaleDateString()} at {consultation.consultation_time}
               </p>
             </div>
           </div>
