@@ -86,7 +86,7 @@ const ConsultationsSection = () => {
         .select('*')
         .eq('is_available', true)
         .eq('is_verified', true)
-        .order('rating', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setDoctors(data || []);
@@ -313,9 +313,9 @@ const ConsultationsSection = () => {
                 <div className="flex items-center justify-center gap-2 text-sm">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium">{doctor.rating.toFixed(1)}</span>
+                    <span className="font-medium">{(doctor.rating ?? 0).toFixed(1)}</span>
                   </div>
-                  <span className="text-muted-foreground">({doctor.review_count} reviews)</span>
+                  <span className="text-muted-foreground">({doctor.review_count ?? 0} reviews)</span>
                 </div>
 
                 <div className="space-y-2 text-sm">

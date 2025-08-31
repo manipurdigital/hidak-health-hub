@@ -126,7 +126,7 @@ export const useDoctors = () => {
         .select('*')
         .eq('is_available', true)
         .eq('is_verified', true)
-        .order('rating', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
