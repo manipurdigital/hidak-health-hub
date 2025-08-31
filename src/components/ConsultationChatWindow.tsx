@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,10 +21,12 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ConsultationMessage {
   id: string;
-  content: string;
-  sender_type: 'patient' | 'doctor';
-  sent_at: string;
+  message: string;
+  message_type: string;
   sender_id: string;
+  consultation_id: string;
+  created_at: string;
+  file_url?: string;
 }
 
 interface ConsultationChatWindowProps {
@@ -66,7 +67,7 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
         .from('consultation_messages')
         .select('*')
         .eq('consultation_id', consultationId)
-        .order('sent_at', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       return data as ConsultationMessage[];
@@ -75,35 +76,42 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
+  const isCompleted = consultation?.status === 'completed';
+  const completedAt = consultation?.status === 'completed' ? consultation?.created_at : null;
+
   // Count patient messages in follow-up window
   const { data: patientMessageCount = 0 } = useQuery({
-    queryKey: ['patient-message-count', consultationId, consultation?.completed_at],
+    queryKey: ['patient-message-count', consultationId, completedAt],
     queryFn: async () => {
-      if (!consultation?.completed_at) return 0;
+      if (!completedAt) return 0;
+
+      const hoursPassedSinceCompletion = differenceInHours(new Date(), new Date(completedAt));
+      
+      if (hoursPassedSinceCompletion > 72) return 0;
 
       const { count, error } = await supabase
         .from('consultation_messages')
         .select('*', { count: 'exact', head: true })
         .eq('consultation_id', consultationId)
-        .eq('sender_type', 'patient')
-        .gte('sent_at', consultation.completed_at);
+        .eq('sender_id', user?.id)
+        .gte('created_at', completedAt);
 
       if (error) throw error;
       return count || 0;
     },
-    enabled: !!consultation?.completed_at,
+    enabled: !!completedAt,
     refetchInterval: 30000,
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (messageText: string) => {
       const { error } = await supabase
         .from('consultation_messages')
         .insert({
-          consultation_id: consultationId,
-          content,
+          message: messageText,
           sender_id: user?.id,
-          sender_type: isPatient ? 'patient' : 'doctor'
+          consultation_id: consultationId,
+          message_type: 'text'
         });
 
       if (error) throw error;
@@ -127,23 +135,9 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
     sendMessageMutation.mutate(newMessage.trim());
   };
 
-  const getFollowUpInfo = () => {
-    if (!consultation?.completed_at || !consultation?.follow_up_expires_at) return null;
+  const canUseFollowUp = isCompleted;
+  const followUpExpiresAt = null; // Remove follow-up expiry for now
 
-    const expiresAt = new Date(consultation.follow_up_expires_at);
-    const now = new Date();
-    const hoursLeft = differenceInHours(expiresAt, now);
-    const isExpired = isPast(expiresAt);
-
-    return {
-      expiresAt,
-      hoursLeft: Math.max(0, hoursLeft),
-      isExpired,
-      patientMessagesLeft: Math.max(0, 10 - patientMessageCount)
-    };
-  };
-
-  const followUpInfo = getFollowUpInfo();
   const canSendMessage = () => {
     if (!consultation) return false;
     
@@ -152,10 +146,8 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
       return true;
     }
     
-    // After completion - check follow-up window
-    if (consultation.status === 'completed' && followUpInfo) {
-      if (followUpInfo.isExpired) return false;
-      if (isPatient && followUpInfo.patientMessagesLeft <= 0) return false;
+    // After completion - simplified follow-up
+    if (consultation.status === 'completed' && canUseFollowUp) {
       return true;
     }
     
@@ -169,56 +161,9 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
       return (
         <div className="text-center py-4 text-muted-foreground">
           <Calendar className="h-8 w-8 mx-auto mb-2" />
-          <p>Consultation scheduled for {format(new Date(consultation.consultation_date), 'MMM dd, yyyy')} at {consultation.time_slot}</p>
+          <p>Consultation scheduled for {format(new Date(consultation.consultation_date), 'PPP')} at {consultation.consultation_time}</p>
         </div>
       );
-    }
-
-    if (consultation.status === 'completed' && followUpInfo) {
-      if (followUpInfo.isExpired) {
-        return (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-4 text-center">
-              <AlertCircle className="h-8 w-8 mx-auto mb-2 text-red-600" />
-              <h3 className="font-medium text-red-900">Follow-up Window Closed</h3>
-              <p className="text-sm text-red-700 mb-4">
-                The 72-hour follow-up period ended on {format(followUpInfo.expiresAt, 'MMM dd, yyyy HH:mm')}
-              </p>
-              {isPatient && (
-                <Button 
-                  onClick={() => window.location.href = '/doctors'} 
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Book Follow-up Consultation
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        );
-      } else {
-        return (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Timer className="h-5 w-5 text-blue-600" />
-                <div>
-                  <h3 className="font-medium text-blue-900">Follow-up Window Active</h3>
-                  <div className="flex items-center gap-4 text-sm text-blue-700">
-                    <span>
-                      {followUpInfo.hoursLeft > 0 ? `${followUpInfo.hoursLeft} hours remaining` : 'Less than 1 hour remaining'}
-                    </span>
-                    {isPatient && (
-                      <span>• {followUpInfo.patientMessagesLeft} messages left</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      }
     }
 
     return null;
@@ -255,17 +200,17 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
                 <div
                   key={message.id}
                   className={`flex gap-3 ${
-                    message.sender_type === (isPatient ? 'patient' : 'doctor') ? 'justify-end' : 'justify-start'
+                    message.sender_id === user?.id ? 'justify-end' : 'justify-start'
                   }`}
                 >
                   <div
                     className={`flex gap-2 max-w-[70%] ${
-                      message.sender_type === (isPatient ? 'patient' : 'doctor') ? 'flex-row-reverse' : 'flex-row'
+                      message.sender_id === user?.id ? 'flex-row-reverse' : 'flex-row'
                     }`}
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
-                        {message.sender_type === 'patient' ? (
+                        {message.sender_id === user?.id ? (
                           <User className="h-4 w-4" />
                         ) : (
                           <Stethoscope className="h-4 w-4" />
@@ -275,16 +220,14 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
                     <div>
                       <div
                         className={`p-3 rounded-lg ${
-                          message.sender_type === (isPatient ? 'patient' : 'doctor')
+                          message.sender_id === user?.id
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted'
                         }`}
                       >
-                        <p className="text-sm">{message.content}</p>
+                        <p className="text-sm text-muted-foreground">{message.message}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(message.sent_at), 'MMM dd, HH:mm')}
-                      </p>
+                      <span className="text-xs text-muted-foreground">{format(new Date(message.created_at), 'p')}</span>
                     </div>
                   </div>
                 </div>
@@ -319,13 +262,7 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
             </div>
           ) : (
             <div className="text-center py-4 text-muted-foreground">
-              {consultation?.status === 'completed' && followUpInfo?.isExpired ? (
-                <p>Chat is now read-only. The follow-up period has ended.</p>
-              ) : consultation?.status === 'completed' && isPatient && followUpInfo?.patientMessagesLeft === 0 ? (
-                <p>You have reached the 10 message limit for this follow-up period.</p>
-              ) : (
-                <p>Chat will be available once the consultation begins.</p>
-              )}
+              <p>Chat will be available once the consultation begins.</p>
             </div>
           )}
         </CardContent>

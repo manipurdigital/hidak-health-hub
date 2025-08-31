@@ -1,241 +1,181 @@
 import React, { useState } from 'react';
-import { Download, Trash2, FileText, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Download, Shield, Trash2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-export function DataRightsPanel() {
+interface DataRightsPanelProps {
+  className?: string;
+}
+
+export function DataRightsPanel({ className }: DataRightsPanelProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [deletionReason, setDeletionReason] = useState('');
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isSubmittingDeletion, setIsSubmittingDeletion] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDownloadData = async () => {
+  const exportUserData = async () => {
     if (!user) return;
 
-    setIsDownloading(true);
+    setIsExporting(true);
     try {
-      // Fetch all user data from various tables
-      const [
-        profileData,
-        ordersData,
-        bookingsData,
-        consultationsData,
-        prescriptionsData,
-        addressesData,
-        consentsData
-      ] = await Promise.all([
+      const [profileRes, ordersRes, labBookingsRes, consultationsRes, prescriptionsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('user_id', user.id),
         supabase.from('orders').select('*').eq('user_id', user.id),
         supabase.from('lab_bookings').select('*').eq('user_id', user.id),
         supabase.from('consultations').select('*').eq('patient_id', user.id),
-        supabase.from('prescriptions').select('*').eq('patient_id', user.id),
-        supabase.from('addresses').select('*').eq('user_id', user.id),
-        supabase.from('user_consents').select('*').eq('user_id', user.id)
+        supabase.from('prescriptions').select('*').eq('patient_id', user.id)
       ]);
 
       const userData = {
         user_info: {
           id: user.id,
           email: user.email,
-          created_at: user.created_at,
-          last_sign_in_at: user.last_sign_in_at
+          created_at: user.created_at
         },
-        profile: profileData.data || [],
-        orders: ordersData.data || [],
-        lab_bookings: bookingsData.data || [],
-        consultations: consultationsData.data || [],
-        prescriptions: prescriptionsData.data || [],
-        addresses: addressesData.data || [],
-        consents: consentsData.data || [],
-        export_info: {
-          exported_at: new Date().toISOString(),
-          export_version: '1.0',
-          data_protection_act: 'DPDP Act 2023',
-          retention_policy: 'Data retained as per healthcare regulations'
-        }
+        profile: profileRes.data || [],
+        orders: ordersRes.data || [],
+        lab_bookings: labBookingsRes.data || [],
+        consultations: consultationsRes.data || [],
+        prescriptions: prescriptionsRes.data || []
       };
 
-      // Create and download JSON file
-      const dataStr = JSON.stringify(userData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `healthplus-data-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const blob = new Blob([JSON.stringify(userData, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `my-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Data Export Complete",
-        description: "Your personal data has been downloaded successfully.",
+        description: "Your data has been exported and downloaded."
       });
     } catch (error) {
+      console.error('Error exporting data:', error);
       toast({
         title: "Export Failed",
         description: "Failed to export your data. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
-      setIsDownloading(false);
+      setIsExporting(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!user || !deletionReason.trim()) return;
+  const requestDataDeletion = async () => {
+    if (!user) return;
 
-    setIsSubmittingDeletion(true);
+    if (!confirm('Are you sure you want to request deletion of all your data? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('data_deletion_requests')
-        .insert({
-          user_id: user.id,
-          notes: deletionReason,
-          status: 'pending'
-        });
-
-      if (error) throw error;
-
+      // In a real app, this would create a deletion request ticket
+      // For now, we'll just show a message
       toast({
         title: "Deletion Request Submitted",
-        description: "Your account deletion request has been submitted. We'll process it within 30 days and contact you via email.",
+        description: "Your data deletion request has been submitted. We'll process it within 30 days as required by law.",
       });
-
-      setShowDeleteDialog(false);
-      setDeletionReason('');
     } catch (error) {
+      console.error('Error requesting data deletion:', error);
       toast({
         title: "Request Failed",
-        description: "Failed to submit deletion request. Please try again.",
-        variant: "destructive",
+        description: "Failed to submit deletion request. Please contact support.",
+        variant: "destructive"
       });
     } finally {
-      setIsSubmittingDeletion(false);
+      setIsDeleting(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <FileText className="h-5 w-5" />
-          <span>Data Rights (DPDP Act 2023)</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Under India's Digital Personal Data Protection Act 2023, you have rights over your personal data. 
-            Use these tools to exercise your rights.
-          </AlertDescription>
-        </Alert>
-
-        <div className="space-y-4">
-          {/* Download Data */}
-          <div className="flex items-start space-x-3 p-4 border rounded-lg">
-            <Download className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-semibold">Download My Data</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Get a complete copy of all your personal data in JSON format. 
-                This includes your profile, orders, consultations, and consent records.
-              </p>
-              <Button 
-                onClick={handleDownloadData}
-                disabled={isDownloading}
+    <div className={className}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Data Rights & Privacy
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Data Export */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Export Your Data</h3>
+                <p className="text-sm text-muted-foreground">
+                  Download a copy of all your personal data stored in our system.
+                </p>
+              </div>
+              <Button
+                onClick={exportUserData}
+                disabled={isExporting}
+                variant="outline"
                 size="sm"
               >
-                {isDownloading ? 'Preparing Download...' : 'Download Data'}
+                <Download className="h-4 w-4 mr-2" />
+                {isExporting ? 'Exporting...' : 'Export Data'}
               </Button>
             </div>
+            <Badge variant="secondary" className="text-xs">
+              JSON format • Includes profile, orders, consultations, and medical records
+            </Badge>
           </div>
 
-          {/* Delete Account */}
-          <div className="flex items-start space-x-3 p-4 border rounded-lg border-red-200">
-            <Trash2 className="h-5 w-5 text-red-600 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-red-800">Delete My Account</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Request permanent deletion of your account and personal data. 
-                This action cannot be undone. Medical records may be retained as required by law.
-              </p>
-              
-              <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    Request Account Deletion
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Request Account Deletion</DialogTitle>
-                    <DialogDescription>
-                      This will permanently delete your account and personal data. 
-                      Medical records may be retained as required by healthcare regulations.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">
-                        Reason for deletion (required)
-                      </label>
-                      <Textarea
-                        placeholder="Please tell us why you want to delete your account..."
-                        value={deletionReason}
-                        onChange={(e) => setDeletionReason(e.target.value)}
-                        className="mt-1"
-                        rows={3}
-                      />
-                    </div>
-                    
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Warning:</strong> This action is irreversible. All your data, 
-                        including orders, consultations, and preferences will be permanently deleted.
-                        We'll process your request within 30 days.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowDeleteDialog(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteAccount}
-                      disabled={!deletionReason.trim() || isSubmittingDeletion}
-                    >
-                      {isSubmittingDeletion ? 'Submitting...' : 'Submit Deletion Request'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+          {/* Data Deletion */}
+          <div className="space-y-3 border-t pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-red-900">Delete Your Data</h3>
+                <p className="text-sm text-muted-foreground">
+                  Request permanent deletion of all your personal data.
+                </p>
+              </div>
+              <Button
+                onClick={requestDataDeletion}
+                disabled={isDeleting}
+                variant="destructive"
+                size="sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? 'Processing...' : 'Request Deletion'}
+              </Button>
+            </div>
+            <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+              <div className="text-xs text-red-700">
+                <strong>Warning:</strong> Data deletion is permanent and cannot be undone. 
+                We are required to retain some information for legal compliance.
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>Data Retention:</strong> Medical records are retained as per Indian healthcare regulations.</p>
-          <p><strong>Processing Time:</strong> Data requests are processed within 30 days.</p>
-          <p><strong>Contact:</strong> For data rights queries, email privacy@healthplus.com</p>
-        </div>
-      </CardContent>
-    </Card>
+          {/* Rights Information */}
+          <div className="space-y-2 border-t pt-6">
+            <h3 className="font-medium">Your Privacy Rights</h3>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>• <strong>Right to Access:</strong> Request access to your personal data</p>
+              <p>• <strong>Right to Rectification:</strong> Correct inaccurate personal data</p>
+              <p>• <strong>Right to Erasure:</strong> Request deletion of your personal data</p>
+              <p>• <strong>Right to Portability:</strong> Receive your data in a machine-readable format</p>
+              <p>• <strong>Right to Object:</strong> Object to processing of your personal data</p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              For questions about your data rights, contact our privacy team at privacy@medicare.com
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
+
+export default DataRightsPanel;

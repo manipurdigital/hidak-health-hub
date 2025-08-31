@@ -35,12 +35,12 @@ export function CreateCenterUser() {
       if (signUpError) throw signUpError;
 
       if (data.user) {
-        // Add center role
+        // Add user role (no specific center role in enum)
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: data.user.id,
-            role: 'center'
+            role: 'user' // Use 'user' instead of 'center'
           });
 
         if (roleError) throw roleError;

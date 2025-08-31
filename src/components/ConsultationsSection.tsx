@@ -21,18 +21,21 @@ import { openRazorpayCheckout, useInitiateConsultationPayment, useConfirmConsult
 
 interface Doctor {
   id: string;
-  full_name: string;
+  name: string; // Changed from full_name to match database
   specialization: string;
   qualification: string;
   experience_years: number;
   consultation_fee: number;
   bio: string;
   profile_image_url?: string;
-  rating: number;
-  review_count: number;
-  languages: string[];
-  hospital_affiliation: string;
+  rating?: number; // Made optional
+  review_count?: number; // Made optional
+  languages?: string[]; // Made optional
+  hospital_affiliation?: string; // Made optional
   is_verified: boolean;
+  is_available: boolean;
+  user_id: string;
+  created_at: string;
 }
 
 const ConsultationsSection = () => {
@@ -111,9 +114,8 @@ const ConsultationsSection = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(doctor =>
-        doctor.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doctor.hospital_affiliation?.toLowerCase().includes(searchTerm.toLowerCase())
+        doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -297,14 +299,14 @@ const ConsultationsSection = () => {
                   {doctor.profile_image_url ? (
                     <img 
                       src={doctor.profile_image_url} 
-                      alt={doctor.full_name}
+                      alt={doctor.name}
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
                     <Stethoscope className="w-10 h-10 text-primary" />
                   )}
                 </div>
-                <CardTitle className="text-xl">{doctor.full_name}</CardTitle>
+                <CardTitle className="text-xl">{doctor.name}</CardTitle>
                 <Badge variant="secondary" className="mx-auto">
                   {doctor.specialization}
                 </Badge>
@@ -386,7 +388,7 @@ const ConsultationsSection = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <CardHeader>
-                <CardTitle>Book Consultation with {bookingDoctor.full_name}</CardTitle>
+                <CardTitle>Book Consultation with {bookingDoctor.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Payment will be processed immediately to confirm your booking
                 </p>
