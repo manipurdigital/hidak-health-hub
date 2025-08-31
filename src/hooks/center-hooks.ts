@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export const useCenterStats = () => {
@@ -46,8 +46,8 @@ export const useUpdateLabBooking = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return { id, ...data };
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return { id, status };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['center-bookings'] });
