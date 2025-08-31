@@ -1584,6 +1584,15 @@ export type Database = {
         Args: { p_medicine_id: string; p_quantity: number }
         Returns: boolean
       }
+      create_booking_notification: {
+        Args: {
+          booking_id: string
+          event_type: string
+          message: string
+          title: string
+        }
+        Returns: undefined
+      }
       create_order: {
         Args: {
           p_center_id: string
@@ -1592,6 +1601,10 @@ export type Database = {
           p_order_items: Json
           p_user_id: string
         }
+        Returns: string
+      }
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_available_centers: {
@@ -1621,9 +1634,47 @@ export type Database = {
           phone: string
         }[]
       }
+      get_cached_recommendations: {
+        Args: { user_id_param: string }
+        Returns: Json
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_lab_booking_by_token: {
+        Args: { booking_id: string; token: string }
+        Returns: {
+          id: string
+          last_distance_meters: number
+          last_eta_mins: number
+          patient_name: string
+          patient_phone: string
+          status: string
+          tracking_token: string
+        }[]
+      }
+      get_latest_courier_location: {
+        Args: { job_id: string; job_type: string }
+        Returns: {
+          accuracy_meters: number
+          heading_degrees: number
+          latitude: number
+          longitude: number
+          recorded_at: string
+          speed_kmh: number
+        }[]
+      }
+      get_order_by_token: {
+        Args: { order_id: string; token: string }
+        Returns: {
+          id: string
+          last_distance_meters: number
+          last_eta_mins: number
+          shipping_address: string
+          status: string
+          tracking_token: string
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
@@ -1663,6 +1714,46 @@ export type Database = {
           category: string
           orders: number
           revenue: number
+        }[]
+      }
+      set_cached_recommendations: {
+        Args: { recommendations: Json; user_id_param: string }
+        Returns: undefined
+      }
+      universal_search: {
+        Args: { limit_count?: number; query_text: string }
+        Returns: {
+          composition_family_key: string
+          composition_key: string
+          composition_match_type: string
+          group_key: string
+          href: string
+          id: string
+          is_alternative: boolean
+          price: number
+          rank_score: number
+          subtitle: string
+          thumbnail_url: string
+          title: string
+          type: string
+        }[]
+      }
+      universal_search_v2: {
+        Args: { max_per_group?: number; q: string }
+        Returns: {
+          composition_family_key: string
+          composition_key: string
+          composition_match_type: string
+          group_key: string
+          href: string
+          id: string
+          is_alternative: boolean
+          price: number
+          rank_score: number
+          subtitle: string
+          thumbnail_url: string
+          title: string
+          type: string
         }[]
       }
     }
