@@ -61,10 +61,10 @@ const PharmacySection = () => {
     addItem({
       id: medicine.id,
       name: medicine.name,
-      brand: medicine.brand,
-      price: medicine.price,
+      brand: medicine.manufacturer,
+      price: medicine.discount_price || medicine.price,
       image_url: medicine.image_url,
-      requires_prescription: medicine.requires_prescription,
+      requires_prescription: medicine.prescription_required,
     });
   };
 
@@ -96,8 +96,8 @@ const PharmacySection = () => {
                 
                 <div className="space-y-2">
                   <h3 className="font-semibold text-sm line-clamp-2">{medicine.name}</h3>
-                  {medicine.brand && (
-                    <p className="text-xs text-muted-foreground">{medicine.brand}</p>
+                  {medicine.manufacturer && (
+                    <p className="text-xs text-muted-foreground">{medicine.manufacturer}</p>
                   )}
                   
                   <div className="flex items-center gap-1">
@@ -106,7 +106,7 @@ const PharmacySection = () => {
                         <Star 
                           key={i} 
                           className={`w-3 h-3 ${
-                            i < Math.floor(medicine.rating) 
+                            i < 4 
                               ? 'fill-yellow-400 text-yellow-400' 
                               : 'text-gray-300'
                           }`} 
@@ -114,7 +114,7 @@ const PharmacySection = () => {
                       ))}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      ({medicine.review_count})
+                      (50+)
                     </span>
                   </div>
                 </div>
@@ -124,32 +124,30 @@ const PharmacySection = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-lg">₹{medicine.price}</span>
-                      {medicine.original_price && medicine.original_price > medicine.price && (
+                      <span className="font-bold text-lg">₹{medicine.discount_price || medicine.price}</span>
+                      {medicine.discount_price && medicine.discount_price < medicine.price && (
                         <span className="text-xs text-muted-foreground line-through ml-2">
-                          ₹{medicine.original_price}
+                          ₹{medicine.price}
                         </span>
                       )}
                     </div>
-                    {medicine.discount_percentage > 0 && (
+                    {medicine.discount_price && medicine.discount_price < medicine.price && (
                       <Badge variant="destructive" className="text-xs">
-                        {medicine.discount_percentage}% OFF
+                        {Math.round((1 - medicine.discount_price / medicine.price) * 100)}% OFF
                       </Badge>
                     )}
                   </div>
                   
                   <div className="flex flex-wrap gap-1">
-                    {medicine.requires_prescription && (
+                    {medicine.prescription_required && (
                       <Badge variant="secondary" className="text-xs">
                         Prescription Required
                       </Badge>
                     )}
-                    {medicine.fast_delivery && (
-                      <Badge variant="outline" className="text-xs">
-                        <Truck className="w-3 h-3 mr-1" />
-                        Fast Delivery
-                      </Badge>
-                    )}
+                    <Badge variant="outline" className="text-xs">
+                      <Truck className="w-3 h-3 mr-1" />
+                      Fast Delivery
+                    </Badge>
                   </div>
                   
                   <Button 

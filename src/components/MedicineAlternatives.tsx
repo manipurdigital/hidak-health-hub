@@ -26,7 +26,7 @@ export function MedicineAlternatives({ medicineId, medicineName, originalPrice }
   } = useSimilarMedicines(medicineId, 'exact');
 
   // If less than 3 exact matches, also show family matches
-  const shouldShowFamily = exactAlternatives.length < 3;
+  const shouldShowFamily = Array.isArray(exactAlternatives) && exactAlternatives.length < 3;
   const { 
     data: familyAlternatives = [], 
     isLoading: familyLoading, 
@@ -38,11 +38,14 @@ export function MedicineAlternatives({ medicineId, medicineName, originalPrice }
 
   // Combine results, prioritizing exact matches
   const allAlternatives = React.useMemo(() => {
-    const combined = [...exactAlternatives];
+    const exactArray = Array.isArray(exactAlternatives) ? exactAlternatives : [];
+    const familyArray = Array.isArray(familyAlternatives) ? familyAlternatives : [];
+    
+    const combined = [...exactArray];
     if (shouldShowFamily) {
       // Add family alternatives that aren't already in exact matches
-      const exactIds = new Set(exactAlternatives.map(alt => alt.id));
-      const uniqueFamilyAlts = familyAlternatives.filter(alt => !exactIds.has(alt.id));
+      const exactIds = new Set(exactArray.map(alt => alt.id));
+      const uniqueFamilyAlts = familyArray.filter(alt => !exactIds.has(alt.id));
       combined.push(...uniqueFamilyAlts);
     }
     return combined.slice(0, 6); // Limit to 6 alternatives
@@ -180,7 +183,7 @@ export function MedicineAlternatives({ medicineId, medicineName, originalPrice }
             {allAlternatives.length} found
           </Badge>
         </CardTitle>
-        {exactAlternatives.length > 0 && shouldShowFamily && familyAlternatives.length > 0 && (
+        {Array.isArray(exactAlternatives) && exactAlternatives.length > 0 && shouldShowFamily && Array.isArray(familyAlternatives) && familyAlternatives.length > 0 && (
           <p className="text-sm text-muted-foreground">
             Showing exact composition matches and similar active ingredients
           </p>
@@ -189,7 +192,7 @@ export function MedicineAlternatives({ medicineId, medicineName, originalPrice }
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {allAlternatives.map((medicine, index) => {
-            const isExactMatch = exactAlternatives.some(exact => exact.id === medicine.id);
+            const isExactMatch = Array.isArray(exactAlternatives) && exactAlternatives.some(exact => exact.id === medicine.id);
             
             return (
               <Card key={medicine.id} className="hover:shadow-md transition-shadow">

@@ -13,27 +13,27 @@ import { supabase } from '@/integrations/supabase/client';
 interface Medicine {
   id: string;
   name: string;
-  brand: string;
+  manufacturer?: string;
   price: number;
-  original_price: number;
-  discount_percentage: number;
+  discount_price?: number;
   stock_quantity: number;
-  requires_prescription: boolean;
-  fast_delivery: boolean;
-  rating: number;
-  review_count: number;
-  manufacturer: string;
-  dosage: string;
-  form: string;
-  pack_size: string;
-  description: string;
+  prescription_required?: boolean;
+  pack_size?: string;
+  description?: string;
+  composition?: string;
+  dosage_form?: string;
+  generic_name?: string;
+  strength?: string;
+  image_url?: string;
+  is_available: boolean;
+  is_active: boolean;
+  category_id?: string;
 }
 
 interface Category {
   id: string;
   name: string;
   description: string;
-  icon: string;
 }
 
 const PharmacySection = () => {
@@ -125,8 +125,8 @@ const PharmacySection = () => {
     addItem({
       id: medicine.id,
       name: medicine.name,
-      price: medicine.price,
-      requires_prescription: medicine.requires_prescription || false,
+      price: medicine.discount_price || medicine.price,
+      requires_prescription: medicine.prescription_required || false,
     });
     
     toast({
@@ -266,7 +266,7 @@ const PharmacySection = () => {
               >
                 <CardContent className="p-6 text-center">
                   <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-200">
-                    {category.icon}
+                    💊
                   </div>
                   <h4 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">
                     {category.name}
@@ -328,48 +328,37 @@ const PharmacySection = () => {
                   <Link to={`/medicines/${medicine.id}`} className="block">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start mb-2">
-                        <Badge variant={medicine.requires_prescription ? "destructive" : "secondary"} className="text-xs">
-                          {medicine.requires_prescription ? "Prescription Required" : "No Prescription"}
+                        <Badge variant={medicine.prescription_required ? "destructive" : "secondary"} className="text-xs">
+                          {medicine.prescription_required ? "Prescription Required" : "No Prescription"}
                         </Badge>
-                        {medicine.fast_delivery && (
-                          <div className="flex items-center gap-1 text-xs text-success">
-                            <Truck className="w-3 h-3" />
-                            Fast
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1 text-xs text-success">
+                          <Truck className="w-3 h-3" />
+                          Fast
+                        </div>
                       </div>
                       <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
                         {medicine.name}
                       </CardTitle>
-                      <p className="text-sm text-muted-foreground">{medicine.brand}</p>
+                      <p className="text-sm text-muted-foreground">{medicine.manufacturer}</p>
                       <p className="text-xs text-muted-foreground">{medicine.pack_size}</p>
                     </CardHeader>
                     
                     <CardContent className="space-y-4">
-                      {/* Rating */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">{medicine.rating}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">({medicine.review_count} reviews)</span>
-                      </div>
-
                       {/* Price */}
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold text-foreground">
                             {formatPrice(medicine.price)}
                           </span>
-                          {medicine.original_price && medicine.original_price > medicine.price && (
+                          {medicine.discount_price && medicine.discount_price < medicine.price && (
                             <span className="text-sm text-muted-foreground line-through">
-                              {formatPrice(medicine.original_price)}
+                              {formatPrice(medicine.price)}
                             </span>
                           )}
                         </div>
-                        {medicine.discount_percentage > 0 && (
+                        {medicine.discount_price && medicine.discount_price < medicine.price && (
                           <Badge variant="outline" className="text-xs text-success border-success">
-                            {medicine.discount_percentage}% OFF
+                            {Math.round((1 - medicine.discount_price / medicine.price) * 100)}% OFF
                           </Badge>
                         )}
                       </div>

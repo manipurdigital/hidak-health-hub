@@ -80,109 +80,53 @@ export function NotificationSettings() {
 
         <Separator />
 
-        {/* Email Preferences */}
+        {/* Notification Types */}
         <div className="space-y-4">
-          <h4 className="font-medium">Email Preferences</h4>
+          <h4 className="font-medium">Reminder Preferences</h4>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="booking-created-email" className="text-sm">
-                New booking created
+              <Label htmlFor="consultation-reminders" className="text-sm">
+                Consultation reminders
               </Label>
               <Switch
-                id="booking-created-email"
-                checked={preferences.booking_created_email}
-                onCheckedChange={(checked) => handleToggle('booking_created_email', checked)}
-                disabled={!preferences.email_notifications}
+                id="consultation-reminders"
+                checked={preferences.consultation_reminders}
+                onCheckedChange={(checked) => handleToggle('consultation_reminders', checked)}
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="booking-assigned-email" className="text-sm">
-                Booking assigned
+              <Label htmlFor="prescription-reminders" className="text-sm">
+                Prescription reminders
               </Label>
               <Switch
-                id="booking-assigned-email"
-                checked={preferences.booking_assigned_email}
-                onCheckedChange={(checked) => handleToggle('booking_assigned_email', checked)}
-                disabled={!preferences.email_notifications}
+                id="prescription-reminders"
+                checked={preferences.prescription_reminders}
+                onCheckedChange={(checked) => handleToggle('prescription_reminders', checked)}
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="status-updates-email" className="text-sm">
-                Status updates
+              <Label htmlFor="payment-reminders" className="text-sm">
+                Payment reminders
               </Label>
               <Switch
-                id="status-updates-email"
-                checked={preferences.status_updates_email}
-                onCheckedChange={(checked) => handleToggle('status_updates_email', checked)}
-                disabled={!preferences.email_notifications}
+                id="payment-reminders"
+                checked={preferences.payment_reminders}
+                onCheckedChange={(checked) => handleToggle('payment_reminders', checked)}
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="reschedule-requests-email" className="text-sm">
-                Reschedule requests
+              <Label htmlFor="push-notifications" className="text-sm">
+                Push notifications
               </Label>
               <Switch
-                id="reschedule-requests-email"
-                checked={preferences.reschedule_requests_email}
-                onCheckedChange={(checked) => handleToggle('reschedule_requests_email', checked)}
-                disabled={!preferences.email_notifications}
+                id="push-notifications"
+                checked={preferences.push_notifications}
+                onCheckedChange={(checked) => handleToggle('push_notifications', checked)}
               />
             </div>
           </div>
         </div>
 
-        <Separator />
-
-        {/* SMS Preferences */}
-        <div className="space-y-4">
-          <h4 className="font-medium">SMS Preferences</h4>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="booking-created-sms" className="text-sm">
-                New booking created
-              </Label>
-              <Switch
-                id="booking-created-sms"
-                checked={preferences.booking_created_sms}
-                onCheckedChange={(checked) => handleToggle('booking_created_sms', checked)}
-                disabled={!preferences.sms_notifications}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="booking-assigned-sms" className="text-sm">
-                Booking assigned
-              </Label>
-              <Switch
-                id="booking-assigned-sms"
-                checked={preferences.booking_assigned_sms}
-                onCheckedChange={(checked) => handleToggle('booking_assigned_sms', checked)}
-                disabled={!preferences.sms_notifications}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="status-updates-sms" className="text-sm">
-                Status updates
-              </Label>
-              <Switch
-                id="status-updates-sms"
-                checked={preferences.status_updates_sms}
-                onCheckedChange={(checked) => handleToggle('status_updates_sms', checked)}
-                disabled={!preferences.sms_notifications}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="reschedule-requests-sms" className="text-sm">
-                Reschedule requests
-              </Label>
-              <Switch
-                id="reschedule-requests-sms"
-                checked={preferences.reschedule_requests_sms}
-                onCheckedChange={(checked) => handleToggle('reschedule_requests_sms', checked)}
-                disabled={!preferences.sms_notifications}
-              />
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

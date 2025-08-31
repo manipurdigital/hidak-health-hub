@@ -18,11 +18,11 @@ interface LabTest {
   name: string;
   description: string;
   price: number;
-  category: string;
-  preparation_required: boolean;
-  sample_type: string;
-  reporting_time: string;
-  image_url?: string;
+  normal_range?: string;
+  preparation_instructions?: string;
+  is_active: boolean;
+  is_available: boolean;
+  created_at: string;
 }
 
 const DiagnosticsSection = () => {
@@ -85,10 +85,6 @@ const DiagnosticsSection = () => {
   const filterTests = () => {
     let filtered = tests;
 
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(test => test.category === selectedCategory);
-    }
-
     if (searchTerm) {
       filtered = filtered.filter(test =>
         test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -122,9 +118,7 @@ const DiagnosticsSection = () => {
           user_id: user.id,
           test_id: bookingTest.id,
           booking_date: format(selectedDate, 'yyyy-MM-dd'),
-          time_slot: selectedTimeSlot,
-          patient_name: user.email, // You might want to get this from profile
-          patient_phone: '', // Get from profile
+          booking_time: selectedTimeSlot.split(' - ')[0], // Extract start time
           total_amount: bookingTest.price,
           status: 'pending'
         }]);
@@ -216,7 +210,7 @@ const DiagnosticsSection = () => {
                   <div>
                     <CardTitle className="text-lg">{test.name}</CardTitle>
                     <Badge variant="secondary" className="mt-2">
-                      {test.category}
+                      Lab Test
                     </Badge>
                   </div>
                   <div className="text-right">
@@ -228,15 +222,13 @@ const DiagnosticsSection = () => {
                 <p className="text-muted-foreground text-sm">{test.description}</p>
                 
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <TestTube className="w-4 h-4 text-primary" />
-                    <span>Sample: {test.sample_type}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" />
-                    <span>Reporting: {test.reporting_time}</span>
-                  </div>
-                  {test.preparation_required && (
+                  {test.normal_range && (
+                    <div className="flex items-center gap-2">
+                      <TestTube className="w-4 h-4 text-primary" />
+                      <span>Normal Range: {test.normal_range}</span>
+                    </div>
+                  )}
+                  {test.preparation_instructions && (
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-orange-500" />
                       <span className="text-orange-600">Preparation Required</span>
