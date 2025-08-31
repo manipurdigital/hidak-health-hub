@@ -12,7 +12,7 @@ import {
   useMedicineSalesByDay, 
   useTopMedicinesByRevenue,
   useMedicineSalesByStore 
-} from '@/hooks/analytics-hooks';
+} from '@/hooks/analytics-placeholders';
 import { useState } from 'react';
 
 interface MedicineSalesReportProps {
@@ -179,7 +179,7 @@ export function MedicineSalesReport({ dateRange, onDateRangeChange }: MedicineSa
                 </Button>
               </div>
               <ExportButton
-                data={activeView === 'day' ? dayData : activeView === 'medicines' ? topMedicines : storeData}
+                data={activeView === 'day' ? (dayData || []) : activeView === 'medicines' ? (topMedicines || []) : (storeData || [])}
                 filename={`medicine-sales-${activeView}-${dateRange.startDate}-to-${dateRange.endDate}`}
                 columns={activeView === 'day' ? dayColumns : activeView === 'medicines' ? medicineColumns : storeColumns}
               />

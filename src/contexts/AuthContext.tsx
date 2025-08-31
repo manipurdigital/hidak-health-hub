@@ -53,22 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return;
               }
               
-              // If no role in user_roles, check center_staff for center access
-              const { data: centerStaff } = await supabase
-                .from('center_staff')
-                .select('role, is_active')
-                .eq('user_id', session.user.id)
-                .eq('is_active', true)
-                .limit(1)
-                .single();
-              
-              if (centerStaff) {
-                setUserRole('center');
-                console.log('Set user role to: center (from center_staff)');
-              } else {
-                setUserRole('user');
-                console.log('Set user role to: user (default)');
-              }
+              // Set to user as default
+              setUserRole('user');
+              console.log('Set user role to: user (default)');
+              return;
             } catch (error) {
               console.error('Error fetching user role:', error);
               setUserRole('user');
@@ -132,11 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If no role in user_roles, check center_staff for center access
         const { data: centerStaff } = await supabase
           .from('center_staff')
-          .select('role, is_active')
+          .select('role')
           .eq('user_id', data.user.id)
-          .eq('is_active', true)
           .limit(1)
-          .single();
+          .maybeSingle();
         
         if (centerStaff) {
           return { error, userRole: 'center' };

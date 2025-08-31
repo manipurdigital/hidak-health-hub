@@ -59,9 +59,9 @@ export function GeofenceAssignments() {
         supabase.from('geofences')
           .select('id,name,service_type,is_active,priority')
           .order('created_at', { ascending: false }),
-        supabase.from('stores')
-          .select('id,name,code')
-          .eq('is_active', true)
+        supabase.from('delivery_centers')
+          .select('id,name')
+          .eq('is_available', true)
           .order('name'),
         supabase.from('diagnostic_centers')
           .select('id,name')
@@ -70,7 +70,7 @@ export function GeofenceAssignments() {
       ]);
 
       if (geofencesRes.data) setGeofences(geofencesRes.data);
-      if (storesRes.data) setStores(storesRes.data);
+      if (storesRes.data) setStores(storesRes.data.map(center => ({ id: center.id, name: center.name, code: center.id.substring(0, 8) })));
       if (labsRes.data) setLabs(labsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);

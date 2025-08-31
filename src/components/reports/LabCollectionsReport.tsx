@@ -14,7 +14,7 @@ import {
   useLabCollectionsByDay, 
   useLabCollectionsByCenter,
   useLabTests 
-} from '@/hooks/analytics-hooks';
+} from '@/hooks/analytics-placeholders';
 
 interface LabCollectionsReportProps {
   dateRange: {

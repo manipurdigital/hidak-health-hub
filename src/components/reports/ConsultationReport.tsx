@@ -12,7 +12,7 @@ import {
   useConsultationsByDay, 
   useConsultationsBySpecialty,
   useConsultationsByDoctor 
-} from '@/hooks/analytics-hooks';
+} from '@/hooks/analytics-placeholders';
 import { useState } from 'react';
 
 interface ConsultationReportProps {
@@ -174,7 +174,7 @@ export function ConsultationReport({ dateRange, onDateRangeChange }: Consultatio
                 </Button>
               </div>
               <ExportButton
-                data={activeView === 'day' ? dayData : activeView === 'specialty' ? specialtyData : doctorData}
+                data={activeView === 'day' ? (dayData || []) : activeView === 'specialty' ? (specialtyData || []) : (doctorData || [])}
                 filename={`consultations-${activeView}-${dateRange.startDate}-to-${dateRange.endDate}`}
                 columns={activeView === 'day' ? dayColumns : activeView === 'specialty' ? specialtyColumns : doctorColumns}
               />

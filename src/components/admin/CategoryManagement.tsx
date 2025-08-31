@@ -10,11 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Edit, Trash2, Package, TestTube } from 'lucide-react';
 import { 
-  useMedicineCategories, 
-  useCreateMedicineCategory, 
-  useUpdateMedicineCategory, 
-  useDeleteMedicineCategory
-} from '@/hooks/category-hooks';
+  useCategories as useMedicineCategories, 
+  useCreateCategory as useCreateMedicineCategory, 
+  useUpdateCategory as useUpdateMedicineCategory, 
+  useDeleteCategory as useDeleteMedicineCategory
+} from '@/hooks/category-placeholders';
 
 interface CategoryFormData {
   name: string;

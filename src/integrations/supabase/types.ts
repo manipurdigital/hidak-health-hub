@@ -981,6 +981,42 @@ export type Database = {
         }
         Relationships: []
       }
+      stores: {
+        Row: {
+          address: string
+          code: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          code: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          code?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -1238,6 +1274,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_kpi_overview: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          active_subscriptions: number
+          avg_order_value: number
+          conversion_rate: number
+          new_users: number
+          order_growth: number
+          prev_aov: number
+          prev_new_users: number
+          prev_orders: number
+          prev_revenue: number
+          revenue_growth: number
+          total_orders: number
+          total_revenue: number
+        }[]
+      }
+      admin_timeseries_data: {
+        Args: { end_date: string; metric_type: string; start_date: string }
+        Returns: {
+          date: string
+          value: number
+        }[]
+      }
+      admin_top_medicines: {
+        Args: { end_date: string; limit_count: number; start_date: string }
+        Returns: {
+          medicine_name: string
+          order_count: number
+          total_quantity: number
+          total_revenue: number
+          unique_customers: number
+        }[]
+      }
       check_medicine_availability: {
         Args: { p_medicine_id: string; p_quantity: number }
         Returns: boolean
@@ -1313,6 +1383,14 @@ export type Database = {
           name: string
           price: number
           score: number
+        }[]
+      }
+      revenue_breakdown: {
+        Args: { breakdown_by: string; end_ts: string; start_ts: string }
+        Returns: {
+          category: string
+          orders: number
+          revenue: number
         }[]
       }
     }
