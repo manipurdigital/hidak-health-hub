@@ -87,6 +87,16 @@ const { toast } = useToast();
       return;
     }
 
+    // Check if phone number is available
+    if (!selectedAddr.phone) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please add a phone number to your address before booking.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check serviceability before booking
     if (serviceability && !serviceability.isServiceable) {
       toast({
@@ -104,15 +114,15 @@ const { toast } = useToast();
         testId: labTest.id,
         bookingDate: slot.date,
         timeSlot: slot.time,
-        patientName: locationData.address.name || selectedAddr?.name || '',
-        patientPhone: locationData.address.phone || selectedAddr?.phone || '',
+        patientName: selectedAddr.name || '',
+        patientPhone: selectedAddr.phone || '',
         patientEmail: '', // Will be filled from user profile on backend
         specialInstructions: slot.notes || (labTest.preparation_required 
           ? 'Patient requires fasting as per test requirements.' 
           : undefined),
-        pickupLat: locationData.lat,
-        pickupLng: locationData.lng,
-        pickupAddress: locationData.address
+        pickupLat: selectedAddr.latitude || locationData.lat,
+        pickupLng: selectedAddr.longitude || locationData.lng,
+        pickupAddress: selectedAddr
       };
 
       // Add assigned center if available
