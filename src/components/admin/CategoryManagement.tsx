@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Edit, Trash2, Package, TestTube } from 'lucide-react';
 import { 
-  useCategories as useMedicineCategories, 
-  useCreateCategory as useCreateMedicineCategory, 
-  useUpdateCategory as useUpdateMedicineCategory, 
-  useDeleteCategory as useDeleteMedicineCategory
-} from '@/hooks/category-placeholders';
+  useMedicineCategories, 
+  useCreateMedicineCategory, 
+  useUpdateMedicineCategory, 
+  useDeleteMedicineCategory,
+  useLabTestCategories,
+  useCreateLabTestCategory
+} from '@/hooks/category-hooks';
 
 interface CategoryFormData {
   name: string;
@@ -29,9 +31,15 @@ interface EditingCategory {
 
 const CategoryManagement = () => {
   const [medicineDialogOpen, setMedicineDialogOpen] = useState(false);
+  const [labTestDialogOpen, setLabTestDialogOpen] = useState(false);
   const [editingMedicineCategory, setEditingMedicineCategory] = useState<EditingCategory | null>(null);
   
   const [medicineFormData, setMedicineFormData] = useState<CategoryFormData>({
+    name: '',
+    description: ''
+  });
+
+  const [labTestFormData, setLabTestFormData] = useState<CategoryFormData>({
     name: '',
     description: ''
   });
@@ -41,6 +49,10 @@ const CategoryManagement = () => {
   const createMedicineCategory = useCreateMedicineCategory();
   const updateMedicineCategory = useUpdateMedicineCategory();
   const deleteMedicineCategory = useDeleteMedicineCategory();
+
+  // Lab test category hooks
+  const { data: labTestCategories, isLoading: labTestLoading } = useLabTestCategories();
+  const createLabTestCategory = useCreateLabTestCategory();
 
   const handleMedicineSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,20 +80,32 @@ const CategoryManagement = () => {
     setMedicineDialogOpen(true);
   };
 
+  const handleLabTestSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createLabTestCategory.mutate(labTestFormData);
+    setLabTestFormData({ name: '', description: '' });
+    setLabTestDialogOpen(false);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Category Management</h1>
           <p className="text-muted-foreground mt-2">
-            Manage categories for medicines
+            Manage categories for medicines and lab tests
           </p>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <Tabs defaultValue="medicine" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="medicine">Medicine Categories</TabsTrigger>
+          <TabsTrigger value="lab-test">Lab Test Categories</TabsTrigger>
+        </TabsList>
+
         {/* Medicine Categories */}
-        <div className="space-y-6">
+        <TabsContent value="medicine" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold flex items-center gap-2">
               <Package className="w-6 h-6" />
@@ -208,8 +232,102 @@ const CategoryManagement = () => {
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </TabsContent>
+
+        {/* Lab Test Categories */}
+        <TabsContent value="lab-test" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              <TestTube className="w-6 h-6" />
+              Lab Test Categories
+            </h2>
+            <Dialog open={labTestDialogOpen} onOpenChange={setLabTestDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => {
+                  setLabTestFormData({ name: '', description: '' });
+                }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Lab Test Category
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Lab Test Category</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleLabTestSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="lab-test-name">Name</Label>
+                    <Input
+                      id="lab-test-name"
+                      value={labTestFormData.name}
+                      onChange={(e) => setLabTestFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Blood Tests"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lab-test-description">Description</Label>
+                    <Textarea
+                      id="lab-test-description"
+                      value={labTestFormData.description}
+                      onChange={(e) => setLabTestFormData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of the category"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setLabTestDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createLabTestCategory.isPending}>
+                      Create
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {labTestLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-muted rounded"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-4 bg-muted rounded mb-2"></div>
+                    <div className="h-4 bg-muted rounded w-2/3"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {labTestCategories?.map((category) => (
+                <Card key={category.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="text-2xl">🧪</span>
+                        {category.name}
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-sm">
+                      Lab test category
+                    </p>
+                    <Badge variant="secondary" className="mt-2">
+                      Lab Test Category
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
