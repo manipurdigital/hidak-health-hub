@@ -80,7 +80,7 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const body = await req.json();
-    const { items, shippingAddress, prescriptionUrl, notes } = body;
+    const { items, shippingAddress, prescriptionUrl, notes, patientName, patientPhone, patientLocation } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("No items provided");
@@ -90,7 +90,17 @@ serve(async (req) => {
       throw new Error("Shipping address is required");
     }
 
-    logStep("Request validated", { itemCount: items.length, hasShipping: !!shippingAddress });
+    if (!patientName || !patientPhone) {
+      throw new Error("Patient name and phone are required");
+    }
+
+    logStep("Request validated", { 
+      itemCount: items.length, 
+      hasShipping: !!shippingAddress,
+      patientName,
+      patientPhone,
+      hasLocation: !!(patientLocation?.lat && patientLocation?.lng)
+    });
 
     // Calculate total amount
     const totalAmount = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
@@ -107,6 +117,10 @@ serve(async (req) => {
         user_id: user.id,
         total_amount: totalAmount,
         shipping_address: shippingAddress,
+        patient_name: patientName,
+        patient_phone: patientPhone,
+        patient_location_lat: patientLocation?.lat || null,
+        patient_location_lng: patientLocation?.lng || null,
         prescription_url: prescriptionUrl || null,
         prescription_required: prescriptionRequired,
         notes: notes || null,
@@ -189,6 +203,45 @@ serve(async (req) => {
 
     if (updateError) {
       logStep("Error updating order with Razorpay ID", updateError);
+    }
+
+    // Send notifications to admins
+    try {
+      // Get all admin users
+      const { data: adminUsers, error: adminError } = await supabaseClient
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+
+      if (!adminError && adminUsers) {
+        // Create in-app notifications for all admins
+        const adminNotifications = adminUsers.map(admin => ({
+          user_id: admin.user_id,
+          title: 'New Medicine Order',
+          message: `New order ${order.order_number} received from ${patientName}. Total: ₹${totalAmount}`,
+          type: 'order',
+          data: {
+            order_id: order.id,
+            order_number: order.order_number,
+            patient_name: patientName,
+            patient_phone: patientPhone,
+            total_amount: totalAmount,
+            patient_location: patientLocation
+          }
+        }));
+
+        await supabaseClient.from('notifications').insert(adminNotifications);
+        logStep("Admin notifications created", { adminCount: adminUsers.length });
+      }
+
+      // Send WhatsApp notification to admin (if configured)
+      // In a real scenario, you'd store admin phone numbers and send to multiple admins
+      // For now, we'll just log that this would happen
+      logStep("WhatsApp notification would be sent to admin phone numbers");
+      
+    } catch (notificationError) {
+      logStep("Error sending notifications", notificationError);
+      // Don't fail the order creation if notifications fail
     }
 
     return new Response(JSON.stringify({

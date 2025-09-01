@@ -1043,6 +1043,10 @@ export type Database = {
           id: string
           notes: string | null
           order_number: string
+          patient_location_lat: number | null
+          patient_location_lng: number | null
+          patient_name: string | null
+          patient_phone: string | null
           payment_id: string | null
           payment_method: string | null
           payment_status: string | null
@@ -1063,6 +1067,10 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number: string
+          patient_location_lat?: number | null
+          patient_location_lng?: number | null
+          patient_name?: string | null
+          patient_phone?: string | null
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
@@ -1083,6 +1091,10 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: string
+          patient_location_lat?: number | null
+          patient_location_lng?: number | null
+          patient_name?: string | null
+          patient_phone?: string | null
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null

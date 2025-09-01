@@ -20,7 +20,8 @@ import {
   UserPlus,
   FolderOpen,
   Activity,
-  ChevronDown
+  ChevronDown,
+  Package
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -76,6 +77,14 @@ export function AdminSidebar() {
                 <Link to="/admin/users">
                   <Users className="mr-2 h-4 w-4" />
                   Users
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link to="/admin/orders">
+                  <Package className="mr-2 h-4 w-4" />
+                  Orders
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -30,6 +30,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import DoctorDashboardPage from '@/pages/doctor/DoctorDashboardPage';
 import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import AdminOrdersPage from '@/pages/admin/AdminOrdersPage';
 import AdminMedicinesPage from '@/pages/admin/AdminMedicinesPage';
 import AdminCategoriesPage from '@/pages/admin/AdminCategoriesPage';
 import AdminDoctorsPage from '@/pages/admin/AdminDoctorsPage';
@@ -191,6 +192,16 @@ function App() {
                       <AdminGuard>
                         <AdminLayoutWrapper>
                           <AdminMedicinesPage />
+                        </AdminLayoutWrapper>
+                      </AdminGuard>
+                    }
+                  />
+                  <Route
+                    path="/admin/orders"
+                    element={
+                      <AdminGuard>
+                        <AdminLayoutWrapper>
+                          <AdminOrdersPage />
                         </AdminLayoutWrapper>
                       </AdminGuard>
                     }
