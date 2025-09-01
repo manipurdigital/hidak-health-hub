@@ -2,6 +2,122 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+// Twilio WhatsApp Helper
+const sendWhatsAppNotification = async (to: string, message: string, correlationId: string) => {
+  try {
+    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+    const fromNumber = Deno.env.get('TWILIO_WHATSAPP_FROM') || 'whatsapp:+14155238886';
+
+    if (!accountSid || !authToken) {
+      logStep(correlationId, "Twilio credentials missing, skipping WhatsApp notification");
+      return false;
+    }
+
+    // Normalize phone number to E.164 format
+    const normalizedTo = normalizePhoneNumber(to);
+    if (!normalizedTo) {
+      logStep(correlationId, "Invalid phone number format", { to });
+      return false;
+    }
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const auth = btoa(`${accountSid}:${authToken}`);
+
+    const body = new URLSearchParams({
+      From: fromNumber,
+      To: `whatsapp:${normalizedTo}`,
+      Body: message
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: body.toString()
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      logStep(correlationId, "WhatsApp notification sent successfully", { 
+        to: normalizedTo, 
+        sid: result.sid 
+      });
+      return true;
+    } else {
+      const errorText = await response.text();
+      logStep(correlationId, "Failed to send WhatsApp notification", { 
+        to: normalizedTo, 
+        status: response.status, 
+        error: errorText 
+      });
+      return false;
+    }
+  } catch (error) {
+    logStep(correlationId, "Error sending WhatsApp notification", { 
+      to, 
+      error: error.message 
+    });
+    return false;
+  }
+};
+
+// Normalize phone number to E.164 format
+const normalizePhoneNumber = (phone: string): string | null => {
+  // Remove all non-digits
+  const digits = phone.replace(/\D/g, '');
+  
+  // Handle Indian numbers (10 digits, add +91)
+  if (digits.length === 10 && digits.startsWith('9')) {
+    return `+91${digits}`;
+  }
+  
+  // Handle numbers with country code already
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return `+${digits}`;
+  }
+  
+  // Handle numbers starting with +
+  if (phone.startsWith('+')) {
+    return phone;
+  }
+  
+  // Default: assume Indian number if 10 digits
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+  
+  return null;
+};
+
+// Build WhatsApp message for order confirmation
+const buildOrderWhatsAppMessage = (orderData: any): string => {
+  const items = orderData.order_items.map((item: any) => 
+    `• ${item.medicine.name} - Qty: ${item.quantity}`
+  ).join('\n');
+
+  const googleMapsLink = orderData.patient_location_lat && orderData.patient_location_lng 
+    ? `\n📍 Location: https://www.google.com/maps/dir/?api=1&destination=${orderData.patient_location_lat},${orderData.patient_location_lng}`
+    : '';
+
+  return `🆘 *NEW ORDER CONFIRMED* 🆘
+
+📦 *Order:* ${orderData.order_number}
+👤 *Patient:* ${orderData.patient_name}
+📱 *Phone:* ${orderData.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
+💰 *Amount:* ₹${orderData.total_amount}
+
+*Items:*
+${items}
+
+📮 *Address:*
+${orderData.shipping_address}${googleMapsLink}
+
+⚡ Please assign delivery agent immediately!`;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-razorpay-signature',
@@ -316,6 +432,10 @@ async function handlePaymentCaptured(supabaseClient: any, event: any, correlatio
 
   // Process manually to enforce strict validations and avoid relying on DB RPCs
   await updatePaymentStatusManually(supabaseClient, orderId, payment, 'paid', correlationId);
+  
+  // Send WhatsApp notifications to admins for confirmed orders
+  await sendOrderNotificationToAdmins(supabaseClient, orderId, correlationId);
+  
   logStep(correlationId, "Payment captured processed manually", { orderId });
 }
 
@@ -476,6 +596,88 @@ async function updatePaymentStatusManually(
   if ((!orders || orders.length === 0) && (!bookings || bookings.length === 0) && (!consultations || consultations.length === 0)) {
     logStep(correlationId, "No orders, bookings, or consultations found for Razorpay order", { orderId });
     throw new Error(`No orders, bookings, or consultations found for Razorpay order ID: ${orderId}`);
+  }
+}
+
+// Send WhatsApp notification to admins for new orders
+async function sendOrderNotificationToAdmins(supabaseClient: any, razorpayOrderId: string, correlationId: string) {
+  try {
+    // Fetch the order with all details
+    const { data: orderData, error: orderError } = await supabaseClient
+      .from('orders')
+      .select(`
+        *,
+        order_items (
+          quantity,
+          unit_price,
+          medicine:medicines (
+            name
+          )
+        )
+      `)
+      .eq('razorpay_order_id', razorpayOrderId)
+      .eq('status', 'confirmed')
+      .single();
+
+    if (orderError || !orderData) {
+      logStep(correlationId, "Order not found for WhatsApp notification", { razorpayOrderId });
+      return;
+    }
+
+    // Get admin phone numbers from profiles
+    const { data: adminUsers, error: adminError } = await supabaseClient
+      .from('user_roles')
+      .select(`
+        user_id,
+        profiles!inner (
+          phone
+        )
+      `)
+      .eq('role', 'admin')
+      .not('profiles.phone', 'is', null);
+
+    let adminPhones: string[] = [];
+    
+    if (adminUsers && adminUsers.length > 0) {
+      adminPhones = adminUsers
+        .map((admin: any) => admin.profiles?.phone)
+        .filter(Boolean);
+      logStep(correlationId, "Found admin phones from profiles", { count: adminPhones.length });
+    }
+
+    // Fallback to ADMIN_WHATSAPP_TO environment variable
+    const fallbackPhones = Deno.env.get('ADMIN_WHATSAPP_TO');
+    if (!adminPhones.length && fallbackPhones) {
+      adminPhones = fallbackPhones.split(',').map(p => p.trim()).filter(Boolean);
+      logStep(correlationId, "Using fallback admin phones", { count: adminPhones.length });
+    }
+
+    if (!adminPhones.length) {
+      logStep(correlationId, "No admin phone numbers found for WhatsApp notification");
+      return;
+    }
+
+    // Build WhatsApp message
+    const message = buildOrderWhatsAppMessage(orderData);
+
+    // Send to all admin numbers
+    let successCount = 0;
+    for (const phone of adminPhones) {
+      const success = await sendWhatsAppNotification(phone, message, correlationId);
+      if (success) successCount++;
+    }
+
+    logStep(correlationId, "WhatsApp notifications sent to admins", { 
+      totalAdmins: adminPhones.length, 
+      successful: successCount,
+      orderId: orderData.id 
+    });
+
+  } catch (error) {
+    logStep(correlationId, "Error sending WhatsApp notifications to admins", { 
+      error: error.message,
+      razorpayOrderId 
+    });
   }
 }
 

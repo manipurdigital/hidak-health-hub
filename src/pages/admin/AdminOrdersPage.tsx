@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, MapPin, MessageCircle, Package, User, Phone } from "lucide-react";
+import { ExternalLink, MapPin, MessageCircle, Package, User, Phone, Copy, Share } from "lucide-react";
 import { AdminLayoutWrapper } from "@/components/AdminLayoutWrapper";
 import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -69,6 +69,46 @@ const AdminOrdersPage = () => {
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodeURIComponent(address)}`;
   };
 
+  const buildOrderWhatsAppMessage = (order: Order): string => {
+    const items = order.order_items.map((item) => 
+      `• ${item.medicine.name} - Qty: ${item.quantity}`
+    ).join('\n');
+
+    const googleMapsLink = order.patient_location_lat && order.patient_location_lng 
+      ? `\n📍 Location: https://www.google.com/maps/dir/?api=1&destination=${order.patient_location_lat},${order.patient_location_lng}`
+      : '';
+
+    return `🆘 *NEW ORDER CONFIRMED* 🆘
+
+📦 *Order:* ${order.order_number}
+👤 *Patient:* ${order.patient_name}
+📱 *Phone:* ${order.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
+💰 *Amount:* ₹${order.total_amount}
+
+*Items:*
+${items}
+
+📮 *Address:*
+${order.shipping_address}${googleMapsLink}
+
+⚡ Please assign delivery agent immediately!`;
+  };
+
+  const copyWhatsAppText = (order: Order) => {
+    const message = buildOrderWhatsAppMessage(order);
+    navigator.clipboard.writeText(message);
+    toast({
+      title: "Copied to clipboard",
+      description: "WhatsApp message copied successfully"
+    });
+  };
+
+  const openWhatsAppToNumber = (order: Order, phoneNumber: string) => {
+    const message = buildOrderWhatsAppMessage(order);
+    const whatsappUrl = `https://wa.me/${phoneNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   if (isLoading) {
     return (
       <AdminLayoutWrapper>
@@ -106,6 +146,7 @@ const AdminOrdersPage = () => {
                   <TableHead>Patient</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Forward to Agent</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -130,6 +171,27 @@ const AdminOrdersPage = () => {
                       <Badge className={statusColors[order.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
                         {order.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyWhatsAppText(order)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const phone = prompt("Enter delivery agent's phone number:");
+                            if (phone) openWhatsAppToNumber(order, phone);
+                          }}
+                        >
+                          <Share className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -247,23 +309,23 @@ const AdminOrdersPage = () => {
                     Open in Google Maps
                   </Button>
                 )}
-                <WhatsAppShareButton
-                  bookingData={{
-                    orderNumber: selectedOrder.order_number,
-                    patientName: selectedOrder.patient_name,
-                    patientPhone: selectedOrder.patient_phone,
-                    totalAmount: selectedOrder.total_amount,
-                    medicines: selectedOrder.order_items.map(item => ({
-                      name: item.medicine.name,
-                      quantity: item.quantity
-                    }))
+                <Button
+                  variant="outline"
+                  onClick={() => copyWhatsAppText(selectedOrder)}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy WhatsApp Text
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const phone = prompt("Enter delivery agent's phone number:");
+                    if (phone) openWhatsAppToNumber(selectedOrder, phone);
                   }}
-                  pickupLocation={{
-                    address: selectedOrder.shipping_address,
-                    lat: selectedOrder.patient_location_lat || 0,
-                    lng: selectedOrder.patient_location_lng || 0
-                  }}
-                />
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Send to Agent
+                </Button>
               </div>
             </CardContent>
           </Card>
