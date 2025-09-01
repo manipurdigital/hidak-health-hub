@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -179,14 +180,19 @@ export const useDeleteGeofence = () => {
 // Hook to check serviceability
 export const useCheckServiceability = () => {
   return useMutation({
-    mutationFn: async ({ lat, lng, serviceType }: { 
+    mutationFn: async ({ 
+      lat, 
+      lng, 
+      serviceType 
+    }: { 
       lat: number; 
       lng: number; 
       serviceType: 'delivery' | 'lab_collection' 
     }) => {
-      const { data, error } = await supabase.rpc('get_available_centers_for_location', {
-        p_lat: lat,
-        p_lng: lng,
+      const { data, error } = await supabase.rpc('get_available_centers_for_location' as any, {
+        lat,
+        lng,
+        service_type: serviceType,
       });
       
       if (error) throw error;
@@ -221,7 +227,7 @@ export const useFeePreview = () => {
     mutationFn: async ({ lat, lng }: { lat: number; lng: number }) => {
       const { data, error } = await supabase.rpc('calc_distance_fee_from_geofence' as any, {
         p_service: 'delivery',
-        p_dest_p_lat: lat,
+        p_dest_lat: lat,
         p_dest_lng: lng,
       });
 
