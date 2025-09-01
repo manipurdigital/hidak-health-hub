@@ -243,6 +243,9 @@ const DiagnosticsSection = () => {
                   <CalendarIcon className="w-4 h-4 mr-2" />
                   Book Test
                 </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  *Additional home collection charges applicable
+                </p>
               </CardContent>
             </Card>
           ))}
