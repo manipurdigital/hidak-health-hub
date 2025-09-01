@@ -176,11 +176,19 @@ const AdminMedicinesPage = () => {
         is_active: true
       };
 
-      const { error } = await supabase
-        .from('medicines')
-        .insert(medicineData);
+      console.log('Medicine data to insert:', medicineData);
 
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('medicines')
+        .insert(medicineData)
+        .select();
+
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+
+      console.log('Insert successful:', data);
 
       toast({
         title: "Success",
@@ -191,9 +199,10 @@ const AdminMedicinesPage = () => {
       setSelectedCategory(''); // Reset selected category
       fetchMedicines();
     } catch (error) {
+      console.error('handleAddMedicine error:', error);
       toast({
         title: "Error",
-        description: "Failed to add medicine",
+        description: error instanceof Error ? error.message : "Failed to add medicine",
         variant: "destructive"
       });
     }
