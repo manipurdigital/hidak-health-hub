@@ -62,7 +62,7 @@ const MedicinesPage = () => {
   const { addItem } = useCart();
   const { user } = useAuth();
   const { filters, updateFilters, clearFilters } = useUrlFilters();
-  const { topStore, visibleStores, deliveryCoverage } = useServiceability();
+  const { inDeliveryArea, feePreview } = useServiceability();
 
   const page = filters.page || 1;
   const pageSize = 12;
@@ -313,23 +313,16 @@ const MedicinesPage = () => {
           </div>
 
           {/* Delivery coverage banner */}
-          {deliveryCoverage === 'has_partners' && topStore && (
+          {inDeliveryArea === true && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-green-700 text-sm">
-                <span className="font-medium">Medicines fulfilled by:</span> {topStore.store_name}
+                <span className="font-medium">Medicine delivery available in your area</span>
+                {feePreview?.fee && ` • Delivery fee: ₹${feePreview.fee}`}
               </p>
             </div>
           )}
           
-          {deliveryCoverage === 'available_no_partner' && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-amber-700 text-sm">
-                <span className="font-medium">Medicine delivery coming soon!</span> We're working to bring partner stores to your area.
-              </p>
-            </div>
-          )}
-          
-          {deliveryCoverage === 'out_of_area' && (
+          {inDeliveryArea === false && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-700 text-sm">
                 <span className="font-medium">Delivery unavailable:</span> Medicine delivery is not available in your location yet.
@@ -538,11 +531,6 @@ const MedicinesPage = () => {
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">{medicine.brand}</p>
                       <p className="text-xs text-muted-foreground">{medicine.pack_size}</p>
-                      {topStore && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Fulfilled by <span className="font-medium text-primary">{topStore.store_name}</span>
-                        </div>
-                      )}
                     </CardHeader>
                     
                     <CardContent className="space-y-4">

@@ -116,7 +116,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         total_amount: totalAmount,
-        shipping_address: shippingAddress,
+        shipping_address: JSON.stringify(shippingAddress),
         patient_name: patientName,
         patient_phone: patientPhone,
         patient_location_lat: patientLocation?.lat || null,

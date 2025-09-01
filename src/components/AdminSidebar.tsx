@@ -125,14 +125,6 @@ export function AdminSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link to="/admin/stores">
-                      <Store className="mr-2 h-4 w-4" />
-                      Stores
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               </SidebarMenu>
             </CollapsibleContent>
           </SidebarGroup>

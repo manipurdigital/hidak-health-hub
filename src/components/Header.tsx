@@ -24,7 +24,7 @@ const Header = () => {
   const { toast } = useToast();
   const { itemCount, state, updateQuantity, removeItem } = useCart();
   const { user, userRole, signOut } = useAuth();
-  const { topStore, topLabCenter, setManualLocation } = useServiceability();
+  const { inDeliveryArea, inLabArea, setManualLocation } = useServiceability();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -402,8 +402,8 @@ const Header = () => {
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">📍</span>
                 <span className="text-sm">
-                  {topStore ? `Fulfilled by ${topStore.store_name}` : 
-                   topLabCenter ? `Lab collection by ${topLabCenter.center_name}` : 
+                  {inDeliveryArea === true ? 'Delivery available in your area' : 
+                   inLabArea === true ? 'Home collection available' : 
                    'Set location'}
                 </span>
               </Button>
