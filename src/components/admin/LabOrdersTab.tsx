@@ -56,10 +56,15 @@ export const LabOrdersTab: React.FC<LabOrdersTabProps> = ({ filters }) => {
   const [selectedBooking, setSelectedBooking] = useState<LabBooking | null>(null);
   const notifyAdmin = useNotifyAdminWhatsApp();
 
-  // Set default date range to today if no filters are set
+  // Set default date range to show a wider range to include future bookings
   const today = new Date();
-  const defaultFrom = filters.from || format(today, 'yyyy-MM-dd');
-  const defaultTo = filters.to || format(today, 'yyyy-MM-dd');
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekFromNow = new Date(today);
+  weekFromNow.setDate(weekFromNow.getDate() + 7);
+  
+  const defaultFrom = filters.from || format(weekAgo, 'yyyy-MM-dd');
+  const defaultTo = filters.to || format(weekFromNow, 'yyyy-MM-dd');
 
   const { data: labBookings, isLoading } = useQuery({
     queryKey: ['admin-lab-orders', filters],
