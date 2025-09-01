@@ -647,26 +647,38 @@ const AdminMedicinesPage = () => {
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle>All Medicines ({filteredMedicines.length})</CardTitle>
                 {selectedMedicines.size > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {selectedMedicines.size} selected
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      {selectedMedicines.size} medicine{selectedMedicines.size > 1 ? 's' : ''} selected
                     </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkStatusUpdate(true)}
-                      disabled={bulkActionLoading}
-                    >
-                      Activate Selected
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkStatusUpdate(false)}
-                      disabled={bulkActionLoading}
-                    >
-                      Deactivate Selected
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkStatusUpdate(true)}
+                        disabled={bulkActionLoading}
+                        className="border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-950"
+                      >
+                        ✓ Activate Selected
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkStatusUpdate(false)}
+                        disabled={bulkActionLoading}
+                        className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+                      >
+                        ✕ Deactivate Selected
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedMedicines(new Set())}
+                        className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardHeader>
