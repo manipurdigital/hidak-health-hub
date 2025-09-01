@@ -75,11 +75,28 @@ serve(async (req) => {
     }
 
     // Parse the request body to get user creation data
-    const { email, password, full_name, phone, role } = await req.json()
+    const requestBody = await req.json()
+    console.log('Request body received:', requestBody)
+    
+    const { email, password, full_name, phone, role } = requestBody
     
     if (!email || !password) {
+      console.log('Missing email or password:', { email: !!email, password: !!password })
       return new Response(
         JSON.stringify({ error: 'Email and password are required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      console.log('Invalid email format:', email)
+      return new Response(
+        JSON.stringify({ error: 'Invalid email format' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
