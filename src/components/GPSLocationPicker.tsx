@@ -61,13 +61,13 @@ export const GPSLocationPicker = ({ onLocationSelect, className, disabled }: GPS
       let address = '';
       try {
         const response = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${import.meta.env.VITE_MAPBOX_TOKEN || ''}&limit=1`
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}`
         );
         
         if (response.ok) {
           const data = await response.json();
-          if (data.features && data.features.length > 0) {
-            address = data.features[0].place_name;
+          if (data.results && data.results.length > 0) {
+            address = data.results[0].formatted_address;
           }
         }
       } catch (reverseGeoError) {

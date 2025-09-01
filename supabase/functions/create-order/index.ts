@@ -110,11 +110,15 @@ serve(async (req) => {
 
     logStep("Order calculations", { totalAmount, prescriptionRequired });
 
+    // Generate order number
+    const orderNumber = `ORD-${Date.now()}-${user.id.substring(0, 8)}`;
+
     // Create order in database
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .insert({
         user_id: user.id,
+        order_number: orderNumber,
         total_amount: totalAmount,
         shipping_address: JSON.stringify(shippingAddress),
         patient_name: patientName,
