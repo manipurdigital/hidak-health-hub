@@ -15,7 +15,9 @@ import {
   useUpdateMedicineCategory, 
   useDeleteMedicineCategory,
   useLabTestCategories,
-  useCreateLabTestCategory
+  useCreateLabTestCategory,
+  useUpdateLabTestCategory,
+  useDeleteLabTestCategory
 } from '@/hooks/category-hooks';
 
 interface CategoryFormData {
@@ -33,6 +35,7 @@ const CategoryManagement = () => {
   const [medicineDialogOpen, setMedicineDialogOpen] = useState(false);
   const [labTestDialogOpen, setLabTestDialogOpen] = useState(false);
   const [editingMedicineCategory, setEditingMedicineCategory] = useState<EditingCategory | null>(null);
+  const [editingLabTestCategory, setEditingLabTestCategory] = useState<EditingCategory | null>(null);
   
   const [medicineFormData, setMedicineFormData] = useState<CategoryFormData>({
     name: '',
@@ -53,6 +56,8 @@ const CategoryManagement = () => {
   // Lab test category hooks
   const { data: labTestCategories, isLoading: labTestLoading } = useLabTestCategories();
   const createLabTestCategory = useCreateLabTestCategory();
+  const updateLabTestCategory = useUpdateLabTestCategory();
+  const deleteLabTestCategory = useDeleteLabTestCategory();
 
   const handleMedicineSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +87,28 @@ const CategoryManagement = () => {
 
   const handleLabTestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createLabTestCategory.mutate(labTestFormData);
+    
+    if (editingLabTestCategory) {
+      updateLabTestCategory.mutate({
+        oldName: editingLabTestCategory.name,
+        newData: labTestFormData
+      });
+      setEditingLabTestCategory(null);
+    } else {
+      createLabTestCategory.mutate(labTestFormData);
+    }
+    
     setLabTestFormData({ name: '', description: '' });
     setLabTestDialogOpen(false);
+  };
+
+  const handleEditLabTestCategory = (category: any) => {
+    setEditingLabTestCategory(category);
+    setLabTestFormData({
+      name: category.name,
+      description: ''
+    });
+    setLabTestDialogOpen(true);
   };
 
   return (
@@ -244,6 +268,7 @@ const CategoryManagement = () => {
             <Dialog open={labTestDialogOpen} onOpenChange={setLabTestDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => {
+                  setEditingLabTestCategory(null);
                   setLabTestFormData({ name: '', description: '' });
                 }}>
                   <Plus className="w-4 h-4 mr-2" />
@@ -252,7 +277,9 @@ const CategoryManagement = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Lab Test Category</DialogTitle>
+                  <DialogTitle>
+                    {editingLabTestCategory ? 'Edit' : 'Add'} Lab Test Category
+                  </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleLabTestSubmit} className="space-y-4">
                   <div>
@@ -279,8 +306,8 @@ const CategoryManagement = () => {
                     <Button type="button" variant="outline" onClick={() => setLabTestDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={createLabTestCategory.isPending}>
-                      Create
+                    <Button type="submit" disabled={createLabTestCategory.isPending || updateLabTestCategory.isPending}>
+                      {editingLabTestCategory ? 'Update' : 'Create'}
                     </Button>
                   </div>
                 </form>
@@ -312,6 +339,39 @@ const CategoryManagement = () => {
                         <span className="text-2xl">🧪</span>
                         {category.name}
                       </CardTitle>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditLabTestCategory(category)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="ghost">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{category.name}"? This will also delete all lab tests in this category. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteLabTestCategory.mutate(category.name)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>

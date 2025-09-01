@@ -175,6 +175,68 @@ export const useCreateLabTestCategory = () => {
   });
 };
 
+export const useUpdateLabTestCategory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ oldName, newData }: { oldName: string; newData: { name: string; description?: string } }) => {
+      // Update all lab tests with the old category name to use the new category name
+      const { error } = await supabase
+        .from('lab_tests')
+        .update({ category: newData.name })
+        .eq('category', oldName);
+      
+      if (error) throw error;
+      return { name: newData.name, type: 'lab_test' };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lab-test-categories'] });
+      toast({
+        title: "Success",
+        description: "Lab test category updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update lab test category.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeleteLabTestCategory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (categoryName: string) => {
+      // Delete all lab tests with this category
+      const { error } = await supabase
+        .from('lab_tests')
+        .delete()
+        .eq('category', categoryName);
+      
+      if (error) throw error;
+      return { name: categoryName };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lab-test-categories'] });
+      toast({
+        title: "Success",
+        description: "Lab test category deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete lab test category.",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
 // Legacy exports for backward compatibility
 export const useCategories = useMedicineCategories;
 export const useCreateCategory = useCreateMedicineCategory;
