@@ -102,8 +102,18 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
     try {
       if (editingAddress) {
         await updateAddress.mutateAsync({ id: editingAddress.id, data: formData });
+        toast({
+          title: "Success",
+          description: "Address updated successfully!",
+        });
       } else {
         await createAddress.mutateAsync(formData);
+        toast({
+          title: "Success", 
+          description: feePreview && inDeliveryArea 
+            ? `Address saved successfully! Estimated delivery fee: ₹${feePreview.fee}`
+            : "Address saved successfully!",
+        });
         
         // Reset form
         setFormData({
@@ -122,21 +132,18 @@ export function AddressDialog({ isOpen, onClose, editingAddress }: AddressDialog
         });
       }
       
-      // Show fee preview if available
-      if (feePreview && inDeliveryArea) {
-        toast({
-          title: "Address saved successfully!",
-          description: `Estimated delivery fee: ₹${feePreview.fee}`,
-        });
-      }
-      
       onClose();
     } catch (error) {
-      // Error is handled in the mutation
+      console.error('Address save error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save address. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string | boolean | number | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
