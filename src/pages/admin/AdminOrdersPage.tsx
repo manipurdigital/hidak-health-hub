@@ -476,9 +476,11 @@ ${order.shipping_address}${googleMapsLink}
                             serviceType="delivery"
                             showWarning={false}
                           >
-                            <Badge variant={order.is_within_service_area ? "default" : "destructive"}>
-                              {order.is_within_service_area ? "✓ Within Area" : "✗ Outside Area"}
-                            </Badge>
+                            {(isServiceable) => (
+                              <Badge variant={isServiceable ? "default" : "destructive"}>
+                                {isServiceable ? "✓ Within Area" : "✗ Outside Area"}
+                              </Badge>
+                            )}
                           </ServiceAreaGuard>
                         </TableCell>
                         <TableCell>

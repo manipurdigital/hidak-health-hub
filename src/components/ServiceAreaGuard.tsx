@@ -8,7 +8,7 @@ interface ServiceAreaGuardProps {
   lat: number;
   lng: number;
   serviceType: 'delivery' | 'lab_collection';
-  children: React.ReactNode;
+  children: React.ReactNode | ((isServiceable: boolean) => React.ReactNode);
   showWarning?: boolean;
 }
 
@@ -26,14 +26,52 @@ export function ServiceAreaGuard({
     checkServiceArea();
   }, [lat, lng, serviceType]);
 
+  const normalizeServiceType = (type: string): 'delivery' | 'lab_collection' => {
+    return type === 'delivery' ? 'delivery' : 'lab_collection';
+  };
+
   const checkServiceArea = async () => {
     try {
       setLoading(true);
+      const normalizedServiceType = normalizeServiceType(serviceType);
       
+      // Try get_available_centers_for_location first
+      try {
+        const { data: centers } = await supabase.rpc('get_available_centers_for_location', {
+          lat: lat,
+          lng: lng,
+          service_type: normalizedServiceType
+        });
+        
+        if (centers && centers.length > 0) {
+          setIsServiceable(true);
+          return;
+        }
+      } catch (centersError) {
+        console.log('Centers check failed, trying coverage:', centersError);
+      }
+      
+      // Try get_service_coverage next
+      try {
+        const { data: coverage } = await supabase.rpc('get_service_coverage', {
+          lat: lat,
+          lng: lng,
+          service_type: normalizedServiceType
+        });
+        
+        if (coverage && coverage.length > 0) {
+          setIsServiceable(true);
+          return;
+        }
+      } catch (coverageError) {
+        console.log('Coverage check failed, trying serviceable:', coverageError);
+      }
+      
+      // Fall back to is_location_serviceable
       const { data, error } = await supabase.rpc('is_location_serviceable', {
         p_lat: lat,
         p_lng: lng,
-        p_service_type: serviceType
+        p_service_type: normalizedServiceType
       });
 
       if (error) {
@@ -72,16 +110,13 @@ export function ServiceAreaGuard({
     );
   }
 
+  // Support function-as-children pattern
+  if (typeof children === 'function') {
+    return children(isServiceable || false);
+  }
+
   return (
     <div>
-      {!isServiceable && (
-        <div className="mb-4">
-          <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-            <AlertTriangle className="h-3 w-3" />
-            Outside Service Area
-          </Badge>
-        </div>
-      )}
       {children}
     </div>
   );

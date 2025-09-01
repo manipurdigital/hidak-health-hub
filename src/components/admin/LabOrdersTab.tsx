@@ -26,6 +26,9 @@ interface LabBooking {
   assignment_notes?: string;
   test_id?: string;
   created_at: string;
+  pickup_lat?: number;
+  pickup_lng?: number;
+  pickup_address?: any;
   lab_tests?: {
     name: string;
   };
@@ -268,14 +271,16 @@ export const LabOrdersTab: React.FC<LabOrdersTabProps> = ({ filters }) => {
                   </TableCell>
                   <TableCell>
                     <ServiceAreaGuard
-                      lat={24.817}
-                      lng={93.938}
+                      lat={booking.pickup_lat || 24.817}
+                      lng={booking.pickup_lng || 93.938}
                       serviceType="lab_collection"
                       showWarning={false}
                     >
-                      <Badge variant={booking.is_within_service_area ? "default" : "destructive"}>
-                        {booking.is_within_service_area ? "✓ Within Area" : "✗ Outside Area"}
-                      </Badge>
+                      {(isServiceable) => (
+                        <Badge variant={isServiceable ? "default" : "destructive"}>
+                          {isServiceable ? "✓ Within Area" : "✗ Outside Area"}
+                        </Badge>
+                      )}
                     </ServiceAreaGuard>
                   </TableCell>
                   <TableCell>
@@ -340,8 +345,8 @@ export const LabOrdersTab: React.FC<LabOrdersTabProps> = ({ filters }) => {
               
               {/* Service Area Check for lab collection */}
               <ServiceAreaGuard
-                lat={24.817}
-                lng={93.938}
+                lat={selectedBooking.pickup_lat || 24.817}
+                lng={selectedBooking.pickup_lng || 93.938}
                 serviceType="lab_collection"
                 showWarning={true}
               >
