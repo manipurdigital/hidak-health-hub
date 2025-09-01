@@ -180,18 +180,23 @@ export const AdminUsersPage = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('User created successfully:', data);
+      // Force refresh the query
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      // Also refetch to ensure immediate update
+      queryClient.refetchQueries({ queryKey: ['admin-users'] });
       setIsCreateDialogOpen(false);
       toast({
         title: "Success",
-        description: "User created successfully"
+        description: `User "${data.user?.full_name || data.user?.email}" created successfully`
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Create user error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create user",
+        description: error?.message || error?.details || "Failed to create user",
         variant: "destructive"
       });
     }

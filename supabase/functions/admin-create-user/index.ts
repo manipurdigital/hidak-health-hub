@@ -99,6 +99,37 @@ serve(async (req) => {
       )
     }
 
+    // Check if email already exists
+    const { data: existingUser, error: checkError } = await supabaseAdmin.auth.admin.listUsers()
+    
+    if (checkError) {
+      console.error('Error checking existing users:', checkError)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to check existing users', 
+          details: checkError.message 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Check if email already exists
+    const emailExists = existingUser.users.some(user => user.email === email)
+    if (emailExists) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'A user with this email already exists' 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     // Create user with auth admin
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -136,34 +167,67 @@ serve(async (req) => {
 
     const newUserId = userData.user.id
 
-    // Create profile (this should be handled by the trigger, but let's ensure it exists)
-    const { error: profileError } = await supabaseAdmin
+    // Wait a moment for triggers to complete
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // Check if profile was created by trigger, if not create it manually
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
-      .upsert({
-        user_id: newUserId,
-        email: email,
-        full_name: full_name || '',
-        phone: phone || ''
-      })
+      .select('id')
+      .eq('user_id', newUserId)
+      .single()
 
-    if (profileError) {
-      console.warn('Profile creation warning:', profileError)
-      // Don't fail the request if profile creation fails, as the trigger should handle it
-    }
-
-    // Assign role if provided
-    if (role) {
-      const { error: roleAssignError } = await supabaseAdmin
-        .from('user_roles')
+    if (!existingProfile) {
+      // Create profile manually if trigger didn't work
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
         .insert({
           user_id: newUserId,
-          role: role
+          email: email,
+          full_name: full_name || '',
+          phone: phone || ''
         })
 
-      if (roleAssignError) {
-        console.error('Error assigning role:', roleAssignError)
-        // Don't fail the request, but log the error
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        // Try to clean up the auth user if profile creation fails
+        await supabaseAdmin.auth.admin.deleteUser(newUserId)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to create user profile', 
+            details: profileError.message 
+          }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
       }
+    }
+
+    // Assign role (default to 'user' if not provided)
+    const userRole = role || 'user'
+    const { error: roleAssignError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: newUserId,
+        role: userRole
+      })
+
+    if (roleAssignError) {
+      console.error('Error assigning role:', roleAssignError)
+      // This is critical, so fail the request
+      await supabaseAdmin.auth.admin.deleteUser(newUserId)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to assign user role', 
+          details: roleAssignError.message 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
     return new Response(
@@ -174,7 +238,7 @@ serve(async (req) => {
           email: email,
           full_name: full_name || '',
           phone: phone || '',
-          role: role || 'user'
+          role: userRole
         }
       }),
       { 
