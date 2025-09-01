@@ -157,23 +157,24 @@ const AdminMedicinesPage = () => {
 
   const handleAddMedicine = async (formData: FormData) => {
     try {
-      const compositionText = formData.get('composition_text') as string;
+      const composition = formData.get('composition') as string;
       const medicineData = {
         name: formData.get('name') as string,
-        composition_text: compositionText,
-        composition_key: generateCompositionKey(compositionText),
-        composition_family_key: generateCompositionFamilyKey(compositionText),
+        composition: composition,
+        composition_key: generateCompositionKey(composition),
+        composition_family_key: generateCompositionFamilyKey(composition),
         price: parseFloat(formData.get('price') as string),
-        original_price: parseFloat(formData.get('original_price') as string),
+        discount_price: parseFloat(formData.get('original_price') as string),
         stock_quantity: parseInt(formData.get('stock_quantity') as string),
         requires_prescription: formData.get('requires_prescription') === 'true',
         description: formData.get('description') as string,
         manufacturer: formData.get('manufacturer') as string,
-        dosage: formData.get('dosage') as string,
+        dosage_form: formData.get('dosage') as string,
         pack_size: formData.get('pack_size') as string,
         image_url: formData.get('image_url') as string || null,
         category_id: selectedCategory || null,
-        is_active: true
+        is_active: true,
+        is_available: true
       };
 
       console.log('Medicine data to insert:', medicineData);
@@ -525,10 +526,10 @@ const AdminMedicinesPage = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="composition_text">Salt Composition (Generic)</Label>
+                        <Label htmlFor="composition">Salt Composition (Generic)</Label>
                         <Textarea 
-                          id="composition_text" 
-                          name="composition_text" 
+                          id="composition" 
+                          name="composition" 
                           placeholder="Paracetamol 650 mg"
                           rows={2}
                         />
@@ -567,8 +568,8 @@ const AdminMedicinesPage = () => {
                         <Input id="price" name="price" type="number" step="0.01" required />
                       </div>
                       <div>
-                        <Label htmlFor="original_price">Original Price</Label>
-                        <Input id="original_price" name="original_price" type="number" step="0.01" />
+                        <Label htmlFor="discount_price">Discount Price</Label>
+                        <Input id="discount_price" name="original_price" type="number" step="0.01" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
