@@ -30,6 +30,7 @@ export const AdminUsersPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -169,6 +170,33 @@ export const AdminUsersPage = () => {
     }
   });
 
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: { email: string; password: string; full_name: string; phone: string; role: string }) => {
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: userData
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setIsCreateDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "User created successfully"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create user",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -222,6 +250,18 @@ export const AdminUsersPage = () => {
     }
   };
 
+  const handleCreateUser = (formData: FormData) => {
+    const userData = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      full_name: formData.get('full_name') as string,
+      phone: formData.get('phone') as string,
+      role: formData.get('role') as string
+    };
+
+    createUserMutation.mutate(userData);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -251,9 +291,19 @@ export const AdminUsersPage = () => {
           <h1 className="text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground">Manage user accounts and roles</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{filteredUsers.length} users</span>
+        <div className="flex items-center space-x-4">
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create User
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+          <div className="flex items-center space-x-2">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">{filteredUsers.length} users</span>
+          </div>
         </div>
       </div>
 
@@ -514,6 +564,92 @@ export const AdminUsersPage = () => {
               {deleteUserMutation.isPending ? 'Deleting...' : 'Delete User'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5" />
+              Create New User
+            </DialogTitle>
+            <DialogDescription>
+              Create a new user account with specified role and credentials.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            handleCreateUser(formData);
+          }} className="space-y-4">
+            <div>
+              <Label htmlFor="create_email">Email *</Label>
+              <Input
+                id="create_email"
+                name="email"
+                type="email"
+                required
+                placeholder="user@example.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="create_password">Password *</Label>
+              <Input
+                id="create_password"
+                name="password"
+                type="password"
+                required
+                placeholder="Minimum 8 characters"
+                minLength={8}
+              />
+            </div>
+            <div>
+              <Label htmlFor="create_full_name">Full Name *</Label>
+              <Input
+                id="create_full_name"
+                name="full_name"
+                required
+                placeholder="John Doe"
+              />
+            </div>
+            <div>
+              <Label htmlFor="create_phone">Phone</Label>
+              <Input
+                id="create_phone"
+                name="phone"
+                placeholder="+1234567890"
+              />
+            </div>
+            <div>
+              <Label htmlFor="create_role">Role *</Label>
+              <Select name="role" defaultValue="user" required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                  <SelectItem value="lab">Lab Staff</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+                disabled={createUserMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createUserMutation.isPending}>
+                {createUserMutation.isPending ? 'Creating...' : 'Create User'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

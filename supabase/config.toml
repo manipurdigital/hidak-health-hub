@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.agora-tokens]
 verify_jwt = true
+
+[functions.admin-create-user]
+verify_jwt = true
