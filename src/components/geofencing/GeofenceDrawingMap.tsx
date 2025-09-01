@@ -193,6 +193,9 @@ export function GeofenceDrawingMap({ onGeofenceCreated }: GeofenceDrawingMapProp
       <Card>
         <CardHeader>
           <CardTitle>Create New Geofence</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Draw custom areas for your service zones. You can create multiple geofences for different areas and service types.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
