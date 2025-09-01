@@ -83,9 +83,9 @@ serve(async (req) => {
     if (!email || !password) {
       console.log('Missing email or password:', { email: !!email, password: !!password })
       return new Response(
-        JSON.stringify({ error: 'Email and password are required' }),
+        JSON.stringify({ success: false, error: 'Email and password are required' }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -96,9 +96,9 @@ serve(async (req) => {
     if (!emailRegex.test(email)) {
       console.log('Invalid email format:', email)
       return new Response(
-        JSON.stringify({ error: 'Invalid email format' }),
+        JSON.stringify({ success: false, error: 'Invalid email format' }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -108,9 +108,9 @@ serve(async (req) => {
     const validRoles = ['admin', 'doctor', 'lab', 'user']
     if (role && !validRoles.includes(role)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid role. Must be one of: admin, doctor, lab, user' }),
+        JSON.stringify({ success: false, error: 'Invalid role. Must be one of: admin, doctor, lab, user' }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -138,10 +138,11 @@ serve(async (req) => {
     if (emailExists) {
       return new Response(
         JSON.stringify({ 
+          success: false,
           error: 'A user with this email already exists' 
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
@@ -162,11 +163,12 @@ serve(async (req) => {
       console.error('Error creating user:', createError)
       return new Response(
         JSON.stringify({ 
+          success: false,
           error: 'Failed to create user', 
           details: createError.message 
         }),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
