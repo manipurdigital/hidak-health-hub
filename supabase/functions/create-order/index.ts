@@ -12,6 +12,47 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-ORDER] ${step}${detailsStr}`);
 };
 
+// Twilio WhatsApp configuration
+const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
+const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
+const TWILIO_WHATSAPP_FROM = Deno.env.get('TWILIO_WHATSAPP_FROM');
+
+async function sendWhatsAppNotification(to: string, message: string) {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM) {
+    logStep('Twilio WhatsApp credentials not configured, skipping WhatsApp notification');
+    return;
+  }
+
+  try {
+    const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+    
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          From: TWILIO_WHATSAPP_FROM,
+          To: to,
+          Body: message,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      logStep('Failed to send WhatsApp message', error);
+    } else {
+      logStep('WhatsApp notification sent successfully');
+    }
+  } catch (error) {
+    logStep('Error sending WhatsApp notification', error);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
