@@ -102,7 +102,10 @@ export function SlotPicker({
     try {
       await deleteAddress.mutateAsync(addressId);
       if (selectedAddress === addressId) {
-        onAddressChange('');
+        // Select the first available address or clear if none
+        const remainingAddresses = addresses.filter(addr => addr.id !== addressId);
+        const newSelectedAddress = remainingAddresses.length > 0 ? remainingAddresses[0].id : '';
+        onAddressChange(newSelectedAddress);
       }
       toast({ title: 'Address deleted', description: 'The address was removed successfully.' });
     } catch (err: any) {
