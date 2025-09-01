@@ -110,14 +110,10 @@ serve(async (req) => {
         booking_date: bookingDate,
         patient_name: patientName,
         patient_phone: patientPhone,
-        patient_email: patientEmail || user.email,
-        special_instructions: specialInstructions || null,
+        notes: specialInstructions || null,
         total_amount: test.price,
         status: 'pending',
-        payment_status: 'pending',
-        pickup_lat: pickupLat || null,
-        pickup_lng: pickupLng || null,
-        pickup_address: pickupAddress || null
+        payment_status: 'pending'
       })
       .select()
       .single();
