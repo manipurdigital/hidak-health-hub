@@ -177,7 +177,17 @@ export const AdminUsersPage = () => {
         body: userData
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+      
+      // Check if the response contains an error (edge function returned error with 200 status)
+      if (data?.error) {
+        console.error('Edge function returned error:', data);
+        throw new Error(data.error);
+      }
+      
       return data;
     },
     onSuccess: (data) => {
@@ -194,9 +204,21 @@ export const AdminUsersPage = () => {
     },
     onError: (error: any) => {
       console.error('Create user error:', error);
+      
+      // Extract the actual error message from various possible sources
+      let errorMessage = "Failed to create user";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.details) {
+        errorMessage = error.details;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       toast({
         title: "Error",
-        description: error?.message || error?.details || "Failed to create user",
+        description: errorMessage,
         variant: "destructive"
       });
     }
