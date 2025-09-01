@@ -23,9 +23,14 @@ export type Database = {
           created_at: string | null
           id: string
           is_default: boolean | null
+          landmark: string | null
+          latitude: number | null
+          longitude: number | null
           name: string
+          phone: string | null
           postal_code: string
           state: string
+          type: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -37,9 +42,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_default?: boolean | null
+          landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name: string
+          phone?: string | null
           postal_code: string
           state: string
+          type?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -51,9 +61,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_default?: boolean | null
+          landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          phone?: string | null
           postal_code?: string
           state?: string
+          type?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1775,6 +1790,15 @@ export type Database = {
           unique_customers: number
         }[]
       }
+      calc_distance_fee_from_geofence: {
+        Args: { p_dest_lat: number; p_dest_lng: number; p_service: string }
+        Returns: {
+          distance_km: number
+          fee: number
+          geofence_id: string
+          geofence_name: string
+        }[]
+      }
       check_medicine_availability: {
         Args: { p_medicine_id: string; p_quantity: number }
         Returns: boolean
@@ -1816,17 +1840,15 @@ export type Database = {
         }[]
       }
       get_available_centers_for_location: {
-        Args: { p_lat: number; p_lng: number; p_radius?: string }
+        Args: { lat: number; lng: number; service_type: string }
         Returns: {
-          address: string
-          distance_km: number
-          email: string
-          id: string
-          is_available: boolean
-          latitude: number
-          longitude: number
-          name: string
-          phone: string
+          center_id: string
+          center_name: string
+          geofence_id: string
+          geofence_name: string
+          priority: number
+          store_id: string
+          store_name: string
         }[]
       }
       get_cached_recommendations: {
@@ -1869,6 +1891,14 @@ export type Database = {
           shipping_address: string
           status: string
           tracking_token: string
+        }[]
+      }
+      get_service_coverage: {
+        Args: { lat: number; lng: number; service_type: string }
+        Returns: {
+          geofence_id: string
+          geofence_name: string
+          priority: number
         }[]
       }
       get_user_role: {
