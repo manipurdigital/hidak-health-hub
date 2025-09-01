@@ -16,6 +16,7 @@ import DoctorProfilePage from '@/pages/DoctorProfilePage';
 import WellnessPage from '@/pages/WellnessPage';
 import CheckoutPage from '@/pages/CheckoutPage';
 import { OrderSuccessPage } from '@/pages/OrderSuccessPage';
+import { LabBookingSuccessPage } from '@/pages/LabBookingSuccessPage';
 import NotFound from '@/pages/NotFound';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { AdminGuard } from '@/components/auth/AdminGuard';
@@ -152,6 +153,11 @@ function App() {
                   <Route path="/order/success/:orderId" element={
                     <AuthGuard>
                       <OrderSuccessPage />
+                    </AuthGuard>
+                  } />
+                  <Route path="/lab-booking/success/:bookingId" element={
+                    <AuthGuard>
+                      <LabBookingSuccessPage />
                     </AuthGuard>
                   } />
 
