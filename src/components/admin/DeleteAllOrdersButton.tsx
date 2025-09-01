@@ -93,23 +93,25 @@ export const DeleteAllOrdersButton: React.FC = () => {
             <AlertTriangle className="w-5 h-5" />
             Delete All Orders
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3">
-            <p className="font-semibold text-destructive">
-              ⚠️ This action is IRREVERSIBLE and will permanently delete ALL orders from the database.
-            </p>
-            <p>
-              This will affect:
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>All order records</li>
-              <li>Related order items (will be removed)</li>
-              <li>Related delivery assignments (will be removed)</li>
-              <li>Order history and analytics</li>
-              <li>Customer order data across the entire platform</li>
-            </ul>
-            <p className="text-sm text-muted-foreground">
-              Only proceed if you are absolutely certain this is what you want to do.
-            </p>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p className="font-semibold text-destructive">
+                ⚠️ This action is IRREVERSIBLE and will permanently delete ALL orders from the database.
+              </p>
+              <p>
+                This will affect:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>All order records</li>
+                <li>Related order items (will be removed)</li>
+                <li>Related delivery assignments (will be removed)</li>
+                <li>Order history and analytics</li>
+                <li>Customer order data across the entire platform</li>
+              </ul>
+              <p className="text-sm text-muted-foreground">
+                Only proceed if you are absolutely certain this is what you want to do.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         

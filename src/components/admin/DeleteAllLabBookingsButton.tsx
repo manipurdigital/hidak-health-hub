@@ -93,23 +93,25 @@ export const DeleteAllLabBookingsButton: React.FC = () => {
             <AlertTriangle className="w-5 h-5" />
             Delete All Lab Bookings
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3">
-            <p className="font-semibold text-destructive">
-              ⚠️ This action is IRREVERSIBLE and will permanently delete ALL lab bookings from the database.
-            </p>
-            <p>
-              This will affect:
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>All lab booking records</li>
-              <li>Related lab reports (will be removed)</li>
-              <li>Lab collection schedules</li>
-              <li>Patient test history and analytics</li>
-              <li>Lab collection data across the entire platform</li>
-            </ul>
-            <p className="text-sm text-muted-foreground">
-              Only proceed if you are absolutely certain this is what you want to do.
-            </p>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p className="font-semibold text-destructive">
+                ⚠️ This action is IRREVERSIBLE and will permanently delete ALL lab bookings from the database.
+              </p>
+              <p>
+                This will affect:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>All lab booking records</li>
+                <li>Related lab reports (will be removed)</li>
+                <li>Lab collection schedules</li>
+                <li>Patient test history and analytics</li>
+                <li>Lab collection data across the entire platform</li>
+              </ul>
+              <p className="text-sm text-muted-foreground">
+                Only proceed if you are absolutely certain this is what you want to do.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         
