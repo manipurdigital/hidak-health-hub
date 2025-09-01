@@ -393,9 +393,16 @@ const CheckoutPage = () => {
         price: item.price,
         quantity: item.quantity,
         name: item.name,
+        requires_prescription: false, // Add this field that the edge function expects
       })),
       shippingAddress,
       notes: notes || null,
+      patientName: shippingAddress.full_name, // Add required fields
+      patientPhone: shippingAddress.phone,
+      patientLocation: shippingAddress.latitude && shippingAddress.longitude ? {
+        lat: shippingAddress.latitude,
+        lng: shippingAddress.longitude
+      } : null,
     };
 
     const { data: { session } } = await supabase.auth.getSession();
