@@ -12,6 +12,7 @@ import { ServiceAreaGuard } from "@/components/ServiceAreaGuard";
 import { useNotifyAdminWhatsApp } from "@/hooks/manual-assignment-hooks";
 import { Calendar, User, Phone, Beaker, Clock, TestTube, Copy, Share } from "lucide-react";
 import { format } from "date-fns";
+import { DeleteAllLabBookingsButton } from "@/components/admin/DeleteAllLabBookingsButton";
 
 interface LabBooking {
   id: string;
@@ -180,9 +181,12 @@ export const LabOrdersTab: React.FC<LabOrdersTabProps> = ({ filters }) => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TestTube className="h-5 w-5" />
-            Lab Orders
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              Lab Orders
+            </div>
+            <DeleteAllLabBookingsButton />
           </CardTitle>
         </CardHeader>
         <CardContent>

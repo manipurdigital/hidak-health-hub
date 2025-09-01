@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { useUrlFilters } from "@/hooks/use-url-filters";
 import { useNotifyAdminWhatsApp } from "@/hooks/manual-assignment-hooks";
 import { LabOrdersTab } from "@/components/admin/LabOrdersTab";
+import { DeleteAllOrdersButton } from "@/components/admin/DeleteAllOrdersButton";
 
 interface Order {
   id: string;
@@ -402,9 +403,12 @@ ${order.shipping_address}${googleMapsLink}
           <TabsContent value="medicine">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Medicine Orders
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Medicine Orders
+                  </div>
+                  <DeleteAllOrdersButton />
                 </CardTitle>
               </CardHeader>
               <CardContent>
