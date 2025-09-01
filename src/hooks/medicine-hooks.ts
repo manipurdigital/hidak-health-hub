@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -64,16 +65,26 @@ export const useCreateAddress = () => {
         country: address.country || 'India',
       };
 
+      console.log('Creating address with payload:', payload);
+
       const { data, error } = await supabase
         .from('addresses')
         .insert(payload)
         .select('*')
         .single();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Address creation error:', error);
+        throw error;
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+    },
+    onError: (error) => {
+      console.error('Create address mutation error:', error);
     },
   });
 };
@@ -97,17 +108,28 @@ export const useUpdateAddress = () => {
         longitude: data.longitude || null,
         is_default: !!data.is_default,
       };
+
+      console.log('Updating address with data:', update);
+
       const { data: row, error } = await supabase
         .from('addresses')
         .update(update)
         .eq('id', id)
         .select('*')
         .maybeSingle();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Address update error:', error);
+        throw error;
+      }
+      
       return row;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+    },
+    onError: (error) => {
+      console.error('Update address mutation error:', error);
     },
   });
 };
