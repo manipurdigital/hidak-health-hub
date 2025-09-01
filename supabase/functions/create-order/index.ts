@@ -121,8 +121,6 @@ serve(async (req) => {
         patient_phone: patientPhone,
         patient_location_lat: patientLocation?.lat || null,
         patient_location_lng: patientLocation?.lng || null,
-        prescription_url: prescriptionUrl || null,
-        prescription_required: prescriptionRequired,
         notes: notes || null,
         status: 'pending',
         payment_status: 'pending'
