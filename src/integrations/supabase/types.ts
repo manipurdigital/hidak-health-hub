@@ -59,6 +59,39 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          message: string | null
+          processed_at: string | null
+          status: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          message?: string | null
+          processed_at?: string | null
+          status?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          message?: string | null
+          processed_at?: string | null
+          status?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       center_staff: {
         Row: {
           center_id: string
@@ -580,6 +613,7 @@ export type Database = {
           polygon: Json
           priority: number
           service_type: string
+          store_id: string | null
           updated_at: string
         }
         Insert: {
@@ -591,6 +625,7 @@ export type Database = {
           polygon: Json
           priority?: number
           service_type: string
+          store_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -602,6 +637,7 @@ export type Database = {
           polygon?: Json
           priority?: number
           service_type?: string
+          store_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -616,11 +652,14 @@ export type Database = {
       }
       lab_bookings: {
         Row: {
+          assignment_notes: string | null
           booking_date: string
           booking_time: string
           center_payout_amount: number | null
           created_at: string | null
+          geofence_validated_at: string | null
           id: string
+          is_within_service_area: boolean | null
           last_distance_meters: number | null
           last_eta_mins: number | null
           notes: string | null
@@ -637,11 +676,14 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          assignment_notes?: string | null
           booking_date: string
           booking_time: string
           center_payout_amount?: number | null
           created_at?: string | null
+          geofence_validated_at?: string | null
           id?: string
+          is_within_service_area?: boolean | null
           last_distance_meters?: number | null
           last_eta_mins?: number | null
           notes?: string | null
@@ -658,11 +700,14 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          assignment_notes?: string | null
           booking_date?: string
           booking_time?: string
           center_payout_amount?: number | null
           created_at?: string | null
+          geofence_validated_at?: string | null
           id?: string
+          is_within_service_area?: boolean | null
           last_distance_meters?: number | null
           last_eta_mins?: number | null
           notes?: string | null
@@ -1051,6 +1096,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          assignment_notes: string | null
           center_id: string | null
           created_at: string | null
           delivery_address: string | null
@@ -1058,7 +1104,9 @@ export type Database = {
           delivery_phone: string | null
           dest_lat: number | null
           dest_lng: number | null
+          geofence_validated_at: string | null
           id: string
+          is_within_service_area: boolean | null
           notes: string | null
           order_number: string
           paid_at: string | null
@@ -1078,6 +1126,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          assignment_notes?: string | null
           center_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
@@ -1085,7 +1134,9 @@ export type Database = {
           delivery_phone?: string | null
           dest_lat?: number | null
           dest_lng?: number | null
+          geofence_validated_at?: string | null
           id?: string
+          is_within_service_area?: boolean | null
           notes?: string | null
           order_number: string
           paid_at?: string | null
@@ -1105,6 +1156,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          assignment_notes?: string | null
           center_id?: string | null
           created_at?: string | null
           delivery_address?: string | null
@@ -1112,7 +1164,9 @@ export type Database = {
           delivery_phone?: string | null
           dest_lat?: number | null
           dest_lng?: number | null
+          geofence_validated_at?: string | null
           id?: string
+          is_within_service_area?: boolean | null
           notes?: string | null
           order_number?: string
           paid_at?: string | null
@@ -1830,6 +1884,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_location_serviceable: {
+        Args: { p_lat: number; p_lng: number; p_service_type: string }
         Returns: boolean
       }
       recommend_medicines_for_time: {

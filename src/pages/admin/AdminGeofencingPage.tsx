@@ -7,6 +7,7 @@ import { GeofenceList } from '@/components/geofencing/GeofenceList';
 import { GeofenceAssignments } from '@/components/geofencing/GeofenceAssignments';
 import { ServiceabilityChecker } from '@/components/geofencing/ServiceabilityChecker';
 import { GeofenceEditDialog } from '@/components/geofencing/GeofenceEditDialog';
+import { ImphalGeofenceSetup } from '@/components/admin/ImphalGeofenceSetup';
 import { MapPin, Layers, Link, Search } from 'lucide-react';
 
 export default function AdminGeofencingPage() {
@@ -77,6 +78,7 @@ export default function AdminGeofencingPage() {
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
+            <ImphalGeofenceSetup onSetupComplete={handleGeofenceCreated} />
             <GeofenceDrawingMap onGeofenceCreated={handleGeofenceCreated} />
           </TabsContent>
 

@@ -11,8 +11,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { OrderFilters } from "@/components/admin/OrderFilters";
+import { ManualAssignmentPanel } from "@/components/admin/ManualAssignmentPanel";
+import { ServiceAreaGuard } from "@/components/ServiceAreaGuard";
 import { format } from "date-fns";
 import { useUrlFilters } from "@/hooks/use-url-filters";
+import { useNotifyAdminWhatsApp } from "@/hooks/manual-assignment-hooks";
 
 interface Order {
   id: string;
@@ -26,6 +29,9 @@ interface Order {
   status: string;
   payment_status: string;
   created_at: string;
+  is_within_service_area?: boolean;
+  geofence_validated_at?: string;
+  assignment_notes?: string;
   order_items: {
     quantity: number;
     unit_price: number;
@@ -58,6 +64,7 @@ const AdminOrdersPage = () => {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { filters, updateFilters } = useUrlFilters();
+  const notifyAdmin = useNotifyAdminWhatsApp();
 
   // Set default date range to today if no filters are set
   const today = new Date();
@@ -400,6 +407,7 @@ ${order.shipping_address}${googleMapsLink}
                   <TableHead>Amount</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Service Area</TableHead>
                   <TableHead>Forward to Agent</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -451,6 +459,11 @@ ${order.shipping_address}${googleMapsLink}
                           ))}
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={order.is_within_service_area ? "default" : "destructive"}>
+                        {order.is_within_service_area ? "✓ Within Area" : "✗ Outside Area"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -530,87 +543,54 @@ ${order.shipping_address}${googleMapsLink}
           </CardContent>
         </Card>
 
+        {/* Order Assignment Panel */}
         {selectedOrder && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Details - {selectedOrder.order_number}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Patient Information</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><strong>Name:</strong> {selectedOrder.patient_name}</p>
-                    <p><strong>Phone:</strong> {selectedOrder.patient_phone}</p>
-                    <p><strong>Address:</strong> {selectedOrder.shipping_address}</p>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Order Information</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><strong>Total:</strong> ₹{selectedOrder.total_amount}</p>
-                    <p><strong>Status:</strong> 
-                      <Badge className={`ml-2 ${statusColors[selectedOrder.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}`}>
-                        {selectedOrder.status}
-                      </Badge>
-                    </p>
-                    <p><strong>Payment:</strong> 
-                      <Badge variant="outline" className="ml-2">
-                        {selectedOrder.payment_status}
-                      </Badge>
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">Medicines</h3>
-                <div className="space-y-2">
-                  {selectedOrder.order_items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <span>{item.medicine.name}</span>
-                      <span>Qty: {item.quantity} × ₹{item.unit_price}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                {selectedOrder.patient_location_lat && selectedOrder.patient_location_lng && (
-                  <Button
-                    onClick={() => window.open(
-                      getGoogleMapsUrl(
-                        selectedOrder.patient_location_lat!,
-                        selectedOrder.patient_location_lng!,
-                        selectedOrder.shipping_address
-                      ),
-                      '_blank'
-                    )}
-                  >
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Open in Google Maps
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">Order Assignment</h2>
+                  <Button variant="ghost" onClick={() => setSelectedOrder(null)}>
+                    ✕
                   </Button>
+                </div>
+                
+                {/* Service Area Check */}
+                {selectedOrder.patient_location_lat && selectedOrder.patient_location_lng && (
+                  <ServiceAreaGuard
+                    lat={selectedOrder.patient_location_lat}
+                    lng={selectedOrder.patient_location_lng}
+                    serviceType="delivery"
+                    showWarning={true}
+                  >
+                    <div />
+                  </ServiceAreaGuard>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={() => copyWhatsAppText(selectedOrder)}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy WhatsApp Text
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const phone = prompt("Enter delivery agent's phone number:");
-                    if (phone) openWhatsAppToNumber(selectedOrder, phone);
+
+                {/* Order Details */}
+                <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+                  <h3 className="font-medium mb-2">Order Details</h3>
+                  <div className="text-sm space-y-1">
+                    <div><strong>Order:</strong> {selectedOrder.order_number}</div>
+                    <div><strong>Patient:</strong> {selectedOrder.patient_name}</div>
+                    <div><strong>Phone:</strong> {selectedOrder.patient_phone}</div>
+                    <div><strong>Amount:</strong> ₹{selectedOrder.total_amount}</div>
+                    <div><strong>Address:</strong> {selectedOrder.shipping_address}</div>
+                  </div>
+                </div>
+
+                {/* Assignment Panel */}
+                <ManualAssignmentPanel
+                  type="order"
+                  data={selectedOrder}
+                  onUpdate={() => {
+                    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+                    setSelectedOrder(null);
                   }}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Send to Agent
-                </Button>
+                />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
     </AdminLayoutWrapper>
