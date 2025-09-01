@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 // Medicine-related hooks
 export const useMedicine = (id: string) => {
@@ -24,7 +25,17 @@ export const useMedicine = (id: string) => {
 export const useAddresses = () => {
   return useQuery({
     queryKey: ['user-addresses'],
-    queryFn: async () => [],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 };
 
@@ -33,8 +44,28 @@ export const useCreateAddress = () => {
   
   return useMutation({
     mutationFn: async (address: any) => {
-      // Placeholder implementation
-      return { id: 'placeholder', ...address };
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const payload = {
+        user_id: user.id,
+        name: address.name,
+        address_line_1: address.address_line_1,
+        address_line_2: address.address_line_2 || null,
+        city: address.city,
+        state: address.state,
+        postal_code: address.postal_code,
+        is_default: !!address.is_default,
+        country: address.country || 'India',
+      };
+
+      const { data, error } = await supabase
+        .from('addresses')
+        .insert(payload)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
@@ -47,8 +78,23 @@ export const useUpdateAddress = () => {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      // Placeholder implementation
-      return { id, ...data };
+      const update = {
+        name: data.name,
+        address_line_1: data.address_line_1,
+        address_line_2: data.address_line_2 || null,
+        city: data.city,
+        state: data.state,
+        postal_code: data.postal_code,
+        is_default: !!data.is_default,
+      };
+      const { data: row, error } = await supabase
+        .from('addresses')
+        .update(update)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+      if (error) throw error;
+      return row;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
