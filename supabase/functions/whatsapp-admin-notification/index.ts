@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0';
 
@@ -78,10 +79,13 @@ ${order.shipping_address}${googleMapsLink}
 🏥 Check admin panel for assignment.`;
 
     } else if (type === 'new_lab_booking') {
-      // Fetch lab booking details
+      // Fetch lab booking details with location data
       const { data: booking, error: bookingError } = await supabase
         .from('lab_bookings')
-        .select('*')
+        .select(`
+          *,
+          test:lab_tests (name)
+        `)
         .eq('id', entityId)
         .single();
 
@@ -91,15 +95,30 @@ ${order.shipping_address}${googleMapsLink}
 
       entityData = booking;
 
+      // Build location information
+      let locationInfo = '';
+      if (booking.pickup_lat && booking.pickup_lng) {
+        locationInfo = `\n📍 GPS: https://www.google.com/maps/dir/?api=1&destination=${booking.pickup_lat},${booking.pickup_lng}`;
+      }
+
+      // Build address information
+      let addressInfo = '';
+      if (booking.pickup_address) {
+        const addr = booking.pickup_address;
+        addressInfo = `\n🏠 *Address:*\n${addr.name || 'N/A'}\n${addr.address_line_1 || ''}${addr.address_line_2 ? ', ' + addr.address_line_2 : ''}\n${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
+        if (addr.phone) {
+          addressInfo += `\n📞 Contact: ${addr.phone}`;
+        }
+      }
+
       message = `🔬 *NEW LAB HOME COLLECTION* 🔬
 
 📋 *Booking ID:* ${booking.id}
 👤 *Patient:* ${booking.patient_name}
 📱 *Phone:* ${booking.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
-🧪 *Test:* Lab Test Collection
+🧪 *Test:* ${booking.test?.name || 'Lab Test Collection'}
 📅 *Date:* ${new Date(booking.booking_date).toLocaleDateString('en-IN')}
-⏰ *Time:* ${booking.booking_time}
-💰 *Amount:* ₹${booking.total_amount}
+💰 *Amount:* ₹${booking.total_amount}${addressInfo}${locationInfo}
 
 ⚡ *IMPHAL AREA - ASSIGN COLLECTION AGENT!*
 🏥 Check admin panel for assignment.`;

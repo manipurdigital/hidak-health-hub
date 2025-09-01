@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, CreditCard, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -35,12 +36,11 @@ export function LabBookingReview({
   const [isBooking, setIsBooking] = useState(false);
   const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null);
   const [checkingServiceability, setCheckingServiceability] = useState(false);
-const createLabBooking = useCreateLabBooking();
-const verifyPayment = useVerifyPayment();
-const { toast } = useToast();
+  const createLabBooking = useCreateLabBooking();
+  const verifyPayment = useVerifyPayment();
+  const { toast } = useToast();
 
   const selectedAddr = addresses.find(addr => addr.id === selectedAddress);
-  
   
   // Check serviceability when address is available
   useEffect(() => {
@@ -110,6 +110,7 @@ const { toast } = useToast();
     setIsBooking(true);
 
     try {
+      // Prepare booking data with GPS coordinates and address
       const bookingData: any = {
         testId: labTest.id,
         bookingDate: slot.date,
@@ -122,13 +123,25 @@ const { toast } = useToast();
           : undefined),
         pickupLat: selectedAddr.latitude || locationData.lat,
         pickupLng: selectedAddr.longitude || locationData.lng,
-        pickupAddress: selectedAddr
+        pickupAddress: {
+          name: selectedAddr.name,
+          phone: selectedAddr.phone,
+          address_line_1: selectedAddr.address_line_1,
+          address_line_2: selectedAddr.address_line_2,
+          city: selectedAddr.city,
+          state: selectedAddr.state,
+          postal_code: selectedAddr.postal_code,
+          landmark: selectedAddr.landmark,
+          type: selectedAddr.type
+        }
       };
 
       // Add assigned center if available
       if (serviceability?.center) {
         bookingData.center_id = serviceability.center.id;
       }
+
+      console.log('Booking data with location:', bookingData);
 
       const result = await createLabBooking.mutateAsync(bookingData);
 
@@ -237,6 +250,11 @@ const { toast } = useToast();
                 <p className="text-sm text-muted-foreground">
                   Phone: {selectedAddr?.phone}
                 </p>
+                {(selectedAddr?.latitude && selectedAddr?.longitude) && (
+                  <p className="text-xs text-green-600 mt-1">
+                    📍 GPS Location: {selectedAddr.latitude.toFixed(6)}, {selectedAddr.longitude.toFixed(6)}
+                  </p>
+                )}
               </div>
             </div>
           </div>

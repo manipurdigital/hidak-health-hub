@@ -63,7 +63,7 @@ serve(async (req) => {
       }
     }
 
-    logStep("Request validated", { testId, bookingDate });
+    logStep("Request validated", { testId, bookingDate, pickupLat, pickupLng });
 
     // Get test details
     const { data: test, error: testError } = await supabaseClient
@@ -101,20 +101,35 @@ serve(async (req) => {
 
     logStep("Date available", { existingBookings: existingBookings?.length || 0 });
 
-    // Create lab booking without time_slot
+    // Create lab booking with GPS location and address data
+    const bookingData: any = {
+      user_id: user.id,
+      test_id: testId,
+      booking_date: bookingDate,
+      patient_name: patientName,
+      patient_phone: patientPhone,
+      notes: specialInstructions || null,
+      total_amount: test.price,
+      status: 'pending',
+      payment_status: 'pending'
+    };
+
+    // Add GPS coordinates if provided
+    if (pickupLat !== undefined && pickupLng !== undefined) {
+      bookingData.pickup_lat = pickupLat;
+      bookingData.pickup_lng = pickupLng;
+      logStep("GPS coordinates added", { pickupLat, pickupLng });
+    }
+
+    // Add address data if provided
+    if (pickupAddress) {
+      bookingData.pickup_address = pickupAddress;
+      logStep("Address data added", { addressPreview: pickupAddress.name || 'No name' });
+    }
+
     const { data: booking, error: bookingError } = await supabaseClient
       .from('lab_bookings')
-      .insert({
-        user_id: user.id,
-        test_id: testId,
-        booking_date: bookingDate,
-        patient_name: patientName,
-        patient_phone: patientPhone,
-        notes: specialInstructions || null,
-        total_amount: test.price,
-        status: 'pending',
-        payment_status: 'pending'
-      })
+      .insert(bookingData)
       .select()
       .single();
 
@@ -123,7 +138,11 @@ serve(async (req) => {
       throw new Error(`Failed to create booking: ${bookingError.message}`);
     }
 
-    logStep("Booking created", { bookingId: booking.id });
+    logStep("Booking created with location data", { 
+      bookingId: booking.id, 
+      hasGPS: !!(pickupLat && pickupLng),
+      hasAddress: !!pickupAddress 
+    });
 
     // Create Razorpay order for lab booking
     const razorpayKeyId = "rzp_test_NKngyBlKJZZxzR";
@@ -163,7 +182,9 @@ serve(async (req) => {
     }
 
     const razorpayOrder = await razorpayResponse.json();
-    logStep("Razorpay order created", { razorpayOrderId: razorpayOrder.id });
+    logStep("Razorpay order created", { razorpayOrderId: razorpay
+
+.id });
 
     // Update booking with Razorpay order ID
     const { error: updateError } = await supabaseClient
@@ -183,7 +204,10 @@ serve(async (req) => {
         booking_date: bookingDate,
         total_amount: test.price,
         razorpay_order_id: razorpayOrder.id,
-        razorpay_key_id: razorpayKeyId
+        razorpay_key_id: razorpayKeyId,
+        pickup_lat: booking.pickup_lat,
+        pickup_lng: booking.pickup_lng,
+        pickup_address: booking.pickup_address
       }
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

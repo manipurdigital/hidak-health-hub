@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNotifyAdminWhatsApp, useUpdateServiceArea } from '@/hooks/manual-assignment-hooks';
 
@@ -5,6 +6,7 @@ interface LabBookingInterceptorProps {
   bookingId: string;
   lat?: number;
   lng?: number;
+  pickupAddress?: any;
   onComplete?: () => void;
 }
 
@@ -16,6 +18,7 @@ export function LabBookingInterceptor({
   bookingId, 
   lat, 
   lng, 
+  pickupAddress,
   onComplete 
 }: LabBookingInterceptorProps) {
   const notifyAdmin = useNotifyAdminWhatsApp();
@@ -24,6 +27,13 @@ export function LabBookingInterceptor({
   useEffect(() => {
     const processNewLabBooking = async () => {
       try {
+        console.log('Processing lab booking with location:', { 
+          bookingId, 
+          lat, 
+          lng, 
+          hasAddress: !!pickupAddress 
+        });
+
         // If we have coordinates, validate service area
         if (lat && lng) {
           await updateServiceArea.mutateAsync({
@@ -33,13 +43,15 @@ export function LabBookingInterceptor({
             lat,
             lng
           });
+          console.log('Service area validation completed');
         }
 
-        // Notify admin via WhatsApp
+        // Notify admin via WhatsApp with location data
         await notifyAdmin.mutateAsync({
           type: 'new_lab_booking',
           entityId: bookingId
         });
+        console.log('Admin notification sent');
 
         onComplete?.();
       } catch (error) {
@@ -51,7 +63,7 @@ export function LabBookingInterceptor({
     if (bookingId) {
       processNewLabBooking();
     }
-  }, [bookingId, lat, lng]);
+  }, [bookingId, lat, lng, pickupAddress]);
 
   return null; // This component doesn't render anything visible
 }
