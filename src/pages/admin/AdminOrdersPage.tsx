@@ -237,6 +237,8 @@ ${order.shipping_address}${googleMapsLink}
           </div>
         </div>
 
+        {/* Temporarily comment out to debug */}
+        {/*
         <OrderFilters
           dateRange={dateRange}
           onDateRangeChange={handleDateRangeChange}
@@ -247,6 +249,140 @@ ${order.shipping_address}${googleMapsLink}
           totalCount={totalCount || 0}
           filteredCount={orders?.length || 0}
         />
+        */}
+        
+        {/* Enhanced filter structure */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-4 p-4 bg-muted/50 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filters</span>
+              </div>
+              {(filters.status !== 'all' && filters.status) || filters.q && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => updateFilters({ status: undefined, q: undefined })}
+                  className="h-6 px-2 text-xs"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Date Presets */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Date Range</label>
+                <div className="flex flex-col gap-1">
+                  <Button
+                    variant={(!filters.from && !filters.to) || (filters.from === format(today, 'yyyy-MM-dd') && filters.to === format(today, 'yyyy-MM-dd')) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateFilters({ 
+                      from: format(today, 'yyyy-MM-dd'), 
+                      to: format(today, 'yyyy-MM-dd') 
+                    })}
+                    className="justify-start text-xs"
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const yesterday = new Date(today);
+                      yesterday.setDate(yesterday.getDate() - 1);
+                      updateFilters({ 
+                        from: format(yesterday, 'yyyy-MM-dd'), 
+                        to: format(yesterday, 'yyyy-MM-dd') 
+                      });
+                    }}
+                    className="justify-start text-xs"
+                  >
+                    Yesterday
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const weekAgo = new Date(today);
+                      weekAgo.setDate(weekAgo.getDate() - 7);
+                      updateFilters({ 
+                        from: format(weekAgo, 'yyyy-MM-dd'), 
+                        to: format(today, 'yyyy-MM-dd') 
+                      });
+                    }}
+                    className="justify-start text-xs"
+                  >
+                    Last 7 days
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Status</label>
+                <Select value={filters.status || 'all'} onValueChange={handleStatusChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="out for delivery">Out for Delivery</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Search */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-medium text-muted-foreground">Search</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search by order number, patient name, or phone..."
+                    value={filters.q || ''}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Active filter chips */}
+            {((filters.status && filters.status !== 'all') || filters.q || filters.from || filters.to) && (
+              <div className="flex flex-wrap gap-2">
+                {filters.from && filters.to && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Date: {filters.from === filters.to ? format(new Date(filters.from), 'MMM dd, yyyy') : `${format(new Date(filters.from), 'MMM dd')} - ${format(new Date(filters.to), 'MMM dd, yyyy')}`}
+                  </Badge>
+                )}
+                {filters.status && filters.status !== 'all' && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Status: {filters.status}
+                  </Badge>
+                )}
+                {filters.q && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Search: "{filters.q}"
+                  </Badge>
+                )}
+              </div>
+            )}
+            
+            {/* Results summary */}
+            <div className="text-sm text-muted-foreground">
+              Showing {orders?.length || 0} of {totalCount || 0} orders
+              {filters.from && filters.to && (
+                <span> for {filters.from === filters.to ? format(new Date(filters.from), 'MMM dd, yyyy') : `${format(new Date(filters.from), 'MMM dd')} - ${format(new Date(filters.to), 'MMM dd, yyyy')}`}</span>
+              )}
+            </div>
+          </div>
+        </div>
 
         <Card>
           <CardHeader>
