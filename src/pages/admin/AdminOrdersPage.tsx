@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,9 @@ import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { OrderFilters } from "@/components/admin/OrderFilters";
+import { format } from "date-fns";
+import { useUrlFilters } from "@/hooks/use-url-filters";
 
 interface Order {
   id: string;
@@ -32,6 +35,7 @@ interface Order {
   }[];
 }
 
+
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800",
   processing: "bg-blue-100 text-blue-800",
@@ -53,11 +57,17 @@ const AdminOrdersPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const { filters, updateFilters } = useUrlFilters();
+
+  // Set default date range to today if no filters are set
+  const today = new Date();
+  const defaultFrom = filters.from || format(today, 'yyyy-MM-dd');
+  const defaultTo = filters.to || format(today, 'yyyy-MM-dd');
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['admin-orders'],
+    queryKey: ['admin-orders', filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select(`
           *,
@@ -68,11 +78,43 @@ const AdminOrdersPage = () => {
               name
             )
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
 
+      // Apply date filters
+      if (defaultFrom) {
+        query = query.gte('created_at', `${defaultFrom}T00:00:00.000Z`);
+      }
+      if (defaultTo) {
+        query = query.lte('created_at', `${defaultTo}T23:59:59.999Z`);
+      }
+
+      // Apply status filter
+      if (filters.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      }
+
+      // Apply search filter
+      if (filters.q) {
+        query = query.or(`order_number.ilike.%${filters.q}%,patient_name.ilike.%${filters.q}%,patient_phone.ilike.%${filters.q}%`);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Order[];
+    }
+  });
+
+  // Get unfiltered count for display
+  const { data: totalCount } = useQuery({
+    queryKey: ['admin-orders-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      return count || 0;
     }
   });
 
@@ -153,6 +195,26 @@ ${order.shipping_address}${googleMapsLink}
     window.open(whatsappUrl, '_blank');
   };
 
+  const handleDateRangeChange = (range: { from: Date | null; to: Date | null }) => {
+    updateFilters({
+      from: range.from ? format(range.from, 'yyyy-MM-dd') : undefined,
+      to: range.to ? format(range.to, 'yyyy-MM-dd') : undefined
+    });
+  };
+
+  const handleStatusChange = (status: string) => {
+    updateFilters({ status: status === 'all' ? undefined : status });
+  };
+
+  const handleSearchChange = (query: string) => {
+    updateFilters({ q: query || undefined });
+  };
+
+  const dateRange = {
+    from: filters.from ? new Date(filters.from) : null,
+    to: filters.to ? new Date(filters.to) : null
+  };
+
   if (isLoading) {
     return (
       <AdminLayoutWrapper>
@@ -175,11 +237,22 @@ ${order.shipping_address}${googleMapsLink}
           </div>
         </div>
 
+        <OrderFilters
+          dateRange={dateRange}
+          onDateRangeChange={handleDateRangeChange}
+          status={filters.status || 'all'}
+          onStatusChange={handleStatusChange}
+          searchQuery={filters.q || ''}
+          onSearchChange={handleSearchChange}
+          totalCount={totalCount || 0}
+          filteredCount={orders?.length || 0}
+        />
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              All Orders ({orders?.length || 0})
+              Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -189,6 +262,7 @@ ${order.shipping_address}${googleMapsLink}
                   <TableHead>Order Number</TableHead>
                   <TableHead>Patient</TableHead>
                   <TableHead>Amount</TableHead>
+                  <TableHead>Created At</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Forward to Agent</TableHead>
                   <TableHead>Actions</TableHead>
@@ -211,6 +285,14 @@ ${order.shipping_address}${googleMapsLink}
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">₹{order.total_amount}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {format(new Date(order.created_at), 'MMM dd, yyyy')}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(order.created_at), 'hh:mm a')}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={order.status}

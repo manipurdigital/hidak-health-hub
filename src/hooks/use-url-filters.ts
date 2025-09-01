@@ -15,6 +15,9 @@ export interface FilterState {
   fee_max?: number;
   sort?: string;
   page?: number;
+  from?: string;
+  to?: string;
+  status?: string;
 }
 
 export const useUrlFilters = () => {
@@ -64,6 +67,17 @@ export const useUrlFilters = () => {
     
     const page = searchParams.get('page');
     if (page) params.page = Number(page);
+    
+    // Date range filters for orders
+    const from = searchParams.get('from');
+    if (from) params.from = from;
+    
+    const to = searchParams.get('to');
+    if (to) params.to = to;
+    
+    // Status filter for orders
+    const status = searchParams.get('status');
+    if (status) params.status = status;
     
     return params;
   }, [searchParams]);
