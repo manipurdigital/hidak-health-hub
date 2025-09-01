@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { AddressDialog } from '@/components/AddressDialog';
 import { useToast } from '@/hooks/use-toast';
+import { useDeleteAddress } from '@/hooks/medicine-hooks';
 
 interface SlotPickerProps {
   labTest: any;
@@ -32,6 +33,7 @@ export function SlotPicker({
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
   const { toast } = useToast();
+  const deleteAddress = useDeleteAddress();
 
   // Generate next 7 days
   const generateDates = () => {
@@ -93,12 +95,20 @@ export function SlotPicker({
     setShowAddressDialog(true);
   };
 
-  const handleDeleteAddress = (addressId: string) => {
-    if (window.confirm('Are you sure you want to delete this address?')) {
-      console.log('Delete address:', addressId);
+  const handleDeleteAddress = async (addressId: string) => {
+    if (!addressId) return;
+    if (!window.confirm('Are you sure you want to delete this address?')) return;
+
+    try {
+      await deleteAddress.mutateAsync(addressId);
+      if (selectedAddress === addressId) {
+        onAddressChange('');
+      }
+      toast({ title: 'Address deleted', description: 'The address was removed successfully.' });
+    } catch (err: any) {
+      toast({ title: 'Failed to delete address', description: err?.message || 'Please try again', variant: 'destructive' });
     }
   };
-
   const handleDialogClose = () => {
     setShowAddressDialog(false);
     setEditingAddress(null);
@@ -170,7 +180,7 @@ export function SlotPicker({
                                 handleDeleteAddress(address.id);
                               }}
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              disabled={false}
+                              disabled={deleteAddress.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

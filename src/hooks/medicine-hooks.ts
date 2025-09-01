@@ -133,3 +133,31 @@ export const useUpdateAddress = () => {
     },
   });
 };
+
+export const useDeleteAddress = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('addresses')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Address delete error:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+    },
+    onError: (error) => {
+      console.error('Delete address mutation error:', error);
+    },
+  });
+};
