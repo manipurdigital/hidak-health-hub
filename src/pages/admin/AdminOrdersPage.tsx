@@ -34,6 +34,7 @@ interface Order {
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800",
   processing: "bg-blue-100 text-blue-800",
+  confirmed: "bg-green-100 text-green-800",
   shipped: "bg-purple-100 text-purple-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800"
@@ -94,13 +95,21 @@ ${order.shipping_address}${googleMapsLink}
 ⚡ Please assign delivery agent immediately!`;
   };
 
-  const copyWhatsAppText = (order: Order) => {
+  const copyWhatsAppText = async (order: Order) => {
     const message = buildOrderWhatsAppMessage(order);
-    navigator.clipboard.writeText(message);
-    toast({
-      title: "Copied to clipboard",
-      description: "WhatsApp message copied successfully"
-    });
+    try {
+      await navigator.clipboard.writeText(message);
+      toast({
+        title: "Copied to clipboard",
+        description: "WhatsApp message copied successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy to clipboard",
+        variant: "destructive"
+      });
+    }
   };
 
   const openWhatsAppToNumber = (order: Order, phoneNumber: string) => {
@@ -178,6 +187,7 @@ ${order.shipping_address}${googleMapsLink}
                           variant="outline"
                           size="sm"
                           onClick={() => copyWhatsAppText(order)}
+                          title="Copy WhatsApp message"
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
@@ -188,6 +198,7 @@ ${order.shipping_address}${googleMapsLink}
                             const phone = prompt("Enter delivery agent's phone number:");
                             if (phone) openWhatsAppToNumber(order, phone);
                           }}
+                          title="Send to specific number"
                         >
                           <Share className="h-3 w-3" />
                         </Button>

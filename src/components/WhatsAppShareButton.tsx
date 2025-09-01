@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface WhatsAppShareButtonProps {
   bookingData: {
@@ -38,6 +40,7 @@ export function WhatsAppShareButton({
   variant = 'outline',
   size = 'sm'
 }: WhatsAppShareButtonProps) {
+  const { toast } = useToast();
   
   const generateWhatsAppMessage = () => {
     const { 
@@ -122,13 +125,68 @@ export function WhatsAppShareButton({
     message.push('');
     message.push(isOrder ? 'Please navigate to the location for medicine delivery.' : 'Please navigate to the location for sample collection.');
     
-    return encodeURIComponent(message.join('\n'));
+    return message.join('\n');
   };
 
-  const handleWhatsAppShare = () => {
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied to clipboard",
+        description: "WhatsApp message has been copied. You can paste it in WhatsApp manually.",
+      });
+    } catch (error) {
+      // Fallback for older browsers or if clipboard API fails
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      toast({
+        title: "Copied to clipboard",
+        description: "WhatsApp message has been copied. You can paste it in WhatsApp manually.",
+      });
+    }
+  };
+
+  const handleWhatsAppShare = async () => {
     const message = generateWhatsAppMessage();
-    const whatsappUrl = `https://wa.me/?text=${message}`;
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    
+    try {
+      // Try to open WhatsApp
+      const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      
+      // Check if the window was blocked or failed to open
+      if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        // Fallback: copy to clipboard and show toast
+        await copyToClipboard(message);
+        toast({
+          title: "WhatsApp blocked",
+          description: "Your browser blocked WhatsApp. The message has been copied to your clipboard instead.",
+          variant: "default",
+        });
+      } else {
+        // Show success message if WhatsApp opened successfully
+        setTimeout(() => {
+          toast({
+            title: "WhatsApp opened",
+            description: "The message has been prepared in WhatsApp for you to send.",
+          });
+        }, 1000);
+      }
+    } catch (error) {
+      // If there's any error, fallback to copying
+      await copyToClipboard(message);
+      toast({
+        title: "Error opening WhatsApp",
+        description: "The message has been copied to your clipboard instead.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

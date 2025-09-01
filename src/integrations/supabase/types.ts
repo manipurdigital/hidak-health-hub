@@ -177,9 +177,12 @@ export type Database = {
           doctor_id: string | null
           id: string
           notes: string | null
+          paid_at: string | null
           patient_id: string | null
           patient_notes: string | null
           payment_status: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           status: string | null
           time_slot: string | null
           total_amount: number | null
@@ -192,9 +195,12 @@ export type Database = {
           doctor_id?: string | null
           id?: string
           notes?: string | null
+          paid_at?: string | null
           patient_id?: string | null
           patient_notes?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string | null
           time_slot?: string | null
           total_amount?: number | null
@@ -207,9 +213,12 @@ export type Database = {
           doctor_id?: string | null
           id?: string
           notes?: string | null
+          paid_at?: string | null
           patient_id?: string | null
           patient_notes?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string | null
           time_slot?: string | null
           total_amount?: number | null
@@ -615,9 +624,12 @@ export type Database = {
           last_distance_meters: number | null
           last_eta_mins: number | null
           notes: string | null
+          paid_at: string | null
           patient_name: string | null
           patient_phone: string | null
           payment_status: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           status: string | null
           test_id: string | null
           total_amount: number
@@ -633,9 +645,12 @@ export type Database = {
           last_distance_meters?: number | null
           last_eta_mins?: number | null
           notes?: string | null
+          paid_at?: string | null
           patient_name?: string | null
           patient_phone?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string | null
           test_id?: string | null
           total_amount: number
@@ -651,9 +666,12 @@ export type Database = {
           last_distance_meters?: number | null
           last_eta_mins?: number | null
           notes?: string | null
+          paid_at?: string | null
           patient_name?: string | null
           patient_phone?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string | null
           test_id?: string | null
           total_amount?: number
@@ -1043,6 +1061,7 @@ export type Database = {
           id: string
           notes: string | null
           order_number: string
+          paid_at: string | null
           patient_location_lat: number | null
           patient_location_lng: number | null
           patient_name: string | null
@@ -1050,6 +1069,8 @@ export type Database = {
           payment_id: string | null
           payment_method: string | null
           payment_status: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           shipping_address: string | null
           status: string | null
           total_amount: number
@@ -1067,6 +1088,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number: string
+          paid_at?: string | null
           patient_location_lat?: number | null
           patient_location_lng?: number | null
           patient_name?: string | null
@@ -1074,6 +1096,8 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           shipping_address?: string | null
           status?: string | null
           total_amount: number
@@ -1091,6 +1115,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: string
+          paid_at?: string | null
           patient_location_lat?: number | null
           patient_location_lng?: number | null
           patient_name?: string | null
@@ -1098,6 +1123,8 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           shipping_address?: string | null
           status?: string | null
           total_amount?: number
@@ -1120,6 +1147,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_events: {
+        Row: {
+          correlation_id: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string | null
+          id: string
+          payload: Json
+          processed: boolean | null
+          processed_at: string | null
+          signature_valid: boolean | null
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string | null
+          id: string
+          payload: Json
+          processed?: boolean | null
+          processed_at?: string | null
+          signature_valid?: boolean | null
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean | null
+          processed_at?: string | null
+          signature_valid?: boolean | null
+        }
+        Relationships: []
       }
       performance_logs: {
         Row: {

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -17,13 +18,48 @@ const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID');
 const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
 const TWILIO_WHATSAPP_FROM = Deno.env.get('TWILIO_WHATSAPP_FROM');
 
+// Normalize phone number to E.164 format
+const normalizePhoneNumber = (phone: string): string | null => {
+  // Remove all non-digits
+  const digits = phone.replace(/\D/g, '');
+  
+  // Handle Indian numbers (10 digits, add +91)
+  if (digits.length === 10 && digits.startsWith('9')) {
+    return `+91${digits}`;
+  }
+  
+  // Handle numbers with country code already
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return `+${digits}`;
+  }
+  
+  // Handle numbers starting with +
+  if (phone.startsWith('+')) {
+    return phone;
+  }
+  
+  // Default: assume Indian number if 10 digits
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+  
+  return null;
+};
+
 async function sendWhatsAppNotification(to: string, message: string) {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM) {
     logStep('Twilio WhatsApp credentials not configured, skipping WhatsApp notification');
-    return;
+    return false;
   }
 
   try {
+    // Normalize phone number
+    const normalizedTo = normalizePhoneNumber(to);
+    if (!normalizedTo) {
+      logStep('Invalid phone number format', { to });
+      return false;
+    }
+
     const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
     
     const response = await fetch(
@@ -36,22 +72,55 @@ async function sendWhatsAppNotification(to: string, message: string) {
         },
         body: new URLSearchParams({
           From: TWILIO_WHATSAPP_FROM,
-          To: to,
+          To: `whatsapp:${normalizedTo}`,
           Body: message,
         }),
       }
     );
 
-    if (!response.ok) {
-      const error = await response.text();
-      logStep('Failed to send WhatsApp message', error);
+    if (response.ok) {
+      const result = await response.json();
+      logStep('WhatsApp notification sent successfully', { to: normalizedTo, sid: result.sid });
+      return true;
     } else {
-      logStep('WhatsApp notification sent successfully');
+      const errorText = await response.text();
+      logStep('Failed to send WhatsApp notification', { to: normalizedTo, status: response.status, error: errorText });
+      return false;
     }
   } catch (error) {
-    logStep('Error sending WhatsApp notification', error);
+    logStep('Error sending WhatsApp notification', { to, error: error.message });
+    return false;
   }
 }
+
+// Build WhatsApp message for order notification
+const buildOrderWhatsAppMessage = (orderData: any): string => {
+  const items = orderData.order_items?.map((item: any) => 
+    `• ${item.medicine?.name || 'Unknown medicine'} - Qty: ${item.quantity}`
+  ).join('\n') || 'No items specified';
+
+  const googleMapsLink = orderData.patient_location_lat && orderData.patient_location_lng 
+    ? `\n📍 Location: https://www.google.com/maps/dir/?api=1&destination=${orderData.patient_location_lat},${orderData.patient_location_lng}`
+    : '';
+
+  // Mask phone number for privacy
+  const maskedPhone = orderData.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3') || 'N/A';
+
+  return `🆘 *NEW ORDER RECEIVED* 🆘
+
+📦 *Order:* ${orderData.order_number}
+👤 *Patient:* ${orderData.patient_name}
+📱 *Phone:* ${maskedPhone}
+💰 *Amount:* ₹${orderData.total_amount}
+
+*Items:*
+${items}
+
+📮 *Address:*
+${orderData.shipping_address}${googleMapsLink}
+
+⚡ Please assign delivery agent immediately!`;
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -104,30 +173,67 @@ serve(async (req) => {
 
     // Calculate total amount
     const totalAmount = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-    
-    // Check if any item requires prescription
-    const prescriptionRequired = items.some((item: any) => item.requires_prescription);
 
-    logStep("Order calculations", { totalAmount, prescriptionRequired });
+    logStep("Order calculations", { totalAmount });
 
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${user.id.substring(0, 8)}`;
 
-    // Create order in database
+    // Create Razorpay order first
+    const razorpayKeyId = "rzp_test_NKngyBlKJZZxzR"; // Publishable key
+    const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+
+    if (!razorpayKeySecret) {
+      throw new Error("Razorpay secret key not configured");
+    }
+
+    const razorpayOrderData = {
+      amount: Math.round(totalAmount * 100), // Convert to paisa
+      currency: "INR",
+      receipt: orderNumber,
+      notes: {
+        user_id: user.id,
+        patient_name: patientName,
+        patient_phone: patientPhone
+      }
+    };
+
+    logStep("Creating Razorpay order", razorpayOrderData);
+
+    const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKeySecret}`)}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(razorpayOrderData),
+    });
+
+    if (!razorpayResponse.ok) {
+      const errorText = await razorpayResponse.text();
+      logStep("Razorpay API error", { status: razorpayResponse.status, error: errorText });
+      throw new Error(`Razorpay API error: ${errorText}`);
+    }
+
+    const razorpayOrder = await razorpayResponse.json();
+    logStep("Razorpay order created", { razorpayOrderId: razorpayOrder.id });
+
+    // Create order in database with Razorpay order ID
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .insert({
         user_id: user.id,
         order_number: orderNumber,
         total_amount: totalAmount,
-        shipping_address: JSON.stringify(shippingAddress),
+        shipping_address: typeof shippingAddress === 'string' ? shippingAddress : JSON.stringify(shippingAddress),
         patient_name: patientName,
         patient_phone: patientPhone,
         patient_location_lat: patientLocation?.lat || null,
         patient_location_lng: patientLocation?.lng || null,
         notes: notes || null,
         status: 'pending',
-        payment_status: 'pending'
+        payment_status: 'pending',
+        razorpay_order_id: razorpayOrder.id
       })
       .select()
       .single();
@@ -159,65 +265,72 @@ serve(async (req) => {
 
     logStep("Order items created", { itemCount: orderItems.length });
 
-    // Create Razorpay order
-    const razorpayKeyId = "rzp_test_NKngyBlKJZZxzR"; // Publishable key
-    const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
-
-    if (!razorpayKeySecret) {
-      throw new Error("Razorpay secret key not configured");
-    }
-
-    const razorpayOrderData = {
-      amount: Math.round(totalAmount * 100), // Convert to paisa
-      currency: "INR",
-      receipt: order.order_number,
-      notes: {
-        order_id: order.id,
-        user_id: user.id
-      }
-    };
-
-    logStep("Creating Razorpay order", razorpayOrderData);
-
-    const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: {
-        "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKeySecret}`)}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(razorpayOrderData),
-    });
-
-    if (!razorpayResponse.ok) {
-      const errorText = await razorpayResponse.text();
-      logStep("Razorpay API error", { status: razorpayResponse.status, error: errorText });
-      throw new Error(`Razorpay API error: ${errorText}`);
-    }
-
-    const razorpayOrder = await razorpayResponse.json();
-    logStep("Razorpay order created", { razorpayOrderId: razorpayOrder.id });
-
-    // Update order with Razorpay order ID
-    const { error: updateError } = await supabaseClient
-      .from('orders')
-      .update({ razorpay_order_id: razorpayOrder.id })
-      .eq('id', order.id);
-
-    if (updateError) {
-      logStep("Error updating order with Razorpay ID", updateError);
-    }
-
-    // Send notifications to admins
+    // Send immediate WhatsApp notifications to admins
     try {
-      // Get all admin users
+      // Get admin phone numbers from profiles
       const { data: adminUsers, error: adminError } = await supabaseClient
+        .from('user_roles')
+        .select(`
+          user_id,
+          profiles!inner (
+            phone
+          )
+        `)
+        .eq('role', 'admin')
+        .not('profiles.phone', 'is', null);
+
+      let adminPhones: string[] = [];
+      
+      if (adminUsers && adminUsers.length > 0) {
+        adminPhones = adminUsers
+          .map((admin: any) => admin.profiles?.phone)
+          .filter(Boolean);
+        logStep("Found admin phones from profiles", { count: adminPhones.length });
+      }
+
+      // Fallback to ADMIN_WHATSAPP_TO environment variable
+      const fallbackPhones = Deno.env.get('ADMIN_WHATSAPP_TO');
+      if (!adminPhones.length && fallbackPhones) {
+        adminPhones = fallbackPhones.split(',').map(p => p.trim()).filter(Boolean);
+        logStep("Using fallback admin phones", { count: adminPhones.length });
+      }
+
+      if (adminPhones.length > 0) {
+        // Prepare order data for WhatsApp message
+        const orderDataForMessage = {
+          ...order,
+          order_items: items.map(item => ({
+            quantity: item.quantity,
+            medicine: { name: item.name }
+          }))
+        };
+
+        const message = buildOrderWhatsAppMessage(orderDataForMessage);
+        
+        // Send to all admin numbers
+        let successCount = 0;
+        for (const phone of adminPhones) {
+          const success = await sendWhatsAppNotification(phone, message);
+          if (success) successCount++;
+        }
+
+        logStep("WhatsApp notifications sent to admins", { 
+          totalAdmins: adminPhones.length, 
+          successful: successCount,
+          orderId: order.id 
+        });
+      } else {
+        logStep("No admin phone numbers found for WhatsApp notification");
+      }
+
+      // Create in-app notifications for all admins
+      const { data: allAdminUsers } = await supabaseClient
         .from('user_roles')
         .select('user_id')
         .eq('role', 'admin');
 
-      if (!adminError && adminUsers) {
-        // Create in-app notifications for all admins
-        const adminNotifications = adminUsers.map(admin => ({
+      if (allAdminUsers && allAdminUsers.length > 0) {
+        const adminNotifications = allAdminUsers.map(admin => ({
           user_id: admin.user_id,
           title: 'New Medicine Order',
           message: `New order ${order.order_number} received from ${patientName}. Total: ₹${totalAmount}`,
@@ -233,13 +346,8 @@ serve(async (req) => {
         }));
 
         await supabaseClient.from('notifications').insert(adminNotifications);
-        logStep("Admin notifications created", { adminCount: adminUsers.length });
+        logStep("Admin notifications created", { adminCount: allAdminUsers.length });
       }
-
-      // Send WhatsApp notification to admin (if configured)
-      // In a real scenario, you'd store admin phone numbers and send to multiple admins
-      // For now, we'll just log that this would happen
-      logStep("WhatsApp notification would be sent to admin phone numbers");
       
     } catch (notificationError) {
       logStep("Error sending notifications", notificationError);
