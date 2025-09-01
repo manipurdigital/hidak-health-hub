@@ -9,6 +9,7 @@ import { AdminLayoutWrapper } from "@/components/AdminLayoutWrapper";
 import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { OrderFilters } from "@/components/admin/OrderFilters";
 import { ManualAssignmentPanel } from "@/components/admin/ManualAssignmentPanel";
@@ -16,6 +17,7 @@ import { ServiceAreaGuard } from "@/components/ServiceAreaGuard";
 import { format } from "date-fns";
 import { useUrlFilters } from "@/hooks/use-url-filters";
 import { useNotifyAdminWhatsApp } from "@/hooks/manual-assignment-hooks";
+import { LabOrdersTab } from "@/components/admin/LabOrdersTab";
 
 interface Order {
   id: string;
@@ -239,7 +241,7 @@ ${order.shipping_address}${googleMapsLink}
           <div>
             <h1 className="text-3xl font-bold">Orders Management</h1>
             <p className="text-muted-foreground">
-              Manage medicine orders and deliveries
+              Manage medicine and lab orders
             </p>
           </div>
         </div>
@@ -391,157 +393,150 @@ ${order.shipping_address}${googleMapsLink}
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Orders
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order Number</TableHead>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Service Area</TableHead>
-                  <TableHead>Forward to Agent</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders?.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.order_number}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{order.patient_name}</div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {order.patient_phone}
+        <Tabs defaultValue="medicine" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="medicine">Medicine Orders</TabsTrigger>
+            <TabsTrigger value="lab">Lab Orders</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="medicine">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Medicine Orders
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order Number</TableHead>
+                      <TableHead>Patient</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Service Area</TableHead>
+                      <TableHead>Forward to Agent</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders?.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <div className="font-medium">{order.patient_name}</div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {order.patient_phone}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">₹{order.total_amount}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {format(new Date(order.created_at), 'MMM dd, yyyy')}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(order.created_at), 'hh:mm a')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={order.status}
-                        onValueChange={(status) => updateOrderStatus.mutate({ orderId: order.id, status })}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue>
-                            <Badge className={statusColors[order.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
-                              {order.status}
-                            </Badge>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {orderStatuses.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
-                                {status}
-                              </Badge>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={order.is_within_service_area ? "default" : "destructive"}>
-                        {order.is_within_service_area ? "✓ Within Area" : "✗ Outside Area"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyWhatsAppText(order)}
-                          title="Copy WhatsApp message"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const phone = prompt("Enter delivery agent's phone number:");
-                            if (phone) openWhatsAppToNumber(order, phone);
-                          }}
-                          title="Send to specific number"
-                        >
-                          <Share className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {order.patient_location_lat && order.patient_location_lng && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(
-                              getGoogleMapsUrl(
-                                order.patient_location_lat!,
-                                order.patient_location_lng!,
-                                order.shipping_address
-                              ),
-                              '_blank'
-                            )}
+                        </TableCell>
+                        <TableCell className="font-medium">₹{order.total_amount}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {format(new Date(order.created_at), 'MMM dd, yyyy')}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(order.created_at), 'hh:mm a')}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={order.status}
+                            onValueChange={(status) => updateOrderStatus.mutate({ orderId: order.id, status })}
                           >
-                            <MapPin className="h-4 w-4 mr-1" />
-                            Navigate
-                          </Button>
-                        )}
-                        <WhatsAppShareButton
-                          bookingData={{
-                            orderNumber: order.order_number,
-                            patientName: order.patient_name,
-                            patientPhone: order.patient_phone,
-                            totalAmount: order.total_amount,
-                            medicines: order.order_items.map(item => ({
-                              name: item.medicine.name,
-                              quantity: item.quantity
-                            }))
-                          }}
-                          pickupLocation={{
-                            address: order.shipping_address,
-                            lat: order.patient_location_lat || 0,
-                            lng: order.patient_location_lng || 0
-                          }}
-                          variant="outline"
-                          size="sm"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <Package className="h-4 w-4 mr-1" />
-                          Details
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                            <SelectTrigger className="w-40">
+                              <SelectValue>
+                                <Badge className={statusColors[order.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
+                                  {order.status}
+                                </Badge>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {orderStatuses.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
+                                    {status}
+                                  </Badge>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <ServiceAreaGuard
+                            lat={order.patient_location_lat || 24.817}
+                            lng={order.patient_location_lng || 93.938}
+                            serviceType="delivery"
+                            showWarning={false}
+                          >
+                            <Badge variant={order.is_within_service_area ? "default" : "destructive"}>
+                              {order.is_within_service_area ? "✓ Within Area" : "✗ Outside Area"}
+                            </Badge>
+                          </ServiceAreaGuard>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyWhatsAppText(order)}
+                              className="flex items-center gap-1"
+                            >
+                              <Copy className="h-3 w-3" />
+                              Copy
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openWhatsAppToNumber(order, '+919876543210')}
+                              className="flex items-center gap-1"
+                            >
+                              <Share className="h-3 w-3" />
+                              Share
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              Assign
+                            </Button>
+                            {order.patient_location_lat && order.patient_location_lng && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(getGoogleMapsUrl(order.patient_location_lat!, order.patient_location_lng!, order.shipping_address), '_blank')}
+                                className="flex items-center gap-1"
+                              >
+                                <MapPin className="h-3 w-3" />
+                                Navigate
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="lab">
+            <LabOrdersTab filters={filters} />
+          </TabsContent>
+        </Tabs>
 
         {/* Order Assignment Panel */}
         {selectedOrder && (
@@ -556,16 +551,14 @@ ${order.shipping_address}${googleMapsLink}
                 </div>
                 
                 {/* Service Area Check */}
-                {selectedOrder.patient_location_lat && selectedOrder.patient_location_lng && (
-                  <ServiceAreaGuard
-                    lat={selectedOrder.patient_location_lat}
-                    lng={selectedOrder.patient_location_lng}
-                    serviceType="delivery"
-                    showWarning={true}
-                  >
-                    <div />
-                  </ServiceAreaGuard>
-                )}
+                <ServiceAreaGuard
+                  lat={selectedOrder.patient_location_lat || 24.817}
+                  lng={selectedOrder.patient_location_lng || 93.938}
+                  serviceType="delivery"
+                  showWarning={true}
+                >
+                  <div />
+                </ServiceAreaGuard>
 
                 {/* Order Details */}
                 <div className="mb-4 p-4 bg-muted/50 rounded-lg">
@@ -576,6 +569,16 @@ ${order.shipping_address}${googleMapsLink}
                     <div><strong>Phone:</strong> {selectedOrder.patient_phone}</div>
                     <div><strong>Amount:</strong> ₹{selectedOrder.total_amount}</div>
                     <div><strong>Address:</strong> {selectedOrder.shipping_address}</div>
+                  </div>
+                  <div className="mt-2">
+                    <strong>Items:</strong>
+                    <ul className="list-disc list-inside text-sm">
+                      {selectedOrder.order_items.map((item, index) => (
+                        <li key={index}>
+                          {item.medicine.name} - Qty: {item.quantity} @ ₹{item.unit_price}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
 
@@ -592,6 +595,7 @@ ${order.shipping_address}${googleMapsLink}
             </div>
           </div>
         )}
+
       </div>
     </AdminLayoutWrapper>
   );
