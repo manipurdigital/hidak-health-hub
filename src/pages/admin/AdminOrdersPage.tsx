@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { ExternalLink, MapPin, MessageCircle, Package, User, Phone, Copy, Share 
 import { AdminLayoutWrapper } from "@/components/AdminLayoutWrapper";
 import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface Order {
@@ -35,13 +36,22 @@ const statusColors = {
   pending: "bg-yellow-100 text-yellow-800",
   processing: "bg-blue-100 text-blue-800",
   confirmed: "bg-green-100 text-green-800",
-  shipped: "bg-purple-100 text-purple-800",
+  "out for delivery": "bg-purple-100 text-purple-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800"
 };
 
+const orderStatuses = [
+  "pending",
+  "processing", 
+  "confirmed",
+  "out for delivery",
+  "delivered"
+];
+
 const AdminOrdersPage = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const { data: orders, isLoading } = useQuery({
@@ -63,6 +73,31 @@ const AdminOrdersPage = () => {
 
       if (error) throw error;
       return data as Order[];
+    }
+  });
+
+  const updateOrderStatus = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', orderId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      toast({
+        title: "Status updated",
+        description: "Order status has been updated successfully"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive"
+      });
     }
   });
 
@@ -177,9 +212,27 @@ ${order.shipping_address}${googleMapsLink}
                     </TableCell>
                     <TableCell className="font-medium">₹{order.total_amount}</TableCell>
                     <TableCell>
-                      <Badge className={statusColors[order.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
-                        {order.status}
-                      </Badge>
+                      <Select
+                        value={order.status}
+                        onValueChange={(status) => updateOrderStatus.mutate({ orderId: order.id, status })}
+                      >
+                        <SelectTrigger className="w-40">
+                          <SelectValue>
+                            <Badge className={statusColors[order.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
+                              {order.status}
+                            </Badge>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {orderStatuses.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
+                                {status}
+                              </Badge>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
