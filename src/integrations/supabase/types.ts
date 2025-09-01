@@ -669,7 +669,7 @@ export type Database = {
         Row: {
           assignment_notes: string | null
           booking_date: string
-          booking_time: string
+          booking_time: string | null
           center_payout_amount: number | null
           created_at: string | null
           geofence_validated_at: string | null
@@ -693,7 +693,7 @@ export type Database = {
         Insert: {
           assignment_notes?: string | null
           booking_date: string
-          booking_time: string
+          booking_time?: string | null
           center_payout_amount?: number | null
           created_at?: string | null
           geofence_validated_at?: string | null
@@ -717,7 +717,7 @@ export type Database = {
         Update: {
           assignment_notes?: string | null
           booking_date?: string
-          booking_time?: string
+          booking_time?: string | null
           center_payout_amount?: number | null
           created_at?: string | null
           geofence_validated_at?: string | null

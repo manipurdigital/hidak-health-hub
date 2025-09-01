@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -42,7 +43,6 @@ serve(async (req) => {
     const { 
       testId, 
       bookingDate, 
-      timeSlot, 
       patientName, 
       patientPhone, 
       patientEmail, 
@@ -52,7 +52,7 @@ serve(async (req) => {
       pickupAddress
     } = body;
 
-    if (!testId || !bookingDate || !timeSlot || !patientName || !patientPhone) {
+    if (!testId || !bookingDate || !patientName || !patientPhone) {
       throw new Error("Missing required booking information");
     }
 
@@ -63,7 +63,7 @@ serve(async (req) => {
       }
     }
 
-    logStep("Request validated", { testId, bookingDate, timeSlot });
+    logStep("Request validated", { testId, bookingDate });
 
     // Get test details
     const { data: test, error: testError } = await supabaseClient
@@ -80,36 +80,34 @@ serve(async (req) => {
 
     logStep("Test found", { testName: test.name, price: test.price });
 
-    // Check slot availability (basic check - can be enhanced with proper slot management)
-    const { data: existingBookings, error: slotError } = await supabaseClient
+    // Check date availability (basic check - can be enhanced with proper capacity management)
+    const { data: existingBookings, error: dateError } = await supabaseClient
       .from('lab_bookings')
       .select('id')
       .eq('test_id', testId)
       .eq('booking_date', bookingDate)
-      .eq('time_slot', timeSlot)
-      .in('status', ['confirmed', 'pending']);
+      .in('status', ['confirmed', 'pending', 'assigned']);
 
-    if (slotError) {
-      logStep("Error checking slot availability", slotError);
-      throw new Error("Error checking slot availability");
+    if (dateError) {
+      logStep("Error checking date availability", dateError);
+      throw new Error("Error checking date availability");
     }
 
-    // Simple slot limit (can be enhanced based on test capacity)
-    if (existingBookings && existingBookings.length >= 5) {
-      logStep("Slot unavailable", { existingBookings: existingBookings.length });
-      throw new Error("Selected time slot is not available");
+    // Simple daily limit (can be enhanced based on test capacity)
+    if (existingBookings && existingBookings.length >= 20) {
+      logStep("Date unavailable", { existingBookings: existingBookings.length });
+      throw new Error("Selected date is not available for collection");
     }
 
-    logStep("Slot available", { existingBookings: existingBookings?.length || 0 });
+    logStep("Date available", { existingBookings: existingBookings?.length || 0 });
 
-    // Create lab booking
+    // Create lab booking without time_slot
     const { data: booking, error: bookingError } = await supabaseClient
       .from('lab_bookings')
       .insert({
         user_id: user.id,
         test_id: testId,
         booking_date: bookingDate,
-        time_slot: timeSlot,
         patient_name: patientName,
         patient_phone: patientPhone,
         patient_email: patientEmail || user.email,
@@ -187,7 +185,6 @@ serve(async (req) => {
         id: booking.id,
         test_name: test.name,
         booking_date: bookingDate,
-        time_slot: timeSlot,
         total_amount: test.price,
         razorpay_order_id: razorpayOrder.id,
         razorpay_key_id: razorpayKeyId

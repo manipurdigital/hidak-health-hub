@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -8,14 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { AddressDialog } from '@/components/AddressDialog';
 import { useToast } from '@/hooks/use-toast';
-// Removed unused import
 
 interface SlotPickerProps {
   labTest: any;
   addresses: any[];
   selectedAddress: string;
   onAddressChange: (addressId: string) => void;
-  onSlotSelected: (slot: { date: string; time: string; datetime: string; notes?: string }) => void;
+  onSlotSelected: (slot: { date: string; notes?: string }) => void;
   onBack: () => void;
 }
 
@@ -28,12 +28,10 @@ export function SlotPicker({
   onBack 
 }: SlotPickerProps) {
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTime, setSelectedTime] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
   const { toast } = useToast();
-  // const deleteAddress = useDeleteAddress();
 
   // Generate next 7 days
   const generateDates = () => {
@@ -55,26 +53,7 @@ export function SlotPicker({
     return dates;
   };
 
-  // Generate time slots
-  const generateTimeSlots = () => {
-    const slots = [];
-    const startHour = 6; // 6 AM
-    const endHour = 18; // 6 PM
-    
-    for (let hour = startHour; hour <= endHour; hour += 2) {
-      const timeString = `${hour.toString().padStart(2, '0')}:00`;
-      const endTime = `${(hour + 2).toString().padStart(2, '0')}:00`;
-      slots.push({
-        value: timeString,
-        label: `${timeString} - ${endTime}`,
-        disabled: false
-      });
-    }
-    return slots;
-  };
-
   const dates = generateDates();
-  const timeSlots = generateTimeSlots();
   const defaultAddress = addresses.find(addr => addr.is_default) || addresses[0];
 
   // Set default address if not selected
@@ -103,14 +82,8 @@ export function SlotPicker({
       return;
     }
 
-    // Auto-assign a default time slot for simplified booking
-    const defaultTimeSlot = "09:00 - 11:00";
-    const datetime = `${selectedDate}T09:00:00`;
-
     onSlotSelected({
       date: selectedDate,
-      time: defaultTimeSlot,
-      datetime,
       notes: notes.trim() || undefined
     });
   };
@@ -122,7 +95,6 @@ export function SlotPicker({
 
   const handleDeleteAddress = (addressId: string) => {
     if (window.confirm('Are you sure you want to delete this address?')) {
-      // deleteAddress.mutate(addressId);
       console.log('Delete address:', addressId);
     }
   };
@@ -244,12 +216,14 @@ export function SlotPicker({
               </Button>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground mt-4">
-            Sample collection available between 6:00 AM to 6:00 PM. Our team will contact you to confirm the exact time.
-          </p>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Our lab team will call you to confirm the exact collection time on your selected date. 
+              Sample collection is typically available between 6:00 AM to 6:00 PM.
+            </p>
+          </div>
         </CardContent>
       </Card>
-
 
       {/* Special Instructions */}
       <Card>
@@ -258,7 +232,7 @@ export function SlotPicker({
         </CardHeader>
         <CardContent>
           <Textarea
-            placeholder="Any special instructions for our phlebotomist (e.g., gate access, landmark, specific floor, etc.)"
+            placeholder="Any special instructions for our phlebotomist (e.g., gate access, landmark, specific floor, preferred time window, etc.)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, TestTube, FileText, ShoppingCart, Filter, Star } from 'lucide-react';
+import { CalendarIcon, TestTube, FileText, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -33,22 +34,10 @@ const DiagnosticsSection = () => {
   const [loading, setLoading] = useState(true);
   const [bookingTest, setBookingTest] = useState<LabTest | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const timeSlots = [
-    '8:00 AM - 9:00 AM',
-    '9:00 AM - 10:00 AM',
-    '10:00 AM - 11:00 AM',
-    '11:00 AM - 12:00 PM',
-    '2:00 PM - 3:00 PM',
-    '3:00 PM - 4:00 PM',
-    '4:00 PM - 5:00 PM',
-    '5:00 PM - 6:00 PM'
-  ];
 
   const categories = ['All', 'Blood Tests', 'Hormone Tests', 'Diabetes', 'Vitamins', 'Urine Tests', 'Cardiac Tests', 'Radiology'];
 
@@ -109,7 +98,7 @@ const DiagnosticsSection = () => {
   };
 
   const handleBookingSubmit = async () => {
-    if (!bookingTest || !selectedDate || !selectedTimeSlot || !user) return;
+    if (!bookingTest || !selectedDate || !user) return;
 
     try {
       const { error } = await supabase
@@ -118,7 +107,9 @@ const DiagnosticsSection = () => {
           user_id: user.id,
           test_id: bookingTest.id,
           booking_date: format(selectedDate, 'yyyy-MM-dd'),
-          booking_time: selectedTimeSlot.split(' - ')[0], // Extract start time
+          patient_name: user.user_metadata?.full_name || user.email || 'Patient',
+          patient_phone: user.user_metadata?.phone || '',
+          patient_email: user.email,
           total_amount: bookingTest.price,
           status: 'pending'
         }]);
@@ -127,12 +118,11 @@ const DiagnosticsSection = () => {
 
       toast({
         title: "Booking Confirmed!",
-        description: `Your ${bookingTest.name} test has been booked for ${format(selectedDate, 'PPP')} at ${selectedTimeSlot}`,
+        description: `Your ${bookingTest.name} test has been booked for ${format(selectedDate, 'PPP')}. Our team will call you to confirm the collection time.`,
       });
 
       setBookingTest(null);
       setSelectedDate(undefined);
-      setSelectedTimeSlot('');
     } catch (error) {
       console.error('Error booking test:', error);
       toast({
@@ -259,7 +249,7 @@ const DiagnosticsSection = () => {
           </div>
         )}
 
-        {/* Booking Modal */}
+        {/* Booking Modal - Date Only */}
         {bookingTest && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md">
@@ -268,7 +258,7 @@ const DiagnosticsSection = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Select Date</label>
+                  <label className="text-sm font-medium">Select Collection Date</label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -295,25 +285,14 @@ const DiagnosticsSection = () => {
                   </Popover>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">Select Time Slot</label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {timeSlots.map((slot) => (
-                      <Button
-                        key={slot}
-                        variant={selectedTimeSlot === slot ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedTimeSlot(slot)}
-                        className="text-xs"
-                      >
-                        {slot}
-                      </Button>
-                    ))}
-                  </div>
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> Our lab team will call you to confirm the exact collection time on your selected date.
+                  </p>
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                  * Additional home collection charges applicable. One of our lab partner will call you & confirm the order.
+                  * Additional home collection charges applicable. One of our lab partners will call you & confirm the order.
                 </p>
 
                 <div className="flex gap-2">
@@ -323,7 +302,6 @@ const DiagnosticsSection = () => {
                     onClick={() => {
                       setBookingTest(null);
                       setSelectedDate(undefined);
-                      setSelectedTimeSlot('');
                     }}
                   >
                     Cancel
@@ -331,7 +309,7 @@ const DiagnosticsSection = () => {
                   <Button 
                     className="flex-1"
                     onClick={handleBookingSubmit}
-                    disabled={!selectedDate || !selectedTimeSlot}
+                    disabled={!selectedDate}
                   >
                     Confirm Booking
                   </Button>
