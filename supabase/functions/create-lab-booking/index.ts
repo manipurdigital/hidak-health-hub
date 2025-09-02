@@ -182,9 +182,7 @@ serve(async (req) => {
     }
 
     const razorpayOrder = await razorpayResponse.json();
-    logStep("Razorpay order created", { razorpayOrderId: razorpay
-
-.id });
+    logStep("Razorpay order created", { razorpayOrderId: razorpayOrder.id });
 
     // Update booking with Razorpay order ID
     const { error: updateError } = await supabaseClient
