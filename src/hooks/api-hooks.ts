@@ -79,7 +79,7 @@ export const useCreateLabBooking = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Please sign in to book a lab test.');
 
-      // Map incoming shapes to edge function payload
+      // Map incoming shapes to edge function payload (include GPS + address)
       const payload = {
         testId: booking.testId ?? booking.test_id,
         bookingDate: booking.bookingDate ?? booking.booking_date,
@@ -88,6 +88,10 @@ export const useCreateLabBooking = () => {
         patientPhone: booking.patientPhone ?? booking.patient_phone,
         patientEmail: booking.patientEmail ?? booking.patient_email,
         specialInstructions: booking.specialInstructions ?? booking.special_instructions,
+        // Location fields (various caller shapes supported)
+        pickupLat: booking.pickupLat ?? booking.lat ?? booking.latitude ?? booking.pickup_lat,
+        pickupLng: booking.pickupLng ?? booking.lng ?? booking.longitude ?? booking.pickup_lng,
+        pickupAddress: booking.pickupAddress ?? booking.address ?? booking.pickup_address,
       };
 
       const { data, error } = await supabase.functions.invoke('create-lab-booking', {

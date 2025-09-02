@@ -58,14 +58,24 @@ export const useCreateLabBooking = () => {
       patientPhone: string;
       patientEmail?: string;
       specialInstructions?: string;
+      pickupLat?: number;
+      pickupLng?: number;
+      pickupAddress?: any;
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Please sign in to book a lab test.');
       }
 
+      const payload = {
+        ...bookingData,
+        pickupLat: bookingData.pickupLat ?? (bookingData as any).lat ?? (bookingData as any).pickup_lat,
+        pickupLng: bookingData.pickupLng ?? (bookingData as any).lng ?? (bookingData as any).pickup_lng,
+        pickupAddress: bookingData.pickupAddress ?? (bookingData as any).address ?? (bookingData as any).pickup_address,
+      };
+
       const { data, error } = await supabase.functions.invoke('create-lab-booking', {
-        body: bookingData,
+        body: payload,
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
