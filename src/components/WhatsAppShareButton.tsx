@@ -102,12 +102,14 @@ export function WhatsAppShareButton({
         addressText = address;
       } else {
         const addr = address;
+        console.log('WhatsApp address data:', addr); // Debug log
         addressText = [
+          addr.name,
           addr.address_line_1,
           addr.address_line_2,
           addr.city,
           addr.state,
-          addr.pincode
+          addr.postal_code || addr.pincode
         ].filter(Boolean).join(', ');
         
         if (addr.landmark) {
