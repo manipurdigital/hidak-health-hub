@@ -54,8 +54,7 @@ export function WhatsAppShareButton({
     const name = isOrder ? patientName : patient_name;
     const phone = isOrder ? patientPhone : patient_phone;
     
-    // Mask phone number for privacy (show only last 4 digits)
-    const maskedPhone = phone?.replace(/(\d{6})(\d{4})/, '******$2') || 'N/A';
+    // Show full phone number (no masking needed for sharing)
     
     // Create Google Maps link
     const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
@@ -69,7 +68,7 @@ export function WhatsAppShareButton({
         '',
         `📋 *Order:* ${orderNumber}`,
         `👤 *Patient:* ${name}`,
-        `📞 *Phone:* ${maskedPhone}`,
+        `📞 *Phone:* ${phone}`,
         `💰 *Amount:* ₹${totalAmount}`,
         ''
       ];
@@ -88,10 +87,10 @@ export function WhatsAppShareButton({
         '',
         `📋 *Booking ID:* ${id}`,
         `👤 *Patient:* ${name}`,
-        `📞 *Phone:* ${maskedPhone}`,
+        `📞 *Phone:* ${phone}`,
         `🧪 *Test:* ${test_name || 'Lab Test'}`,
         `📅 *Date:* ${booking_date ? new Date(booking_date).toLocaleDateString() : 'N/A'}`,
-        `⏰ *Time Slot:* ${time_slot}`,
+        ...(time_slot ? [`⏰ *Time Slot:* ${time_slot}`] : []),
         ''
       ];
     }

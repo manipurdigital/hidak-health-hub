@@ -163,20 +163,20 @@ const AdminOrdersPage = () => {
     ).join('\n');
 
     const googleMapsLink = order.patient_location_lat && order.patient_location_lng 
-      ? `\n📍 Location: https://www.google.com/maps/dir/?api=1&destination=${order.patient_location_lat},${order.patient_location_lng}`
+      ? `\n📍 *GPS Location:* https://www.google.com/maps/dir/?api=1&destination=${order.patient_location_lat},${order.patient_location_lng}`
       : '';
 
-    return `🆘 *NEW ORDER CONFIRMED* 🆘
+    return `🆘 *NEW MEDICINE ORDER CONFIRMED* 🆘
 
 📦 *Order:* ${order.order_number}
 👤 *Patient:* ${order.patient_name}
-📱 *Phone:* ${order.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
+📱 *Phone:* ${order.patient_phone}
 💰 *Amount:* ₹${order.total_amount}
 
-*Items:*
+💊 *Medicines:*
 ${items}
 
-📮 *Address:*
+🏠 *Delivery Address:*
 ${order.shipping_address}${googleMapsLink}
 
 ⚡ Please assign delivery agent immediately!`;

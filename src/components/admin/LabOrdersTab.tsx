@@ -134,14 +134,31 @@ export const LabOrdersTab: React.FC<LabOrdersTabProps> = ({ filters }) => {
   });
 
   const buildLabBookingWhatsAppMessage = (booking: LabBooking): string => {
+    // Build GPS location link
+    const googleMapsLink = booking.pickup_lat && booking.pickup_lng 
+      ? `\n📍 *GPS Location:* https://www.google.com/maps/dir/?api=1&destination=${booking.pickup_lat},${booking.pickup_lng}`
+      : '';
+
+    // Build address information
+    let addressInfo = '';
+    if (booking.pickup_address) {
+      const addr = booking.pickup_address;
+      addressInfo = `\n🏠 *Address:*\n${addr.name || 'N/A'}\n${addr.address_line_1 || ''}${addr.address_line_2 ? ', ' + addr.address_line_2 : ''}\n${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
+      if (addr.landmark) {
+        addressInfo += `\n📍 Landmark: ${addr.landmark}`;
+      }
+    }
+
+    // Build time information (only if time is available)
+    const timeInfo = booking.booking_time ? `\n⏰ *Time:* ${booking.booking_time}` : '';
+
     return `🧪 *NEW LAB BOOKING CONFIRMED* 🧪
 
-📅 *Date:* ${format(new Date(booking.booking_date), 'MMM dd, yyyy')}
-⏰ *Time:* ${booking.booking_time}
+📅 *Date:* ${format(new Date(booking.booking_date), 'MMM dd, yyyy')}${timeInfo}
 👤 *Patient:* ${booking.patient_name}
-📱 *Phone:* ${booking.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
+📱 *Phone:* ${booking.patient_phone}
 🔬 *Test:* ${booking.lab_tests?.name || 'Lab Test'}
-💰 *Amount:* ₹${booking.total_amount}
+💰 *Amount:* ₹${booking.total_amount}${addressInfo}${googleMapsLink}
 
 ⚡ Please assign lab technician for home collection immediately!`;
   };

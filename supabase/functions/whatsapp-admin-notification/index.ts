@@ -66,13 +66,13 @@ serve(async (req) => {
 
 📦 *Order:* ${order.order_number}
 👤 *Patient:* ${order.patient_name}
-📱 *Phone:* ${order.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
+📱 *Phone:* ${order.patient_phone}
 💰 *Amount:* ₹${order.total_amount}
 
-*Medicines:*
+💊 *Medicines:*
 ${items}
 
-📮 *Address:*
+🏠 *Delivery Address:*
 ${order.shipping_address}${googleMapsLink}
 
 ⚡ *IMPHAL AREA - ASSIGN RIDER IMMEDIATELY!*
@@ -115,7 +115,7 @@ ${order.shipping_address}${googleMapsLink}
 
 📋 *Booking ID:* ${booking.id}
 👤 *Patient:* ${booking.patient_name}
-📱 *Phone:* ${booking.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
+📱 *Phone:* ${booking.patient_phone}
 🧪 *Test:* ${booking.test?.name || 'Lab Test Collection'}
 📅 *Date:* ${new Date(booking.booking_date).toLocaleDateString('en-IN')}
 💰 *Amount:* ₹${booking.total_amount}${addressInfo}${locationInfo}
