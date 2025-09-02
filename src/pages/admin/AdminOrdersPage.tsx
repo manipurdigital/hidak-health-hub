@@ -510,26 +510,17 @@ ${order.shipping_address}${googleMapsLink}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
+                          {order.patient_location_lat && order.patient_location_lng && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedOrder(order)}
+                              onClick={() => window.open(getGoogleMapsUrl(order.patient_location_lat!, order.patient_location_lng!, order.shipping_address), '_blank')}
+                              className="flex items-center gap-1"
                             >
-                              Assign
+                              <MapPin className="h-3 w-3" />
+                              Navigate
                             </Button>
-                            {order.patient_location_lat && order.patient_location_lng && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(getGoogleMapsUrl(order.patient_location_lat!, order.patient_location_lng!, order.shipping_address), '_blank')}
-                                className="flex items-center gap-1"
-                              >
-                                <MapPin className="h-3 w-3" />
-                                Navigate
-                              </Button>
-                            )}
-                          </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
