@@ -92,30 +92,53 @@ const normalizePhoneNumber = (phone: string): string | null => {
   return null;
 };
 
-// Build WhatsApp message for order confirmation
+// Build comprehensive WhatsApp message for order confirmation
 const buildOrderWhatsAppMessage = (orderData: any): string => {
   const items = orderData.order_items.map((item: any) => 
-    `• ${item.medicine.name} - Qty: ${item.quantity}`
+    `• ${item.medicine.name} - Qty: ${item.quantity} @ ₹${item.unit_price}`
   ).join('\n');
 
-  const googleMapsLink = orderData.patient_location_lat && orderData.patient_location_lng 
-    ? `\n📍 Location: https://www.google.com/maps/dir/?api=1&destination=${orderData.patient_location_lat},${orderData.patient_location_lng}`
-    : '';
+  // Parse shipping address if it's a JSON string, otherwise use as is
+  let addressStr = orderData.shipping_address;
+  let googleMapsLink = '';
+  
+  try {
+    if (typeof addressStr === 'string' && addressStr.startsWith('{')) {
+      const addr = JSON.parse(addressStr);
+      addressStr = `${addr.name || ''}\n${addr.address_line_1 || ''}${addr.address_line_2 ? ', ' + addr.address_line_2 : ''}\n${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
+      if (addr.phone) addressStr += `\n📞 Contact: ${addr.phone}`;
+    }
+  } catch (e) {
+    logStep('ADDRESS_PARSE', 'Failed to parse JSON address, using as plain text');
+  }
 
-  return `🆘 *NEW ORDER CONFIRMED* 🆘
+  // Build GPS link with fallback sources
+  if (orderData.patient_location_lat && orderData.patient_location_lng) {
+    googleMapsLink = `\n📍 GPS: https://www.google.com/maps/dir/?api=1&destination=${orderData.patient_location_lat},${orderData.patient_location_lng}`;
+    logStep('GPS_SOURCE', 'Using patient_location coordinates');
+  } else if (orderData.dest_lat && orderData.dest_lng) {
+    googleMapsLink = `\n📍 GPS: https://www.google.com/maps/dir/?api=1&destination=${orderData.dest_lat},${orderData.dest_lng}`;
+    logStep('GPS_SOURCE', 'Using dest coordinates as fallback');
+  } else {
+    logStep('GPS_SOURCE', 'No GPS coordinates available');
+  }
+
+  return `🚨 *ORDER CONFIRMED & PAID* 🚨
 
 📦 *Order:* ${orderData.order_number}
+💳 *Payment ID:* ${orderData.razorpay_payment_id || 'N/A'}
 👤 *Patient:* ${orderData.patient_name}
-📱 *Phone:* ${orderData.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3')}
-💰 *Amount:* ₹${orderData.total_amount}
+📱 *Phone:* ${orderData.patient_phone || 'N/A'}
+💰 *Total:* ₹${orderData.total_amount}
 
-*Items:*
+💊 *Items Ordered:*
 ${items}
 
-📮 *Address:*
-${orderData.shipping_address}${googleMapsLink}
+🏠 *Delivery Address:*
+${addressStr}${googleMapsLink}
 
-⚡ Please assign delivery agent immediately!`;
+⚡ *IMPHAL AREA - ASSIGN DELIVERY RIDER NOW!*
+🏥 Check admin panel for immediate assignment.`;
 };
 
 const corsHeaders = {
@@ -433,8 +456,11 @@ async function handlePaymentCaptured(supabaseClient: any, event: any, correlatio
   // Process manually to enforce strict validations and avoid relying on DB RPCs
   await updatePaymentStatusManually(supabaseClient, orderId, payment, 'paid', correlationId);
   
-  // Send WhatsApp notifications to admins for confirmed orders
+  // Send comprehensive WhatsApp notifications to admins for confirmed orders
   await sendOrderNotificationToAdmins(supabaseClient, orderId, correlationId);
+  
+  // Create in-app admin notification for confirmed order
+  await createAdminNotification(supabaseClient, orderId, correlationId);
   
   logStep(correlationId, "Payment captured processed manually", { orderId });
 }
@@ -804,6 +830,90 @@ async function backfillConsultationIfNeeded(supabaseClient: any, orderId: string
     logStep(correlationId, "Error during consultation backfill", { 
       orderId, 
       error: error.message 
+    });
+  }
+}
+
+// Create in-app admin notification for confirmed order
+async function createAdminNotification(supabaseClient: any, razorpayOrderId: string, correlationId: string) {
+  try {
+    // Fetch the order details
+    const { data: orderData, error: orderError } = await supabaseClient
+      .from('orders')
+      .select(`
+        id,
+        order_number,
+        patient_name,
+        patient_phone,
+        total_amount,
+        patient_location_lat,
+        patient_location_lng,
+        shipping_address,
+        razorpay_payment_id
+      `)
+      .eq('razorpay_order_id', razorpayOrderId)
+      .eq('status', 'confirmed')
+      .single();
+
+    if (orderError || !orderData) {
+      logStep(correlationId, "Order not found for admin notification", { razorpayOrderId });
+      return;
+    }
+
+    // Get all admin users
+    const { data: adminUsers, error: adminError } = await supabaseClient
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'admin');
+
+    if (adminError || !adminUsers || adminUsers.length === 0) {
+      logStep(correlationId, "No admin users found for notification", { razorpayOrderId });
+      return;
+    }
+
+    // Create notifications for all admins
+    const adminNotifications = adminUsers.map(admin => ({
+      user_id: admin.user_id,
+      title: '💰 Order Confirmed & Paid',
+      message: `Order ${orderData.order_number} confirmed! Patient: ${orderData.patient_name}, Amount: ₹${orderData.total_amount}. Assign delivery rider immediately.`,
+      type: 'order_confirmed',
+      data: {
+        order_id: orderData.id,
+        order_number: orderData.order_number,
+        patient_name: orderData.patient_name,
+        patient_phone: orderData.patient_phone,
+        total_amount: orderData.total_amount,
+        razorpay_payment_id: orderData.razorpay_payment_id,
+        patient_location: {
+          lat: orderData.patient_location_lat,
+          lng: orderData.patient_location_lng
+        },
+        shipping_address: orderData.shipping_address,
+        urgent: true,
+        action_required: 'assign_delivery'
+      }
+    }));
+
+    const { error: notificationError } = await supabaseClient
+      .from('notifications')
+      .insert(adminNotifications);
+
+    if (notificationError) {
+      logStep(correlationId, "Error creating admin notifications", { 
+        error: notificationError.message,
+        razorpayOrderId 
+      });
+    } else {
+      logStep(correlationId, "Admin notifications created successfully", { 
+        adminCount: adminUsers.length,
+        orderId: orderData.id 
+      });
+    }
+
+  } catch (error) {
+    logStep(correlationId, "Error in createAdminNotification", { 
+      error: error.message,
+      razorpayOrderId 
     });
   }
 }

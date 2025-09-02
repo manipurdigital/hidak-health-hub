@@ -265,65 +265,8 @@ serve(async (req) => {
 
     logStep("Order items created", { itemCount: orderItems.length });
 
-    // Send immediate WhatsApp notifications to admins
+    // Create in-app notifications for pending payment (no WhatsApp spam)
     try {
-      // Get admin phone numbers from profiles
-      const { data: adminUsers, error: adminError } = await supabaseClient
-        .from('user_roles')
-        .select(`
-          user_id,
-          profiles!inner (
-            phone
-          )
-        `)
-        .eq('role', 'admin')
-        .not('profiles.phone', 'is', null);
-
-      let adminPhones: string[] = [];
-      
-      if (adminUsers && adminUsers.length > 0) {
-        adminPhones = adminUsers
-          .map((admin: any) => admin.profiles?.phone)
-          .filter(Boolean);
-        logStep("Found admin phones from profiles", { count: adminPhones.length });
-      }
-
-      // Fallback to ADMIN_WHATSAPP_TO environment variable
-      const fallbackPhones = Deno.env.get('ADMIN_WHATSAPP_TO');
-      if (!adminPhones.length && fallbackPhones) {
-        adminPhones = fallbackPhones.split(',').map(p => p.trim()).filter(Boolean);
-        logStep("Using fallback admin phones", { count: adminPhones.length });
-      }
-
-      if (adminPhones.length > 0) {
-        // Prepare order data for WhatsApp message
-        const orderDataForMessage = {
-          ...order,
-          order_items: items.map(item => ({
-            quantity: item.quantity,
-            medicine: { name: item.name }
-          }))
-        };
-
-        const message = buildOrderWhatsAppMessage(orderDataForMessage);
-        
-        // Send to all admin numbers
-        let successCount = 0;
-        for (const phone of adminPhones) {
-          const success = await sendWhatsAppNotification(phone, message);
-          if (success) successCount++;
-        }
-
-        logStep("WhatsApp notifications sent to admins", { 
-          totalAdmins: adminPhones.length, 
-          successful: successCount,
-          orderId: order.id 
-        });
-      } else {
-        logStep("No admin phone numbers found for WhatsApp notification");
-      }
-
-      // Create in-app notifications for all admins
       const { data: allAdminUsers } = await supabaseClient
         .from('user_roles')
         .select('user_id')
@@ -332,25 +275,26 @@ serve(async (req) => {
       if (allAdminUsers && allAdminUsers.length > 0) {
         const adminNotifications = allAdminUsers.map(admin => ({
           user_id: admin.user_id,
-          title: 'New Medicine Order',
-          message: `New order ${order.order_number} received from ${patientName}. Total: ₹${totalAmount}`,
-          type: 'order',
+          title: 'New Order - Pending Payment',
+          message: `Order ${order.order_number} created by ${patientName}. Total: ₹${totalAmount}. Awaiting payment confirmation.`,
+          type: 'order_pending',
           data: {
             order_id: order.id,
             order_number: order.order_number,
             patient_name: patientName,
             patient_phone: patientPhone,
             total_amount: totalAmount,
-            patient_location: patientLocation
+            patient_location: patientLocation,
+            status: 'pending_payment'
           }
         }));
 
         await supabaseClient.from('notifications').insert(adminNotifications);
-        logStep("Admin notifications created", { adminCount: allAdminUsers.length });
+        logStep("Pending payment notifications created", { adminCount: allAdminUsers.length });
       }
       
     } catch (notificationError) {
-      logStep("Error sending notifications", notificationError);
+      logStep("Error creating pending notifications", notificationError);
       // Don't fail the order creation if notifications fail
     }
 
