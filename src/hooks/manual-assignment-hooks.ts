@@ -20,11 +20,37 @@ export const useNotifyAdminWhatsApp = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      toast({
-        title: "Admin notified",
-        description: "WhatsApp notification sent to admin successfully.",
-      });
+    onSuccess: (data: any) => {
+      const message: string | undefined = data?.whatsapp_message || data?.message;
+      const recipientRaw: string | undefined = data?.recipient || data?.adminWhatsApp;
+      if (message && recipientRaw) {
+        const phone = recipientRaw.toString().replace(/\D/g, '');
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        const win = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+          navigator.clipboard.writeText(message).then(() => {
+            toast({
+              title: 'WhatsApp blocked',
+              description: 'Message copied to clipboard. Paste it in WhatsApp manually.',
+            });
+          }).catch(() => {
+            toast({
+              title: 'Message ready',
+              description: 'Please open WhatsApp and paste the prepared message.',
+            });
+          });
+        } else {
+          toast({
+            title: 'WhatsApp opened',
+            description: 'Admin message prepared in WhatsApp for sending.',
+          });
+        }
+      } else {
+        toast({
+          title: 'Admin notified',
+          description: 'Notification prepared successfully.',
+        });
+      }
     },
     onError: (error) => {
       console.error('WhatsApp notification error:', error);
