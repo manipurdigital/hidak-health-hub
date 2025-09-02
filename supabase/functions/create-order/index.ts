@@ -93,33 +93,47 @@ async function sendWhatsAppNotification(to: string, message: string) {
   }
 }
 
-// Build WhatsApp message for order notification
-const buildOrderWhatsAppMessage = (orderData: any): string => {
+// Build WhatsApp message for COD order notification
+const buildCODOrderWhatsAppMessage = (orderData: any): string => {
   const items = orderData.order_items?.map((item: any) => 
-    `• ${item.medicine?.name || 'Unknown medicine'} - Qty: ${item.quantity}`
+    `• ${item.medicine?.name || 'Unknown medicine'} - Qty: ${item.quantity} @ ₹${item.unit_price}`
   ).join('\n') || 'No items specified';
 
-  const googleMapsLink = orderData.patient_location_lat && orderData.patient_location_lng 
-    ? `\n📍 Location: https://www.google.com/maps/dir/?api=1&destination=${orderData.patient_location_lat},${orderData.patient_location_lng}`
-    : '';
+  // Parse shipping address if it's a JSON string, otherwise use as is
+  let addressStr = orderData.shipping_address;
+  let googleMapsLink = '';
+  
+  try {
+    if (typeof addressStr === 'string' && addressStr.startsWith('{')) {
+      const addr = JSON.parse(addressStr);
+      addressStr = `${addr.name || ''}\n${addr.address_line_1 || ''}${addr.address_line_2 ? ', ' + addr.address_line_2 : ''}\n${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
+      if (addr.phone) addressStr += `\n📞 Contact: ${addr.phone}`;
+    }
+  } catch (e) {
+    // Use as plain text if parsing fails
+  }
 
-  // Mask phone number for privacy
-  const maskedPhone = orderData.patient_phone?.replace(/(\d{2})(\d{4})(\d{4})/, '$1xxxx$3') || 'N/A';
+  // Build GPS link with fallback sources
+  if (orderData.patient_location_lat && orderData.patient_location_lng) {
+    googleMapsLink = `\n📍 GPS: https://www.google.com/maps/dir/?api=1&destination=${orderData.patient_location_lat},${orderData.patient_location_lng}`;
+  }
 
-  return `🆘 *NEW ORDER RECEIVED* 🆘
+  return `💰 *COD ORDER CONFIRMED* 💰
 
 📦 *Order:* ${orderData.order_number}
 👤 *Patient:* ${orderData.patient_name}
-📱 *Phone:* ${maskedPhone}
-💰 *Amount:* ₹${orderData.total_amount}
+📱 *Phone:* ${orderData.patient_phone || 'N/A'}
+💰 *Total:* ₹${orderData.total_amount} (COD)
 
-*Items:*
+💊 *Items Ordered:*
 ${items}
 
-📮 *Address:*
-${orderData.shipping_address}${googleMapsLink}
+🏠 *Delivery Address:*
+${addressStr}${googleMapsLink}
 
-⚡ Please assign delivery agent immediately!`;
+⚡ *CASH ON DELIVERY - ASSIGN RIDER NOW!*
+💵 Collect ₹${orderData.total_amount} from customer at delivery.
+🏥 Check admin panel for immediate assignment.`;
 };
 
 serve(async (req) => {
@@ -149,7 +163,7 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const body = await req.json();
-    const { items, shippingAddress, prescriptionUrl, notes, patientName, patientPhone, patientLocation } = body;
+    const { items, shippingAddress, prescriptionUrl, notes, patientName, patientPhone, patientLocation, paymentMethod } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("No items provided");
@@ -168,6 +182,7 @@ serve(async (req) => {
       hasShipping: !!shippingAddress,
       patientName,
       patientPhone,
+      paymentMethod: paymentMethod || 'prepaid',
       hasLocation: !!(patientLocation?.lat && patientLocation?.lng)
     });
 
@@ -178,63 +193,78 @@ serve(async (req) => {
 
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${user.id.substring(0, 8)}`;
+    
+    // Handle payment method
+    const isCOD = paymentMethod === 'cod';
+    let razorpayOrder = null;
 
-    // Create Razorpay order first
-    const razorpayKeyId = "rzp_test_NKngyBlKJZZxzR"; // Publishable key
-    const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
+    if (!isCOD) {
+      // Create Razorpay order for prepaid orders
+      const razorpayKeyId = "rzp_test_NKngyBlKJZZxzR"; // Publishable key
+      const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
 
-    if (!razorpayKeySecret) {
-      throw new Error("Razorpay secret key not configured");
+      if (!razorpayKeySecret) {
+        throw new Error("Razorpay secret key not configured");
+      }
+
+      const razorpayOrderData = {
+        amount: Math.round(totalAmount * 100), // Convert to paisa
+        currency: "INR",
+        receipt: orderNumber,
+        notes: {
+          user_id: user.id,
+          patient_name: patientName,
+          patient_phone: patientPhone
+        }
+      };
+
+      logStep("Creating Razorpay order", razorpayOrderData);
+
+      const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKeySecret}`)}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(razorpayOrderData),
+      });
+
+      if (!razorpayResponse.ok) {
+        const errorText = await razorpayResponse.text();
+        logStep("Razorpay API error", { status: razorpayResponse.status, error: errorText });
+        throw new Error(`Razorpay API error: ${errorText}`);
+      }
+
+      razorpayOrder = await razorpayResponse.json();
+      logStep("Razorpay order created", { razorpayOrderId: razorpayOrder.id });
+    } else {
+      logStep("COD order - skipping Razorpay", { orderNumber });
     }
 
-    const razorpayOrderData = {
-      amount: Math.round(totalAmount * 100), // Convert to paisa
-      currency: "INR",
-      receipt: orderNumber,
-      notes: {
-        user_id: user.id,
-        patient_name: patientName,
-        patient_phone: patientPhone
-      }
+    // Create order in database
+    const orderData = {
+      user_id: user.id,
+      order_number: orderNumber,
+      total_amount: totalAmount,
+      shipping_address: typeof shippingAddress === 'string' ? shippingAddress : JSON.stringify(shippingAddress),
+      patient_name: patientName,
+      patient_phone: patientPhone,
+      patient_location_lat: patientLocation?.lat || null,
+      patient_location_lng: patientLocation?.lng || null,
+      notes: notes || null,
+      payment_method: paymentMethod || 'prepaid',
+      status: isCOD ? 'confirmed' : 'pending',
+      payment_status: isCOD ? 'pending' : 'pending'
     };
 
-    logStep("Creating Razorpay order", razorpayOrderData);
-
-    const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: {
-        "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKeySecret}`)}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(razorpayOrderData),
-    });
-
-    if (!razorpayResponse.ok) {
-      const errorText = await razorpayResponse.text();
-      logStep("Razorpay API error", { status: razorpayResponse.status, error: errorText });
-      throw new Error(`Razorpay API error: ${errorText}`);
+    // Add Razorpay order ID for prepaid orders
+    if (!isCOD && razorpayOrder) {
+      orderData.razorpay_order_id = razorpayOrder.id;
     }
 
-    const razorpayOrder = await razorpayResponse.json();
-    logStep("Razorpay order created", { razorpayOrderId: razorpayOrder.id });
-
-    // Create order in database with Razorpay order ID
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
-      .insert({
-        user_id: user.id,
-        order_number: orderNumber,
-        total_amount: totalAmount,
-        shipping_address: typeof shippingAddress === 'string' ? shippingAddress : JSON.stringify(shippingAddress),
-        patient_name: patientName,
-        patient_phone: patientPhone,
-        patient_location_lat: patientLocation?.lat || null,
-        patient_location_lng: patientLocation?.lng || null,
-        notes: notes || null,
-        status: 'pending',
-        payment_status: 'pending',
-        razorpay_order_id: razorpayOrder.id
-      })
+      .insert(orderData)
       .select()
       .single();
 
@@ -265,49 +295,33 @@ serve(async (req) => {
 
     logStep("Order items created", { itemCount: orderItems.length });
 
-    // Create in-app notifications for pending payment (no WhatsApp spam)
-    try {
-      const { data: allAdminUsers } = await supabaseClient
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'admin');
-
-      if (allAdminUsers && allAdminUsers.length > 0) {
-        const adminNotifications = allAdminUsers.map(admin => ({
-          user_id: admin.user_id,
-          title: 'New Order - Pending Payment',
-          message: `Order ${order.order_number} created by ${patientName}. Total: ₹${totalAmount}. Awaiting payment confirmation.`,
-          type: 'order_pending',
-          data: {
-            order_id: order.id,
-            order_number: order.order_number,
-            patient_name: patientName,
-            patient_phone: patientPhone,
-            total_amount: totalAmount,
-            patient_location: patientLocation,
-            status: 'pending_payment'
-          }
-        }));
-
-        await supabaseClient.from('notifications').insert(adminNotifications);
-        logStep("Pending payment notifications created", { adminCount: allAdminUsers.length });
-      }
-      
-    } catch (notificationError) {
-      logStep("Error creating pending notifications", notificationError);
-      // Don't fail the order creation if notifications fail
+    // Handle notifications based on payment method
+    if (isCOD) {
+      // For COD orders, send immediate comprehensive notifications
+      await sendCODOrderNotifications(supabaseClient, order, items, order.order_number);
+    } else {
+      // For prepaid orders, create only pending payment notifications
+      await createPendingPaymentNotifications(supabaseClient, order, patientName, patientPhone, totalAmount, patientLocation);
     }
 
-    return new Response(JSON.stringify({
+    // Prepare response data
+    const responseData = {
       success: true,
       order: {
         id: order.id,
         order_number: order.order_number,
         total_amount: totalAmount,
-        razorpay_order_id: razorpayOrder.id,
-        razorpay_key_id: razorpayKeyId
+        payment_method: paymentMethod || 'prepaid'
       }
-    }), {
+    };
+
+    // Add Razorpay data for prepaid orders
+    if (!isCOD && razorpayOrder) {
+      responseData.order.razorpay_order_id = razorpayOrder.id;
+      responseData.order.razorpay_key_id = "rzp_test_NKngyBlKJZZxzR";
+    }
+
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
@@ -324,3 +338,137 @@ serve(async (req) => {
     });
   }
 });
+
+// Send comprehensive notifications for COD orders
+async function sendCODOrderNotifications(supabaseClient: any, order: any, items: any[], correlationId: string) {
+  try {
+    // Get admin phone numbers from profiles
+    const { data: adminUsers, error: adminError } = await supabaseClient
+      .from('user_roles')
+      .select(`
+        user_id,
+        profiles!inner (
+          phone
+        )
+      `)
+      .eq('role', 'admin')
+      .not('profiles.phone', 'is', null);
+
+    let adminPhones: string[] = [];
+    
+    if (adminUsers && adminUsers.length > 0) {
+      adminPhones = adminUsers
+        .map((admin: any) => admin.profiles?.phone)
+        .filter(Boolean);
+      logStep("Found admin phones from profiles", { count: adminPhones.length });
+    }
+
+    // Fallback to ADMIN_WHATSAPP_TO environment variable
+    const fallbackPhones = Deno.env.get('ADMIN_WHATSAPP_TO');
+    if (!adminPhones.length && fallbackPhones) {
+      adminPhones = fallbackPhones.split(',').map(p => p.trim()).filter(Boolean);
+      logStep("Using fallback admin phones", { count: adminPhones.length });
+    }
+
+    if (adminPhones.length > 0) {
+      // Prepare order data for WhatsApp message
+      const orderDataForMessage = {
+        ...order,
+        order_items: items.map(item => ({
+          quantity: item.quantity,
+          unit_price: item.price,
+          medicine: { name: item.name }
+        }))
+      };
+
+      const message = buildCODOrderWhatsAppMessage(orderDataForMessage);
+      
+      // Send to all admin numbers
+      let successCount = 0;
+      for (const phone of adminPhones) {
+        const success = await sendWhatsAppNotification(phone, message);
+        if (success) successCount++;
+      }
+
+      logStep("COD WhatsApp notifications sent to admins", { 
+        totalAdmins: adminPhones.length, 
+        successful: successCount,
+        orderId: order.id 
+      });
+    } else {
+      logStep("No admin phone numbers found for COD WhatsApp notification");
+    }
+
+    // Create in-app notifications for all admins
+    const { data: allAdminUsers } = await supabaseClient
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'admin');
+
+    if (allAdminUsers && allAdminUsers.length > 0) {
+      const adminNotifications = allAdminUsers.map(admin => ({
+        user_id: admin.user_id,
+        title: '💰 COD Order Confirmed',
+        message: `COD Order ${order.order_number} from ${order.patient_name}. Total: ₹${order.total_amount}. Assign delivery rider immediately!`,
+        type: 'order_cod_confirmed',
+        data: {
+          order_id: order.id,
+          order_number: order.order_number,
+          patient_name: order.patient_name,
+          patient_phone: order.patient_phone,
+          total_amount: order.total_amount,
+          payment_method: 'cod',
+          patient_location: {
+            lat: order.patient_location_lat,
+            lng: order.patient_location_lng
+          },
+          shipping_address: order.shipping_address,
+          urgent: true,
+          action_required: 'assign_delivery'
+        }
+      }));
+
+      await supabaseClient.from('notifications').insert(adminNotifications);
+      logStep("COD admin notifications created", { adminCount: allAdminUsers.length });
+    }
+    
+  } catch (notificationError) {
+    logStep("Error sending COD notifications", notificationError);
+    // Don't fail the order creation if notifications fail
+  }
+}
+
+// Create pending payment notifications for prepaid orders
+async function createPendingPaymentNotifications(supabaseClient: any, order: any, patientName: string, patientPhone: string, totalAmount: number, patientLocation: any) {
+  try {
+    const { data: allAdminUsers } = await supabaseClient
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'admin');
+
+    if (allAdminUsers && allAdminUsers.length > 0) {
+      const adminNotifications = allAdminUsers.map(admin => ({
+        user_id: admin.user_id,
+        title: 'New Order - Pending Payment',
+        message: `Order ${order.order_number} created by ${patientName}. Total: ₹${totalAmount}. Awaiting payment confirmation.`,
+        type: 'order_pending',
+        data: {
+          order_id: order.id,
+          order_number: order.order_number,
+          patient_name: patientName,
+          patient_phone: patientPhone,
+          total_amount: totalAmount,
+          patient_location: patientLocation,
+          status: 'pending_payment'
+        }
+      }));
+
+      await supabaseClient.from('notifications').insert(adminNotifications);
+      logStep("Pending payment notifications created", { adminCount: allAdminUsers.length });
+    }
+    
+  } catch (notificationError) {
+    logStep("Error creating pending notifications", notificationError);
+    // Don't fail the order creation if notifications fail
+  }
+}
