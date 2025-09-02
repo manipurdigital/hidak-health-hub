@@ -310,23 +310,14 @@ export const LabOrdersTab: React.FC<LabOrdersTabProps> = ({ filters }) => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedBooking(booking)}
-                      >
-                        Assign
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => notifyAdmin.mutate({ type: 'new_lab_booking', entityId: booking.id })}
-                        disabled={notifyAdmin.isPending}
-                      >
-                        📱 Notify
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => notifyAdmin.mutate({ type: 'new_lab_booking', entityId: booking.id })}
+                      disabled={notifyAdmin.isPending}
+                    >
+                      📱 Notify
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
