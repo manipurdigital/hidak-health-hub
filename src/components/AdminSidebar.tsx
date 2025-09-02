@@ -21,7 +21,8 @@ import {
   FolderOpen,
   Activity,
   ChevronDown,
-  Package
+  Package,
+  Download
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -122,6 +123,14 @@ export function AdminSidebar() {
                     <Link to="/admin/doctors">
                       <Stethoscope className="mr-2 h-4 w-4" />
                       Doctors
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/admin/imports">
+                      <Download className="mr-2 h-4 w-4" />
+                      Imports
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

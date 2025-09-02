@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.admin-create-user]
 verify_jwt = true
+
+[functions.crawl-1mg-popular]
+verify_jwt = true

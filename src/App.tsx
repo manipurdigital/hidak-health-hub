@@ -54,6 +54,7 @@ import AdminSecurityPage from '@/pages/admin/AdminSecurityPage';
 import AdminBackupRestorePage from '@/pages/admin/AdminBackupRestorePage';
 import AdminSchemaExportPage from '@/pages/admin/AdminSchemaExportPage';
 import AdminCodeExportPage from '@/pages/admin/AdminCodeExportPage';
+import AdminImportsPage from '@/pages/admin/AdminImportsPage';
 import { CenterAccountLinking } from './components/admin/CenterAccountLinking';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 import { ServiceabilityProvider } from '@/contexts/ServiceabilityContext';
@@ -428,6 +429,16 @@ function App() {
                        <AdminGuard>
                          <AdminLayoutWrapper>
                            <AdminCodeExportPage />
+                         </AdminLayoutWrapper>
+                       </AdminGuard>
+                     }
+                    />
+                    <Route
+                     path="/admin/imports"
+                     element={
+                       <AdminGuard>
+                         <AdminLayoutWrapper>
+                           <AdminImportsPage />
                          </AdminLayoutWrapper>
                        </AdminGuard>
                      }
