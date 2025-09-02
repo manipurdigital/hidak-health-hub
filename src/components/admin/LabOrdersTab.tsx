@@ -134,19 +134,44 @@ export const LabOrdersTab: React.FC<LabOrdersTabProps> = ({ filters }) => {
   });
 
   const buildLabBookingWhatsAppMessage = (booking: LabBooking): string => {
+    console.log('Lab booking data:', booking); // Debug log
+    
     // Build GPS location link
-    const googleMapsLink = booking.pickup_lat && booking.pickup_lng 
-      ? `\n📍 *GPS Location:* https://www.google.com/maps/dir/?api=1&destination=${booking.pickup_lat},${booking.pickup_lng}`
-      : '';
+    let googleMapsLink = '';
+    if (booking.pickup_lat && booking.pickup_lng) {
+      googleMapsLink = `\n📍 *GPS Location:* https://www.google.com/maps/dir/?api=1&destination=${booking.pickup_lat},${booking.pickup_lng}`;
+    }
 
     // Build address information
     let addressInfo = '';
     if (booking.pickup_address) {
       const addr = booking.pickup_address;
-      addressInfo = `\n🏠 *Address:*\n${addr.name || 'N/A'}\n${addr.address_line_1 || ''}${addr.address_line_2 ? ', ' + addr.address_line_2 : ''}\n${addr.city || ''}, ${addr.state || ''} - ${addr.postal_code || ''}`;
-      if (addr.landmark) {
-        addressInfo += `\n📍 Landmark: ${addr.landmark}`;
+      console.log('Pickup address data:', addr); // Debug log
+      
+      if (typeof addr === 'string') {
+        addressInfo = `\n🏠 *Address:*\n${addr}`;
+      } else if (typeof addr === 'object' && addr !== null) {
+        const addressParts = [
+          addr.name || '',
+          addr.address_line_1 || '',
+          addr.address_line_2 || '',
+          addr.city || '',
+          addr.state || '',
+          addr.postal_code || addr.pincode || ''
+        ].filter(Boolean);
+        
+        if (addressParts.length > 0) {
+          addressInfo = `\n🏠 *Address:*\n${addressParts.join(', ')}`;
+          if (addr.landmark) {
+            addressInfo += `\n📍 Landmark: ${addr.landmark}`;
+          }
+        }
       }
+    }
+
+    // If no address available but we have coordinates, show coordinates
+    if (!addressInfo && booking.pickup_lat && booking.pickup_lng) {
+      addressInfo = `\n🏠 *Address:* Coordinates: ${booking.pickup_lat}, ${booking.pickup_lng}`;
     }
 
     // Build time information (only if time is available)
