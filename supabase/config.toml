@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.crawl-1mg-popular]
 verify_jwt = true
+
+[functions.import-medicine-from-url]
+verify_jwt = true
