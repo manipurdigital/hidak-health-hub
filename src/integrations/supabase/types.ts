@@ -269,6 +269,7 @@ export type Database = {
           consultation_date: string
           consultation_fee: number
           consultation_time: string
+          consultation_type: string | null
           created_at: string | null
           doctor_id: string | null
           id: string
@@ -287,6 +288,7 @@ export type Database = {
           consultation_date: string
           consultation_fee: number
           consultation_time: string
+          consultation_type?: string | null
           created_at?: string | null
           doctor_id?: string | null
           id?: string
@@ -305,6 +307,7 @@ export type Database = {
           consultation_date?: string
           consultation_fee?: number
           consultation_time?: string
+          consultation_type?: string | null
           created_at?: string | null
           doctor_id?: string | null
           id?: string
