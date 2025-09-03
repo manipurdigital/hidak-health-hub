@@ -139,12 +139,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [state.items]);
 
-  // Clear cart when user logs out
-  useEffect(() => {
-    if (user === null) {
-      dispatch({ type: 'CLEAR_CART' });
-    }
-  }, [user]);
+  // Note: Removed automatic cart clearing on user logout to preserve cart across page refreshes
+  // Cart should only be cleared when orders are confirmed or user explicitly clears it
 
   const addItem = (item: Omit<CartItem, 'quantity'>) => {
     dispatch({ type: 'ADD_ITEM', payload: item });
