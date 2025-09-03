@@ -41,7 +41,9 @@ interface ParsedMedicine {
   pack_size: string;
   requires_prescription: boolean;
   image_url?: string;
+  thumbnail_url?: string;
   composition_text?: string;
+  salt_composition?: string;
   composition_key?: string;
   composition_family_key?: string;
   external_source_url: string;
@@ -112,17 +114,28 @@ export function URLImportDialog({ open, onOpenChange, onSuccess }: URLImportDial
       if (data.mode === 'updated' && data.dedupeReason) {
         setImportResult(data);
         setStep('dedupe');
+      } else if (data.mode === 'created') {
+        // Already inserted by the edge function; mark as completed
+        toast({ title: 'Imported', description: 'Medicine saved successfully' });
+        setStep('completed');
+        onSuccess();
       } else {
-        // Show preview for new medicines
-        const parsed = data.medicineData || data.medicine;
-        setParsedData(parsed);
-        setEditableData({ ...parsed });
+        // Show preview for enrichment-only responses
+        const parsed = data.medicineData || data.medicine || {};
+        const normalized: ParsedMedicine = {
+          ...(parsed as any),
+          composition_text: parsed.composition_text || parsed.salt_composition || parsed.composition || '',
+          image_url: parsed.thumbnail_url || parsed.image_url,
+          thumbnail_url: parsed.thumbnail_url || parsed.image_url,
+        };
+        setParsedData(normalized);
+        setEditableData({ ...normalized });
         setStep('preview');
       }
 
       toast({
-        title: "Success",
-        description: data.mode === 'updated' ? "Found existing medicine" : "URL parsed successfully"
+        title: 'Success',
+        description: data.mode === 'updated' ? 'Found existing medicine' : 'URL parsed successfully'
       });
     } catch (error) {
       console.error('URL parsing error:', error);
@@ -155,7 +168,9 @@ export function URLImportDialog({ open, onOpenChange, onSuccess }: URLImportDial
           pack_size: editableData.pack_size,
           requires_prescription: editableData.requires_prescription,
           image_url: editableData.image_url,
-          composition_text: editableData.composition_text,
+          thumbnail_url: editableData.thumbnail_url || editableData.image_url,
+          composition: editableData.composition_text,
+          salt_composition: editableData.composition_text,
           composition_key: editableData.composition_key,
           composition_family_key: editableData.composition_family_key,
           external_source_url: editableData.external_source_url,
@@ -198,6 +213,11 @@ export function URLImportDialog({ open, onOpenChange, onSuccess }: URLImportDial
           original_price: editableData.original_price,
           description: editableData.description || importResult.existingMedicine.description,
           image_url: editableData.image_url || importResult.existingMedicine.image_url,
+          thumbnail_url: editableData.thumbnail_url || editableData.image_url || importResult.existingMedicine.thumbnail_url,
+          composition: editableData.composition_text || importResult.existingMedicine.composition,
+          salt_composition: editableData.composition_text || importResult.existingMedicine.salt_composition,
+          composition_key: editableData.composition_key || importResult.existingMedicine.composition_key,
+          composition_family_key: editableData.composition_family_key || importResult.existingMedicine.composition_family_key,
           external_source_url: editableData.external_source_url,
           source_last_fetched: new Date().toISOString()
         })
@@ -477,7 +497,7 @@ export function URLImportDialog({ open, onOpenChange, onSuccess }: URLImportDial
                   {renderDiffField('Pack Size', 'pack_size')}
                 </div>
 
-                {renderDiffField('Composition', 'composition_text')}
+                {renderDiffField('Salt Composition (Generic)', 'composition_text')}
                 {renderDiffField('Description', 'description', 'textarea')}
 
                 <div className="space-y-2">

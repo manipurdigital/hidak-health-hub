@@ -749,6 +749,7 @@ async function parseGenericProduct(html: string, url: string): Promise<{medicine
       dosage,
       pack_size: packSize,
       composition: composition,
+      salt_composition: composition,
       requires_prescription: false,
       external_source_url: url,
       external_source_domain: urlObj.hostname,

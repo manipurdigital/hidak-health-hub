@@ -119,8 +119,16 @@ export function MedicineDetailPage() {
                       alt={medicine.name}
                       className="w-full h-full object-contain"
                       onError={(e) => {
-                        console.log('Image failed to load:', medicine.thumbnail_url || medicine.image_url);
                         const target = e.target as HTMLImageElement;
+                        const triedFallback = target.getAttribute('data-fallback-tried') === 'true';
+                        const primary = medicine.thumbnail_url || '';
+                        const secondary = medicine.image_url || '';
+                        if (!triedFallback && primary && secondary && primary !== secondary) {
+                          target.setAttribute('data-fallback-tried', 'true');
+                          target.src = secondary;
+                          return;
+                        }
+                        console.log('Image failed to load:', primary || secondary);
                         target.style.display = 'none';
                         const parent = target.parentElement!;
                         parent.innerHTML = '<div class="text-muted-foreground">Image not available</div>';

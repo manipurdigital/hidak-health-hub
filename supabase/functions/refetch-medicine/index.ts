@@ -76,8 +76,11 @@ serve(async (req) => {
       {
         body: {
           url: medicine.external_source_url,
-          downloadImages: true,
-          storeHtmlAudit: options.storeHtmlAudit
+          options: {
+            downloadImages: true,
+            storeHtmlAudit: options.storeHtmlAudit,
+            respectRobots: true,
+          },
         }
       }
     );
