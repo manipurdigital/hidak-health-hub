@@ -74,16 +74,20 @@ export const useDoctorUpcomingConsultations = () => {
       // Get patient profiles for each consultation
       const consultationsWithProfiles = await Promise.all(
         (data || []).map(async (consultation) => {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('full_name, phone, email')
             .eq('user_id', consultation.patient_id)
             .single();
           
+          if (profileError) {
+            console.warn('Could not fetch profile for patient:', consultation.patient_id, profileError);
+          }
+          
           return {
             ...consultation,
-            profiles: profile,
-            consultation_type: 'video' // Default consultation type for compatibility
+            profiles: profile || null, // Ensure null if no profile found
+            consultation_type: consultation.consultation_type || 'video' // Use existing or default
           };
         })
       );

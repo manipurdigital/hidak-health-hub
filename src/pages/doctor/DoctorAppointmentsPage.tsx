@@ -77,11 +77,13 @@ export default function DoctorAppointmentsPage() {
                   <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12">
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {consultation.profiles?.full_name ? consultation.profiles.full_name.split(' ').map(n => n[0]).join('') : 'UN'}
+                        {consultation.profiles?.full_name 
+                          ? consultation.profiles.full_name.split(' ').map(n => n[0]).join('') 
+                          : 'UN'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h4 className="font-medium text-lg">{consultation.profiles.full_name}</h4>
+                      <h4 className="font-medium text-lg">{consultation.profiles?.full_name || 'Unknown Patient'}</h4>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
