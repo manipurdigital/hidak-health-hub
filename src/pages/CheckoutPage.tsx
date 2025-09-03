@@ -17,6 +17,9 @@ import SubscriptionBenefits from '@/components/SubscriptionBenefits';
 import { supabase } from '@/integrations/supabase/client';
 import { checkServiceability, ServiceabilityResult } from '@/services/serviceability';
 import { LocationInputField } from '@/components/LocationInputField';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Phone, Mail, CreditCard, Truck, CheckCircle, AlertTriangle } from 'lucide-react';
 import { openRazorpayCheckout, useVerifyPayment } from '@/hooks/payment-hooks';
 import { useServiceability } from '@/contexts/ServiceabilityContext';
@@ -49,6 +52,7 @@ const CheckoutPage = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
   const [notes, setNotes] = useState('');
+  const [showDeliveryUnavailableModal, setShowDeliveryUnavailableModal] = useState(false);
   const [loading, setLoading] = useState(false);
   
   const { state: cartState, clearCart } = useCart();
@@ -63,6 +67,13 @@ const CheckoutPage = () => {
   const subscriptionDiscount = (cartState.totalAmount * extraDiscount) / 100;
   const finalTotal = cartState.totalAmount - subscriptionDiscount;
   const totalAmount = finalTotal + deliveryFee;
+
+  // Show modal when delivery is not available
+  useEffect(() => {
+    if (inDeliveryArea === false) {
+      setShowDeliveryUnavailableModal(true);
+    }
+  }, [inDeliveryArea]);
 
   const handleInputChange = (field: keyof ShippingAddress, value: string) => {
     setShippingAddress(prev => ({
@@ -440,7 +451,35 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      {/* Delivery Unavailable Modal */}
+      <Dialog open={showDeliveryUnavailableModal} onOpenChange={setShowDeliveryUnavailableModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <DialogTitle className="text-xl text-red-800">
+                Delivery Not Available
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-red-700">
+              Unfortunately, we don't deliver to your selected area yet. Please choose a different location or contact us for assistance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeliveryUnavailableModal(false)}
+            >
+              Choose Different Location
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-primary text-primary-foreground p-4">
         <div className="container mx-auto flex items-center gap-4">
@@ -712,7 +751,8 @@ const CheckoutPage = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
