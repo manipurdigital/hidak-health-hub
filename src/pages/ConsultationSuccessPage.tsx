@@ -244,7 +244,7 @@ export function ConsultationSuccessPage() {
                 <Avatar className="w-16 h-16">
                   <AvatarImage src={consultation.doctor?.profile_image_url} alt={consultation.doctor?.full_name} />
                   <AvatarFallback>
-                    {consultation.doctor?.full_name.split(' ').map((n: string) => n[0]).join('')}
+                    {consultation.doctor?.full_name ? consultation.doctor.full_name.split(' ').map((n: string) => n[0]).join('') : 'DR'}
                   </AvatarFallback>
                 </Avatar>
                 <div>

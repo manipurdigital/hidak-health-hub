@@ -269,7 +269,7 @@ export default function DoctorConsultationDetailPage() {
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
                 <AvatarFallback>
-                  {consultation.profiles.full_name?.split(' ').map(n => n[0]).join('')}
+                  {consultation.profiles?.full_name ? consultation.profiles.full_name.split(' ').map(n => n[0]).join('') : 'UN'}
                 </AvatarFallback>
               </Avatar>
               <div>

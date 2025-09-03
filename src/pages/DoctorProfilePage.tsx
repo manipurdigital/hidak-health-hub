@@ -280,7 +280,7 @@ function DoctorProfile({ doctor, onBookConsultation, formatPrice }: any) {
               <Avatar className="w-32 h-32 mb-4">
                 <AvatarImage src={doctor.profile_image_url} alt={doctor.full_name} />
                 <AvatarFallback className="text-2xl">
-                  {doctor.full_name.split(' ').map((n: string) => n[0]).join('')}
+                  {doctor.full_name ? doctor.full_name.split(' ').map((n: string) => n[0]).join('') : 'DR'}
                 </AvatarFallback>
               </Avatar>
               <h2 className="text-2xl font-bold">{doctor.full_name}</h2>
@@ -588,7 +588,7 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
             <Avatar className="w-16 h-16">
               <AvatarImage src={doctor.profile_image_url} alt={doctor.full_name} />
               <AvatarFallback>
-                {doctor.full_name.split(' ').map((n: string) => n[0]).join('')}
+                {doctor.full_name ? doctor.full_name.split(' ').map((n: string) => n[0]).join('') : 'DR'}
               </AvatarFallback>
             </Avatar>
             <div>

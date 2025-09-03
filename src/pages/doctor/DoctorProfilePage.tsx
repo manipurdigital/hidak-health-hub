@@ -124,7 +124,7 @@ export default function DoctorProfilePage() {
               <Avatar className="h-24 w-24 mb-4">
                 <AvatarImage src={doctorInfo.profile_image_url} />
                 <AvatarFallback className="text-lg">
-                  {doctorInfo.full_name?.split(' ').map(n => n[0]).join('')}
+                  {doctorInfo.full_name ? doctorInfo.full_name.split(' ').map(n => n[0]).join('') : 'DR'}
                 </AvatarFallback>
               </Avatar>
               {isEditing && (

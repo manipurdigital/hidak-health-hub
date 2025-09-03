@@ -116,7 +116,7 @@ export default function DoctorDashboardPage() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            {getGreeting()}, Dr. {doctorInfo?.full_name?.split(' ')[0] || 'Doctor'}
+            {getGreeting()}, Dr. {doctorInfo?.full_name ? doctorInfo.full_name.split(' ')[0] : 'Doctor'}
           </h1>
           <p className="text-muted-foreground text-lg mt-2">
             Today is {format(new Date(), 'EEEE, MMMM do, yyyy')} • Here's your practice overview

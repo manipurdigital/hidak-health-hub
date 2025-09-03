@@ -139,7 +139,7 @@ export function UpcomingAppointments({ consultations }: UpcomingAppointmentsProp
                   <Avatar className="h-12 w-12 ring-2 ring-background shadow-sm">
                     <AvatarImage src={consultation.profiles?.avatar_url} />
                     <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                      {consultation.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'UN'}
+                      {consultation.profiles?.full_name ? consultation.profiles.full_name.split(' ').map((n: string) => n[0]).join('') : 'UN'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
