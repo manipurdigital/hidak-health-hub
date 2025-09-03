@@ -26,6 +26,7 @@ interface PatientDetails {
   name: string;
   phone: string;
   age: string;
+  gender: string;
   notes: string;
 }
 
@@ -48,6 +49,7 @@ export function DoctorProfilePage() {
     name: '',
     phone: '',
     age: '',
+    gender: '',
     notes: '',
   });
   const [isBooking, setIsBooking] = useState(false);
@@ -103,7 +105,7 @@ export function DoctorProfilePage() {
           consultation_type: 'text', // Default mode, doctor will decide final mode
           total_amount: 0,
           payment_status: 'waived',
-          patient_notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Notes: ${patientDetails.notes}`,
+          patient_notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Gender: ${patientDetails.gender}, Notes: ${patientDetails.notes}`,
         };
 
         const result = await createConsultation.mutateAsync(consultationData);
@@ -115,7 +117,7 @@ export function DoctorProfilePage() {
           consultationDate: selectedSlot.date,
           timeSlot: selectedSlot.time,
           consultationType: 'text', // Default mode, doctor will decide final mode
-          notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Notes: ${patientDetails.notes}`,
+          notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Gender: ${patientDetails.gender}, Notes: ${patientDetails.notes}`,
         });
 
         // Open Razorpay checkout immediately
@@ -142,7 +144,7 @@ export function DoctorProfilePage() {
                 consultationDate: selectedSlot.date,
                 timeSlot: selectedSlot.time,
                 consultationType: 'text', // Default mode, doctor will decide final mode
-                notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Notes: ${patientDetails.notes}`,
+                notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Gender: ${patientDetails.gender}, Notes: ${patientDetails.notes}`,
               });
               
               navigate(`/consult-success/${result.consultation_id}`);
@@ -514,7 +516,7 @@ function PatientDetailsForm({ patientDetails, onDetailsChange, onContinue }: any
     });
   };
 
-  const isFormValid = patientDetails.name.trim() && patientDetails.phone.trim() && patientDetails.age.trim();
+  const isFormValid = patientDetails.name.trim() && patientDetails.phone.trim() && patientDetails.age.trim() && patientDetails.gender.trim();
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -550,18 +552,38 @@ function PatientDetailsForm({ patientDetails, onDetailsChange, onContinue }: any
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="patient-age">Age *</Label>
-              <Input
-                id="patient-age"
-                type="number"
-                value={patientDetails.age}
-                onChange={(e) => handleInputChange('age', e.target.value)}
-                placeholder="Enter patient's age"
-                required
-                min="1"
-                max="120"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="patient-age">Age *</Label>
+                <Input
+                  id="patient-age"
+                  type="number"
+                  value={patientDetails.age}
+                  onChange={(e) => handleInputChange('age', e.target.value)}
+                  placeholder="Enter patient's age"
+                  required
+                  min="1"
+                  max="120"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="patient-gender">Gender *</Label>
+                <RadioGroup 
+                  value={patientDetails.gender} 
+                  onValueChange={(value) => handleInputChange('gender', value)}
+                  className="flex flex-row space-x-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="male" id="male" />
+                    <Label htmlFor="male">Male</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="female" id="female" />
+                    <Label htmlFor="female">Female</Label>
+                  </div>
+                </RadioGroup>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -685,8 +707,8 @@ function ConsultationReview({ doctor, slot, patientDetails, hasActiveSubscriptio
             <div className="flex items-center gap-3">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               <div>
-                <p className="font-medium">{patientDetails.age} years</p>
-                <p className="text-sm text-muted-foreground">Patient Age</p>
+                <p className="font-medium">{patientDetails.age} years old, {patientDetails.gender}</p>
+                <p className="text-sm text-muted-foreground">Age & Gender</p>
               </div>
             </div>
 
