@@ -32,19 +32,26 @@ export default function ConsultationChatPage() {
         .from('profiles')
         .select('full_name')
         .eq('user_id', consultationData.patient_id)
-        .single();
+        .maybeSingle();
 
       // Get doctor info
       const { data: doctorInfo } = await supabase
         .from('doctors')
         .select('full_name, user_id')
         .eq('id', consultationData.doctor_id)
-        .single();
+        .maybeSingle();
+
+      // Extract patient name from notes if profile not found
+      let patientName = patientProfile?.full_name;
+      if (!patientName && consultationData.patient_notes) {
+        const nameMatch = consultationData.patient_notes.match(/Patient:\s*([^,]+)/i);
+        patientName = nameMatch ? nameMatch[1].trim() : 'Unknown Patient';
+      }
 
       return {
         ...consultationData,
-        patient_profile: patientProfile,
-        doctor_info: doctorInfo
+        patient_profile: { full_name: patientName || 'Unknown Patient' },
+        doctor_info: doctorInfo || { full_name: 'Unknown Doctor', user_id: null }
       };
     },
     enabled: !!consultationId && !!user,

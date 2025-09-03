@@ -64,21 +64,52 @@ export default function DoctorConsultationDetailPage() {
     queryFn: async () => {
       if (!consultationId) throw new Error('Consultation ID required');
 
-      const { data, error } = await supabase
+      const { data: consultationData, error } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_patient_id_fkey(full_name, phone, email)
-        `)
+        .select('*')
         .eq('id', consultationId)
         .single();
 
       if (error) throw error;
+
+      // Fetch patient profile separately to avoid join errors
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, phone, email')
+        .eq('user_id', consultationData.patient_id)
+        .maybeSingle();
+
+      let finalProfile = profile;
       
-      const consultation = {
-        ...data,
-        profiles: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles
-      } as unknown as ConsultationDetail;
+      // Extract patient details from patient_notes if profile incomplete
+      if (!profile?.full_name && consultationData.patient_notes) {
+        const extractPatientInfo = (notes: string) => {
+          const patterns = {
+            name: /Patient:\s*([^,]+)/i,
+            phone: /Phone:\s*([^,]+)/i,
+            email: /Email:\s*([^,]+)/i
+          };
+          
+          const nameMatch = notes.match(patterns.name);
+          const phoneMatch = notes.match(patterns.phone);
+          const emailMatch = notes.match(patterns.email);
+          
+          return {
+            full_name: nameMatch ? nameMatch[1].trim() : 'Unknown Patient',
+            phone: phoneMatch ? phoneMatch[1].trim() : '',
+            email: emailMatch ? emailMatch[1].trim() : ''
+          };
+        };
+        
+        finalProfile = extractPatientInfo(consultationData.patient_notes);
+      }
+
+      const data = {
+        ...consultationData,
+        profiles: finalProfile || { full_name: 'Unknown Patient', phone: '', email: '' }
+      };
+
+      const consultation = data as unknown as ConsultationDetail;
 
       setDoctorNotes(consultation.doctor_notes || '');
       return consultation;

@@ -46,10 +46,7 @@ export default function ConsultationChatWindow({ consultationId, isPatient = fal
     queryFn: async () => {
       const { data, error } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_patient_id_fkey(full_name, phone, email)
-        `)
+        .select('*')
         .eq('id', consultationId)
         .single();
 

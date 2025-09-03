@@ -78,7 +78,7 @@ export const useDoctorUpcomingConsultations = () => {
             .from('profiles')
             .select('full_name, phone, email')
             .eq('user_id', consultation.patient_id)
-            .single();
+            .maybeSingle();
           
           let finalProfile = profile;
           
