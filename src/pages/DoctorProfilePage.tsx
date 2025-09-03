@@ -1,13 +1,15 @@
 // @ts-nocheck
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Star, Languages, MapPin, Calendar, Clock, Video, MessageSquare, Phone } from 'lucide-react';
+import { ArrowLeft, Star, Languages, MapPin, Calendar, Clock, Video, MessageSquare, Phone, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDoctor, useDoctorAvailability, useAvailableSlots } from '@/hooks/doctor-hooks';
 import { useCreateConsultation } from '@/hooks/api-hooks';
@@ -18,8 +20,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-states';
 import { Breadcrumb, BackButton } from '@/components/Breadcrumb';
 
-type BookingStep = 'profile' | 'slot' | 'mode' | 'review';
-type ConsultationType = 'text' | 'audio' | 'video';
+type BookingStep = 'profile' | 'slot' | 'patient-details' | 'review';
+
+interface PatientDetails {
+  name: string;
+  phone: string;
+  age: string;
+  notes: string;
+}
 
 export function DoctorProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +44,12 @@ export function DoctorProfilePage() {
     time: string;
     datetime: string;
   } | null>(null);
-  const [consultationType, setConsultationType] = useState<ConsultationType>('text');
+  const [patientDetails, setPatientDetails] = useState<PatientDetails>({
+    name: '',
+    phone: '',
+    age: '',
+    notes: '',
+  });
   const [isBooking, setIsBooking] = useState(false);
 
   const { data: doctor, isLoading, error } = useDoctor(id!);
@@ -68,10 +81,10 @@ export function DoctorProfilePage() {
 
   const handleSlotSelected = (slot: { date: string; time: string; datetime: string }) => {
     setSelectedSlot(slot);
-    setCurrentStep('mode');
+    setCurrentStep('patient-details');
   };
 
-  const handleModeSelected = () => {
+  const handlePatientDetailsSubmitted = () => {
     setCurrentStep('review');
   };
 
@@ -87,10 +100,10 @@ export function DoctorProfilePage() {
           doctor_id: doctor.id,
           consultation_date: selectedSlot.date,
           time_slot: selectedSlot.time,
-          consultation_type: consultationType,
+          consultation_type: 'text', // Default mode, doctor will decide final mode
           total_amount: 0,
           payment_status: 'waived',
-          patient_notes: '',
+          patient_notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Notes: ${patientDetails.notes}`,
         };
 
         const result = await createConsultation.mutateAsync(consultationData);
@@ -101,8 +114,8 @@ export function DoctorProfilePage() {
           doctorId: doctor.id,
           consultationDate: selectedSlot.date,
           timeSlot: selectedSlot.time,
-          consultationType,
-          notes: '',
+          consultationType: 'text', // Default mode, doctor will decide final mode
+          notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Notes: ${patientDetails.notes}`,
         });
 
         // Open Razorpay checkout immediately
@@ -128,8 +141,8 @@ export function DoctorProfilePage() {
                 doctorId: doctor.id,
                 consultationDate: selectedSlot.date,
                 timeSlot: selectedSlot.time,
-                consultationType,
-                notes: '',
+                consultationType: 'text', // Default mode, doctor will decide final mode
+                notes: `Patient: ${patientDetails.name}, Phone: ${patientDetails.phone}, Age: ${patientDetails.age}, Notes: ${patientDetails.notes}`,
               });
               
               navigate(`/consult-success/${result.consultation_id}`);
@@ -170,11 +183,11 @@ export function DoctorProfilePage() {
       case 'slot':
         setCurrentStep('profile');
         break;
-      case 'mode':
+      case 'patient-details':
         setCurrentStep('slot');
         break;
       case 'review':
-        setCurrentStep('mode');
+        setCurrentStep('patient-details');
         break;
       default:
         navigate(-1);
@@ -213,13 +226,13 @@ export function DoctorProfilePage() {
                 <span className="ml-2 text-sm">Slot</span>
               </div>
               <div className="w-8 h-px bg-muted" />
-              <div className={`flex items-center ${currentStep === 'mode' || currentStep === 'review' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`flex items-center ${currentStep === 'patient-details' || currentStep === 'review' ? 'text-primary' : 'text-muted-foreground'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  currentStep === 'mode' || currentStep === 'review' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                  currentStep === 'patient-details' || currentStep === 'review' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                 }`}>
-                  <Video className="w-4 h-4" />
+                  <User className="w-4 h-4" />
                 </div>
-                <span className="ml-2 text-sm">Mode</span>
+                <span className="ml-2 text-sm">Patient</span>
               </div>
               <div className="w-8 h-px bg-muted" />
               <div className={`flex items-center ${currentStep === 'review' ? 'text-primary' : 'text-muted-foreground'}`}>
@@ -246,11 +259,11 @@ export function DoctorProfilePage() {
           />
         )}
 
-        {currentStep === 'mode' && (
-          <ConsultationMode
-            consultationType={consultationType}
-            onTypeChange={setConsultationType}
-            onContinue={handleModeSelected}
+        {currentStep === 'patient-details' && (
+          <PatientDetailsForm
+            patientDetails={patientDetails}
+            onDetailsChange={setPatientDetails}
+            onContinue={handlePatientDetailsSubmitted}
           />
         )}
 
@@ -258,7 +271,7 @@ export function DoctorProfilePage() {
           <ConsultationReview
             doctor={doctor}
             slot={selectedSlot}
-            consultationType={consultationType}
+            patientDetails={patientDetails}
             hasActiveSubscription={hasActiveSubscription}
             isBooking={isBooking}
             onConfirm={handleConfirmBooking}
@@ -484,7 +497,7 @@ function AvailabilityPicker({ doctor, availableSlots, onSlotSelected }: any) {
 
           {selectedDate && selectedTime && (
             <Button onClick={handleContinue} className="w-full" size="lg">
-              Continue to Select Mode
+              Continue to Patient Details
             </Button>
           )}
         </CardContent>
@@ -493,70 +506,88 @@ function AvailabilityPicker({ doctor, availableSlots, onSlotSelected }: any) {
   );
 }
 
-function ConsultationMode({ consultationType, onTypeChange, onContinue }: any) {
+function PatientDetailsForm({ patientDetails, onDetailsChange, onContinue }: any) {
+  const handleInputChange = (field: keyof PatientDetails, value: string) => {
+    onDetailsChange({
+      ...patientDetails,
+      [field]: value,
+    });
+  };
+
+  const isFormValid = patientDetails.name.trim() && patientDetails.phone.trim() && patientDetails.age.trim();
+
   return (
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Select Consultation Mode</CardTitle>
+          <CardTitle>Patient Details</CardTitle>
+          <p className="text-muted-foreground">
+            Please provide the patient's information for the consultation.
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          <RadioGroup value={consultationType} onValueChange={onTypeChange}>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="text" id="text" />
-                <Label htmlFor="text" className="flex-1 cursor-pointer">
-                  <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <MessageSquare className="w-5 h-5 text-primary" />
-                      <div>
-                        <div className="font-medium">Text Chat</div>
-                        <p className="text-sm text-muted-foreground">
-                          Chat with the doctor via text messages
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="audio" id="audio" />
-                <Label htmlFor="audio" className="flex-1 cursor-pointer">
-                  <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-5 h-5 text-primary" />
-                      <div>
-                        <div className="font-medium">Audio Call</div>
-                        <p className="text-sm text-muted-foreground">
-                          Voice consultation with the doctor
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <RadioGroupItem value="video" id="video" />
-                <Label htmlFor="video" className="flex-1 cursor-pointer">
-                  <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <Video className="w-5 h-5 text-primary" />
-                      <div>
-                        <div className="font-medium">Video Call</div>
-                        <p className="text-sm text-muted-foreground">
-                          Face-to-face consultation with the doctor
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Label>
-              </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="patient-name">Patient Name *</Label>
+              <Input
+                id="patient-name"
+                value={patientDetails.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Enter patient's full name"
+                required
+              />
             </div>
-          </RadioGroup>
 
-          <Button onClick={onContinue} className="w-full" size="lg">
+            <div className="space-y-2">
+              <Label htmlFor="patient-phone">Phone Number *</Label>
+              <Input
+                id="patient-phone"
+                type="tel"
+                value={patientDetails.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="Enter patient's phone number"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="patient-age">Age *</Label>
+              <Input
+                id="patient-age"
+                type="number"
+                value={patientDetails.age}
+                onChange={(e) => handleInputChange('age', e.target.value)}
+                placeholder="Enter patient's age"
+                required
+                min="1"
+                max="120"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="patient-notes">Medical Notes (Optional)</Label>
+              <Textarea
+                id="patient-notes"
+                value={patientDetails.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any specific symptoms, medical history, or concerns to share with the doctor..."
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> The doctor will determine the consultation mode (text, audio, or video) based on the case requirements.
+            </p>
+          </div>
+
+          <Button 
+            onClick={onContinue} 
+            className="w-full" 
+            size="lg"
+            disabled={!isFormValid}
+          >
             Continue to Review
           </Button>
         </CardContent>
@@ -565,7 +596,7 @@ function ConsultationMode({ consultationType, onTypeChange, onContinue }: any) {
   );
 }
 
-function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscription, isBooking, onConfirm }: any) {
+function ConsultationReview({ doctor, slot, patientDetails, hasActiveSubscription, isBooking, onConfirm }: any) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -576,21 +607,6 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
     });
   };
 
-  const getConsultationIcon = () => {
-    switch (consultationType) {
-      case 'audio': return <Phone className="w-5 h-5 text-primary" />;
-      case 'video': return <Video className="w-5 h-5 text-primary" />;
-      default: return <MessageSquare className="w-5 h-5 text-primary" />;
-    }
-  };
-
-  const getConsultationLabel = () => {
-    switch (consultationType) {
-      case 'audio': return 'Audio Call';
-      case 'video': return 'Video Call';
-      default: return 'Text Chat';
-    }
-  };
 
   const consultationFee = hasActiveSubscription ? 0 : doctor.consultation_fee;
 
@@ -651,12 +667,37 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
             </div>
 
             <div className="flex items-center gap-3">
-              {getConsultationIcon()}
+              <User className="w-4 h-4 text-muted-foreground" />
               <div>
-                <p className="font-medium">{getConsultationLabel()}</p>
-                <p className="text-sm text-muted-foreground">Consultation Mode</p>
+                <p className="font-medium">{patientDetails.name}</p>
+                <p className="text-sm text-muted-foreground">Patient Name</p>
               </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <p className="font-medium">{patientDetails.phone}</p>
+                <p className="text-sm text-muted-foreground">Contact Number</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <p className="font-medium">{patientDetails.age} years</p>
+                <p className="text-sm text-muted-foreground">Patient Age</p>
+              </div>
+            </div>
+
+            {patientDetails.notes && (
+              <div className="space-y-2">
+                <h5 className="font-medium">Medical Notes</h5>
+                <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                  {patientDetails.notes}
+                </p>
+              </div>
+            )}
           </div>
 
           <Separator />
@@ -705,6 +746,7 @@ function ConsultationReview({ doctor, slot, consultationType, hasActiveSubscript
             <h5 className="font-medium text-blue-900 mb-2">Important Notes</h5>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• You'll receive a reminder 15 minutes before your consultation</li>
+              <li>• The doctor will decide the consultation mode (text, audio, or video) based on the case</li>
               <li>• Join the consultation room 5 minutes early</li>
               <li>• Have your medical history ready</li>
               <li>• You can reschedule up to 2 hours before the appointment</li>
