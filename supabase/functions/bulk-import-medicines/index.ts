@@ -272,12 +272,21 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     prescriptionRequired = ['yes', 'true', '1', 'y', 't'].includes(prescValue);
   }
 
-  // Check for duplicates using the mapped fields
+  // Generate dedupe_key for deduplication
+  const tempMedicine = {
+    composition: saltComposition,
+    brand: extractBrandFromName(brandName),
+    name: brandName,
+    dosage: dosage,
+    pack_size: size
+  };
+  const dedupeKey = generateDedupeKey(tempMedicine);
+
+  // Check for duplicates using dedupe_key
   const { data: existing } = await supabase
     .from('medicines')
     .select('id')
-    .eq('name', brandName)
-    .eq('salt_composition', saltComposition)
+    .eq('dedupe_key', dedupeKey)
     .limit(1);
 
   if (existing && existing.length > 0) {
@@ -335,7 +344,8 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     is_available: true,
     // Generate composition keys for grouping
     composition_key: generateCompositionKey(normalized),
-    composition_family_key: generateCompositionFamilyKey(normalized)
+    composition_family_key: generateCompositionFamilyKey(normalized),
+    dedupe_key: dedupeKey
   };
 
   // Insert medicine
@@ -483,6 +493,32 @@ function generateCompositionFamilyKey(composition: string): string {
     .trim();
   
   return generateCompositionKey(withoutDosage);
+}
+
+// Helper function to generate dedupe_key
+function generateDedupeKey(medicine: any): string {
+  const parts = [
+    medicine.composition || '',
+    medicine.brand || '',
+    medicine.name || '',
+    medicine.dosage || '',
+    medicine.pack_size || ''
+  ];
+
+  const normalized = parts
+    .map(part => String(part).toLowerCase().trim())
+    .join('|')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized;
+}
+
+// Helper function to extract brand name from full medicine name
+function extractBrandFromName(name: string): string {
+  // Extract the first word or phrase before common dosage indicators
+  const match = name.match(/^([^0-9(]+)/);
+  return match ? match[1].trim() : '';
 }
 
 function extractMedicineDetails(name: string): { 

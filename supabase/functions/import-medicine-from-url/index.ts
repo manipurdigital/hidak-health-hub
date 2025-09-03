@@ -158,21 +158,31 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
     composition_family_key: medicineData.composition_family_key 
   });
 
-  // Check for duplicates but always return medicine data for enrichment
-  console.log('Starting checkForDuplicates');
-  const dedupeResult = await checkForDuplicates(medicineData);
-  if (dedupeResult.isDuplicate) {
+  // Generate dedupe_key for deduplication
+  const dedupeKey = generateDedupeKey(medicineData);
+  medicineData.dedupe_key = dedupeKey;
+
+  // Check for duplicates using dedupe_key
+  console.log('Starting duplicate check with dedupe_key:', dedupeKey);
+  const { data: existingMedicine } = await supabase
+    .from('medicines')
+    .select('id, name')
+    .eq('dedupe_key', dedupeKey)
+    .limit(1);
+
+  if (existingMedicine && existingMedicine.length > 0) {
+    console.log('Found duplicate medicine:', existingMedicine[0]);
     return {
       success: true,
-      medicineId: dedupeResult.existingId,
+      medicineId: existingMedicine[0].id,
       medicineData: medicineData, // Include parsed data for enrichment
       mode: 'updated',
-      dedupeReason: dedupeResult.reason,
+      dedupeReason: 'Found duplicate using dedupe_key',
       warnings,
       duplicate: true,
       medicine: {
-        id: dedupeResult.existingId!,
-        name: medicineData.name
+        id: existingMedicine[0].id,
+        name: existingMedicine[0].name
       }
     };
   }
@@ -367,6 +377,25 @@ async function parseProductPage(url: string): Promise<{medicineData: MedicineDat
   }
 
   return result;
+}
+
+// Helper function to generate dedupe_key
+function generateDedupeKey(medicineData: MedicineData): string {
+  const parts = [
+    medicineData.composition_key || medicineData.composition_family_key || '',
+    medicineData.brand || '',
+    medicineData.name || '',
+    medicineData.strength || medicineData.dosage || '',
+    medicineData.pack_size || ''
+  ];
+
+  const normalized = parts
+    .map(part => String(part).toLowerCase().trim())
+    .join('|')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized;
 }
 
 async function tryParseStructuredData(html: string, url: string): Promise<{medicineData: MedicineData, rawHtml: string} | null> {

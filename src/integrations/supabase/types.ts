@@ -957,6 +957,7 @@ export type Database = {
           composition_key: string | null
           country_of_origin: string | null
           created_at: string | null
+          dedupe_key: string | null
           description: string | null
           discount_percent: number | null
           discount_percentage: number | null
@@ -1023,6 +1024,7 @@ export type Database = {
           composition_key?: string | null
           country_of_origin?: string | null
           created_at?: string | null
+          dedupe_key?: string | null
           description?: string | null
           discount_percent?: number | null
           discount_percentage?: number | null
@@ -1089,6 +1091,7 @@ export type Database = {
           composition_key?: string | null
           country_of_origin?: string | null
           created_at?: string | null
+          dedupe_key?: string | null
           description?: string | null
           discount_percent?: number | null
           discount_percentage?: number | null

@@ -42,14 +42,19 @@ serve(async (req) => {
     
     console.log("Parsed medicines data:", jsonData);
 
-    // Validate and transform data
-    const medicines = jsonData.map((row: any, index: number) => {
+    // Validate and transform data with deduplication
+    const medicines = [];
+    const duplicateSkips = [];
+    
+    for (let index = 0; index < jsonData.length; index++) {
+      const row = jsonData[index];
+      
       // Validate required fields
       if (!row.name || !row.price) {
         throw new Error(`Row ${index + 2}: Name and Price are required`);
       }
 
-      return {
+      const medicineData = {
         name: String(row.name).trim(),
         brand: row.brand ? String(row.brand).trim() : null,
         price: parseFloat(row.price),
@@ -60,9 +65,32 @@ serve(async (req) => {
         manufacturer: row.manufacturer ? String(row.manufacturer).trim() : null,
         dosage: row.dosage ? String(row.dosage).trim() : null,
         pack_size: row.pack_size ? String(row.pack_size).trim() : null,
+        composition: row.composition ? String(row.composition).trim() : null,
         is_active: true
       };
-    });
+
+      // Generate dedupe_key
+      const dedupeKey = generateDedupeKey(medicineData);
+      medicineData.dedupe_key = dedupeKey;
+
+      // Check for duplicates in database
+      const { data: existing } = await supabaseClient
+        .from('medicines')
+        .select('id, name')
+        .eq('dedupe_key', dedupeKey)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        duplicateSkips.push({
+          row: index + 2,
+          name: medicineData.name,
+          existingId: existing[0].id
+        });
+        continue;
+      }
+
+      medicines.push(medicineData);
+    }
 
     console.log("Processed medicines:", medicines);
 
@@ -114,10 +142,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Bulk upload completed. ${successCount} medicines added successfully, ${errorCount} failed.`,
-        totalProcessed: medicines.length,
+        message: `Bulk upload completed. ${successCount} medicines added successfully, ${errorCount} failed, ${duplicateSkips.length} duplicates skipped.`,
+        totalProcessed: jsonData.length,
         successCount,
         errorCount,
+        duplicatesSkipped: duplicateSkips.length,
+        duplicateDetails: duplicateSkips,
         results
       }),
       {
@@ -140,3 +170,22 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to generate dedupe_key
+function generateDedupeKey(medicineData: any): string {
+  const parts = [
+    medicineData.composition || '',
+    medicineData.brand || '',
+    medicineData.name || '',
+    medicineData.dosage || '',
+    medicineData.pack_size || ''
+  ];
+
+  const normalized = parts
+    .map(part => String(part).toLowerCase().trim())
+    .join('|')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized;
+}
