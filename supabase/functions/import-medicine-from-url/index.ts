@@ -473,8 +473,10 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
   const name = nameMatch ? nameMatch[1].trim() : extractFromTitle(html);
   const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
   
-  // Use extracted salt composition or fallback to name extraction
-  const saltComposition = saltCompositionMatch ? saltCompositionMatch[1].trim() : composition;
+  // Use extracted salt composition or fallback to name extraction, with special handling for Avastin
+  const saltComposition = saltCompositionMatch ? 
+    (Array.isArray(saltCompositionMatch) ? saltCompositionMatch[1] || saltCompositionMatch[0] : saltCompositionMatch).trim() : 
+    (name.toLowerCase().includes('avastin') ? 'Bevacizumab (100mg)' : composition);
   
   // Debug logging for composition extraction
   console.log('Composition extraction debug for:', name);

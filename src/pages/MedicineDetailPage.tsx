@@ -180,10 +180,10 @@ export function MedicineDetailPage() {
                 </div>
 
                 {/* Salt Composition */}
-                {medicine.composition_text && (
+                {medicine.composition && (
                   <div>
                     <h4 className="font-semibold text-sm mb-1">Salt Composition (Generic)</h4>
-                    <p className="text-sm text-muted-foreground">{medicine.composition_text}</p>
+                    <p className="text-sm text-muted-foreground">{medicine.composition}</p>
                   </div>
                 )}
 
