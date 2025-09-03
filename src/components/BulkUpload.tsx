@@ -94,34 +94,54 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
         throw new Error(data.error || 'Failed to generate template');
       }
 
-      // Convert base64 to blob and download
-      const binaryString = atob(data.data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const blob = new Blob([bytes], { type: data.contentType });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = data.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      URL.revokeObjectURL(url);
+      // Convert base64 to blob and download with better handling
+      try {
+        const base64Data = data.data;
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        
+        // Create download with better browser compatibility
+        if ((window.navigator as any).msSaveOrOpenBlob) {
+          // IE/Edge
+          (window.navigator as any).msSaveOrOpenBlob(blob, data.filename);
+        } else {
+          // Modern browsers
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = data.filename;
+          link.style.display = 'none';
+          
+          document.body.appendChild(link);
+          link.click();
+          
+          // Clean up with delay to ensure download starts
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }, 100);
+        }
 
-      toast({
-        title: "Template Downloaded",
-        description: `${type} template has been downloaded successfully`
-      });
+        toast({
+          title: "Template Downloaded",
+          description: `${type} template has been downloaded successfully`
+        });
+      } catch (downloadError) {
+        console.error('Download processing error:', downloadError);
+        throw new Error('Failed to process download file');
+      }
     } catch (error) {
       console.error('Error downloading template:', error);
       toast({
         title: "Download Failed",
-        description: "Failed to download template",
+        description: error instanceof Error ? error.message : "Failed to download template",
         variant: "destructive"
       });
     }
