@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Clock, 
   Plus, 
   Trash2, 
@@ -25,9 +28,9 @@ interface TimeSlot {
   max_appointments?: number;
 }
 
-interface DayAvailability {
+interface DateAvailability {
   id?: string;
-  day_of_week: number;
+  availability_date: string;
   slots: TimeSlot[];
   is_active: boolean;
   notes?: string;
@@ -35,57 +38,59 @@ interface DayAvailability {
 
 interface AvailabilityCalendarProps {
   availability: any[];
-  onSave: (updates: DayAvailability[]) => void;
+  onSave: (updates: DateAvailability[]) => void;
   isLoading?: boolean;
 }
 
-const DAYS_OF_WEEK = [
-  { value: 1, label: 'Monday', short: 'Mon' },
-  { value: 2, label: 'Tuesday', short: 'Tue' },
-  { value: 3, label: 'Wednesday', short: 'Wed' },
-  { value: 4, label: 'Thursday', short: 'Thu' },
-  { value: 5, label: 'Friday', short: 'Fri' },
-  { value: 6, label: 'Saturday', short: 'Sat' },
-  { value: 0, label: 'Sunday', short: 'Sun' },
-];
-
 export function AvailabilityCalendar({ availability, onSave, isLoading }: AvailabilityCalendarProps) {
-  const [editingDay, setEditingDay] = useState<number | null>(null);
-  const [dayAvailability, setDayAvailability] = useState<Record<number, DayAvailability>>({});
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [dateAvailability, setDateAvailability] = useState<Record<string, DateAvailability>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>();
 
   // Initialize availability from props
   React.useEffect(() => {
-    const initialAvailability: Record<number, DayAvailability> = {};
+    const initialAvailability: Record<string, DateAvailability> = {};
     
-    DAYS_OF_WEEK.forEach(day => {
-      const existingAvail = availability.find(a => a.day_of_week === day.value);
-      initialAvailability[day.value] = {
-        day_of_week: day.value,
-        slots: existingAvail ? [{
-          start_time: existingAvail.start_time,
-          end_time: existingAvail.end_time,
-          break_duration: 15,
-          max_appointments: 8
-        }] : [],
-        is_active: existingAvail?.is_active || false,
-        notes: ''
-      };
+    availability.forEach(avail => {
+      const dateKey = avail.availability_date;
+      if (!initialAvailability[dateKey]) {
+        initialAvailability[dateKey] = {
+          availability_date: dateKey,
+          slots: [],
+          is_active: avail.is_active || false,
+          notes: ''
+        };
+      }
+      
+      initialAvailability[dateKey].slots.push({
+        start_time: avail.start_time,
+        end_time: avail.end_time,
+        break_duration: 15,
+        max_appointments: 8
+      });
     });
     
-    setDayAvailability(initialAvailability);
+    setDateAvailability(initialAvailability);
   }, [availability]);
 
-  const updateDayAvailability = (dayValue: number, updates: Partial<DayAvailability>) => {
-    setDayAvailability(prev => ({
+  const updateDateAvailability = (dateKey: string, updates: Partial<DateAvailability>) => {
+    setDateAvailability(prev => ({
       ...prev,
-      [dayValue]: { ...prev[dayValue], ...updates }
+      [dateKey]: { 
+        availability_date: dateKey,
+        slots: [],
+        is_active: false,
+        notes: '',
+        ...prev[dateKey], 
+        ...updates 
+      }
     }));
     setHasChanges(true);
   };
 
-  const addTimeSlot = (dayValue: number) => {
-    const currentSlots = dayAvailability[dayValue]?.slots || [];
+  const addTimeSlot = (dateKey: string) => {
+    const currentSlots = dateAvailability[dateKey]?.slots || [];
     const newSlot: TimeSlot = {
       start_time: '09:00',
       end_time: '17:00',
@@ -93,62 +98,76 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
       max_appointments: 8
     };
     
-    updateDayAvailability(dayValue, {
+    updateDateAvailability(dateKey, {
       slots: [...currentSlots, newSlot],
       is_active: true
     });
   };
 
-  const removeTimeSlot = (dayValue: number, slotIndex: number) => {
-    const currentSlots = dayAvailability[dayValue]?.slots || [];
+  const removeTimeSlot = (dateKey: string, slotIndex: number) => {
+    const currentSlots = dateAvailability[dateKey]?.slots || [];
     const newSlots = currentSlots.filter((_, index) => index !== slotIndex);
     
-    updateDayAvailability(dayValue, {
+    updateDateAvailability(dateKey, {
       slots: newSlots,
       is_active: newSlots.length > 0
     });
   };
 
-  const updateTimeSlot = (dayValue: number, slotIndex: number, updates: Partial<TimeSlot>) => {
-    const currentSlots = dayAvailability[dayValue]?.slots || [];
+  const updateTimeSlot = (dateKey: string, slotIndex: number, updates: Partial<TimeSlot>) => {
+    const currentSlots = dateAvailability[dateKey]?.slots || [];
     const newSlots = currentSlots.map((slot, index) => 
       index === slotIndex ? { ...slot, ...updates } : slot
     );
     
-    updateDayAvailability(dayValue, { slots: newSlots });
+    updateDateAvailability(dateKey, { slots: newSlots });
   };
 
-  const copyToNextDay = (dayValue: number) => {
-    const nextDayValue = dayValue === 0 ? 1 : (dayValue + 1) % 7;
-    const currentDay = dayAvailability[dayValue];
+  const copyToNewDate = (fromDateKey: string) => {
+    if (!selectedDate) return;
     
-    if (currentDay && currentDay.slots.length > 0) {
-      updateDayAvailability(nextDayValue, {
-        slots: [...currentDay.slots],
+    const toDateKey = format(selectedDate, 'yyyy-MM-dd');
+    const currentDate = dateAvailability[fromDateKey];
+    
+    if (currentDate && currentDate.slots.length > 0) {
+      updateDateAvailability(toDateKey, {
+        slots: [...currentDate.slots],
         is_active: true
       });
     }
   };
 
-  const resetDay = (dayValue: number) => {
-    updateDayAvailability(dayValue, {
-      slots: [],
-      is_active: false,
-      notes: ''
+  const removeDate = (dateKey: string) => {
+    setDateAvailability(prev => {
+      const updated = { ...prev };
+      delete updated[dateKey];
+      return updated;
     });
+    setHasChanges(true);
+  };
+
+  const addNewDate = () => {
+    if (!selectedDate) return;
+    
+    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+    updateDateAvailability(dateKey, {
+      slots: [],
+      is_active: false
+    });
+    setEditingDate(dateKey);
   };
 
   const handleSave = () => {
-    const updates = Object.values(dayAvailability).map(day => ({
-      day_of_week: day.day_of_week,
-      slots: day.slots,
-      is_active: day.is_active && day.slots.length > 0,
-      notes: day.notes
+    const updates = Object.values(dateAvailability).map(date => ({
+      availability_date: date.availability_date,
+      slots: date.slots,
+      is_active: date.is_active && date.slots.length > 0,
+      notes: date.notes
     }));
     
     onSave(updates);
     setHasChanges(false);
-    setEditingDay(null);
+    setEditingDate(null);
   };
 
   const getTotalHours = (slots: TimeSlot[]) => {
@@ -197,9 +216,9 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Days</p>
+                <p className="text-sm text-muted-foreground">Active Dates</p>
                 <p className="text-2xl font-bold">
-                  {Object.values(dayAvailability).filter(d => d.is_active).length}
+                  {Object.values(dateAvailability).filter(d => d.is_active).length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
@@ -210,10 +229,10 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Weekly Hours</p>
+                <p className="text-sm text-muted-foreground">Total Hours</p>
                 <p className="text-2xl font-bold">
-                  {Object.values(dayAvailability).reduce((total, day) => 
-                    total + getTotalHours(day.slots), 0
+                  {Object.values(dateAvailability).reduce((total, date) => 
+                    total + getTotalHours(date.slots), 0
                   ).toFixed(1)}h
                 </p>
               </div>
@@ -225,80 +244,135 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Max Consultations/Week</p>
+                <p className="text-sm text-muted-foreground">Total Consultation Slots</p>
                 <p className="text-2xl font-bold">
-          {Object.values(dayAvailability).reduce((total: number, day: DayAvailability) => 
-            total + day.slots.reduce((dayTotal: number, slot: TimeSlot) => 
-              dayTotal + (slot.max_appointments || 0), 0
-            ), 0
-          )}
+                  {Object.values(dateAvailability).reduce((total: number, date: DateAvailability) => 
+                    total + date.slots.reduce((dateTotal: number, slot: TimeSlot) => 
+                      dateTotal + (slot.max_appointments || 0), 0
+                    ), 0
+                  )}
                 </p>
               </div>
-              <Calendar className="h-8 w-8 text-purple-500" />
+              <CalendarIcon className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Days Configuration */}
+      {/* Add New Date */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[240px] justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            <Button onClick={addNewDate} disabled={!selectedDate}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Availability
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Date-Based Availability Configuration */}
       <div className="space-y-4">
-        {DAYS_OF_WEEK.map(day => {
-          const dayData = dayAvailability[day.value] || { slots: [], is_active: false };
-          const isEditing = editingDay === day.value;
-          const totalHours = getTotalHours(dayData.slots);
+        {Object.entries(dateAvailability)
+          .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+          .map(([dateKey, dateData]) => {
+          const isEditing = editingDate === dateKey;
+          const totalHours = getTotalHours(dateData.slots);
+          const dateObj = new Date(dateKey);
+          const isPast = dateObj < new Date();
 
           return (
-            <Card key={day.value} className={`transition-all ${isEditing ? 'ring-2 ring-primary' : ''}`}>
+            <Card key={dateKey} className={`transition-all ${isEditing ? 'ring-2 ring-primary' : ''} ${isPast ? 'opacity-60' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CardTitle className="text-xl">{day.label}</CardTitle>
+                    <CardTitle className="text-xl">
+                      {format(dateObj, 'EEEE, MMMM d, yyyy')}
+                    </CardTitle>
                     <div className="flex items-center gap-2">
-                      {dayData.is_active && (
+                      {isPast && (
+                        <Badge variant="secondary" className="text-muted-foreground">
+                          Past
+                        </Badge>
+                      )}
+                      {dateData.is_active && !isPast && (
                         <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">
                           Available
                         </Badge>
                       )}
                       {totalHours > 0 && (
-                         <Badge variant="secondary">
-                           {totalHours.toFixed(1)}h • {dayData.slots.length} slots
-                         </Badge>
+                        <Badge variant="secondary">
+                          {totalHours.toFixed(1)}h • {dateData.slots.length} slots
+                        </Badge>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!isEditing ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingDay(day.value)}
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
+                    {!isPast && (
+                      <>
+                        {!isEditing ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingDate(dateKey)}
+                          >
+                            Edit
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingDate(null)}
+                          >
+                            Done
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setEditingDay(null)}
+                          onClick={() => removeDate(dateKey)}
                         >
-                          Done
+                          <Trash2 className="w-4 h-4" />
                         </Button>
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {!isEditing ? (
+                {!isEditing || isPast ? (
                   <div>
-                    {dayData.slots.length === 0 ? (
+                    {dateData.slots.length === 0 ? (
                       <div className="text-sm text-muted-foreground py-4">
-                        Not available
+                        No slots configured
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {dayData.slots.map((slot, index) => (
+                        {dateData.slots.map((slot, index) => (
                           <div key={index} className="flex items-center gap-4 text-sm">
                             <Clock className="w-4 h-4 text-muted-foreground" />
                             <span>{slot.start_time} - {slot.end_time}</span>
@@ -317,26 +391,15 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Active Toggle */}
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        checked={dayData.is_active}
-                        onCheckedChange={(checked) => 
-                          updateDayAvailability(day.value, { is_active: checked })
-                        }
-                      />
-                      <Label>Available on {day.label}</Label>
-                    </div>
-
                     {/* Time Slots */}
-                    {dayData.slots.length === 0 ? (
+                    {dateData.slots.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-muted-foreground mb-4">
-                          No time slots configured for {day.label}
+                          No time slots configured for this date
                         </p>
                         <Button
                           variant="outline"
-                          onClick={() => addTimeSlot(day.value)}
+                          onClick={() => addTimeSlot(dateKey)}
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Add Time Slot
@@ -344,14 +407,14 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {dayData.slots.map((slot, index) => (
+                        {dateData.slots.map((slot, index) => (
                           <div key={index} className="p-4 border rounded-lg bg-muted/30">
                             <div className="flex items-center justify-between mb-4">
                               <h4 className="font-medium">Slot {index + 1}</h4>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => removeTimeSlot(day.value, index)}
+                                onClick={() => removeTimeSlot(dateKey, index)}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -362,7 +425,7 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                                 <Input
                                   type="time"
                                   value={slot.start_time}
-                                  onChange={(e) => updateTimeSlot(day.value, index, { start_time: e.target.value })}
+                                  onChange={(e) => updateTimeSlot(dateKey, index, { start_time: e.target.value })}
                                   className="mt-1"
                                 />
                               </div>
@@ -371,7 +434,7 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                                 <Input
                                   type="time"
                                   value={slot.end_time}
-                                  onChange={(e) => updateTimeSlot(day.value, index, { end_time: e.target.value })}
+                                  onChange={(e) => updateTimeSlot(dateKey, index, { end_time: e.target.value })}
                                   className="mt-1"
                                 />
                               </div>
@@ -380,7 +443,7 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                                 <Input
                                   type="number"
                                   value={slot.break_duration || 15}
-                                  onChange={(e) => updateTimeSlot(day.value, index, { break_duration: parseInt(e.target.value) })}
+                                  onChange={(e) => updateTimeSlot(dateKey, index, { break_duration: parseInt(e.target.value) })}
                                   className="mt-1"
                                   min="5"
                                   max="60"
@@ -391,7 +454,7 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                                 <Input
                                   type="number"
                                   value={slot.max_appointments || 8}
-                                  onChange={(e) => updateTimeSlot(day.value, index, { max_appointments: parseInt(e.target.value) })}
+                                  onChange={(e) => updateTimeSlot(dateKey, index, { max_appointments: parseInt(e.target.value) })}
                                   className="mt-1"
                                   min="1"
                                   max="20"
@@ -404,27 +467,34 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => addTimeSlot(day.value)}
+                            onClick={() => addTimeSlot(dateKey)}
                           >
                             <Plus className="w-4 h-4 mr-2" />
                             Add Another Slot
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToNextDay(day.value)}
-                          >
-                            <Copy className="w-4 h-4 mr-2" />
-                            Copy to Next Day
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => resetDay(day.value)}
-                          >
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            Reset
-                          </Button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy to Date
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) => {
+                                  setSelectedDate(date);
+                                  if (date) {
+                                    copyToNewDate(dateKey);
+                                  }
+                                }}
+                                disabled={(date) => date < new Date() || date.toDateString() === dateObj.toDateString()}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </div>
                     )}
@@ -432,13 +502,13 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                     {/* Notes */}
                     <div>
                       <Label className="text-sm">Notes (optional)</Label>
-                    <Textarea
-                      value={(dayData as any).notes || ''}
-                      onChange={(e) => updateDayAvailability(day.value, { notes: e.target.value })}
-                      placeholder="Add any special notes for this day..."
-                      className="mt-1"
-                      rows={2}
-                    />
+                      <Textarea
+                        value={dateData.notes || ''}
+                        onChange={(e) => updateDateAvailability(dateKey, { notes: e.target.value })}
+                        placeholder="Add any special notes for this date..."
+                        className="mt-1"
+                        rows={2}
+                      />
                     </div>
                   </div>
                 )}
@@ -446,6 +516,18 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
             </Card>
           );
         })}
+        
+        {Object.keys(dateAvailability).length === 0 && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">No availability set</h3>
+              <p className="text-muted-foreground mb-4">
+                Select a date above to start setting your availability
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Tips */}

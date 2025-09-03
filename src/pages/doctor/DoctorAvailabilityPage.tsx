@@ -6,9 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { AvailabilityCalendar } from '@/components/doctor/AvailabilityCalendar';
 
-interface DayAvailability {
+interface DateAvailability {
   id?: string;
-  day_of_week: number;
+  availability_date: string;
   start_time: string;
   end_time: string;
   is_active: boolean;
@@ -47,10 +47,10 @@ export default function DoctorAvailabilityPage() {
         .from('doctor_availability')
         .select('*')
         .eq('doctor_id', doctor.id)
-        .order('day_of_week');
+        .order('availability_date');
       
       if (error) throw error;
-      return data as DayAvailability[];
+      return data as DateAvailability[];
     },
     enabled: !!doctor?.id,
   });
@@ -67,18 +67,18 @@ export default function DoctorAvailabilityPage() {
         .eq('doctor_id', doctor.id);
 
       // Convert the enhanced updates to simple availability records
-      const simpleUpdates: DayAvailability[] = [];
+      const simpleUpdates: DateAvailability[] = [];
       
       updates.forEach(update => {
         if (update.slots && update.slots.length > 0) {
-          // For now, we'll take the first slot as the main availability
-          // In a more complex system, you'd handle multiple slots per day
-          const firstSlot = update.slots[0];
-          simpleUpdates.push({
-            day_of_week: update.day_of_week,
-            start_time: firstSlot.start_time,
-            end_time: firstSlot.end_time,
-            is_active: update.is_active,
+          // Create a record for each slot on each date
+          update.slots.forEach(slot => {
+            simpleUpdates.push({
+              availability_date: update.availability_date,
+              start_time: slot.start_time,
+              end_time: slot.end_time,
+              is_active: update.is_active,
+            });
           });
         }
       });
@@ -90,7 +90,7 @@ export default function DoctorAvailabilityPage() {
           .insert(
             simpleUpdates.map(update => ({
               doctor_id: doctor.id,
-              day_of_week: update.day_of_week,
+              availability_date: update.availability_date,
               start_time: update.start_time,
               end_time: update.end_time,
               is_active: update.is_active,

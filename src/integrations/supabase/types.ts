@@ -564,8 +564,8 @@ export type Database = {
       }
       doctor_availability: {
         Row: {
+          availability_date: string
           created_at: string | null
-          day_of_week: number | null
           doctor_id: string | null
           end_time: string
           id: string
@@ -574,8 +574,8 @@ export type Database = {
           start_time: string
         }
         Insert: {
+          availability_date?: string
           created_at?: string | null
-          day_of_week?: number | null
           doctor_id?: string | null
           end_time: string
           id?: string
@@ -584,8 +584,8 @@ export type Database = {
           start_time: string
         }
         Update: {
+          availability_date?: string
           created_at?: string | null
-          day_of_week?: number | null
           doctor_id?: string | null
           end_time?: string
           id?: string
