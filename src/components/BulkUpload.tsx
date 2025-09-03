@@ -84,14 +84,34 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
 
   const downloadTemplate = async () => {
     try {
-      // Create download link directly with type parameter
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-templates?type=${type}`;
+      const { data, error } = await supabase.functions.invoke('generate-templates', {
+        body: { type }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate template');
+      }
+
+      // Convert base64 to blob and download
+      const binaryString = atob(data.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([bytes], { type: data.contentType });
+      const url = URL.createObjectURL(blob);
+      
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${type}_template.xlsx`;
+      link.download = data.filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
 
       toast({
         title: "Template Downloaded",
