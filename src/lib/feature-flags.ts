@@ -8,7 +8,7 @@ export const FEATURE_FLAGS = {
   ENABLE_CARE_PLUS: false, // Care+ subscription feature
   ENABLE_SUPPORT_CHAT: true, // AI support chat widget
   ENABLE_LOCATION_GATE: false, // Location gate on homepage - disabled for future implementation
-  SHOW_TRENDING_MEDICINES: false, // Hide trending medicines section
+  SHOW_TRENDING_MEDICINES: true, // Show trending medicines section
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS;

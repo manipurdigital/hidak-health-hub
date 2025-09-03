@@ -1,12 +1,35 @@
 import { Button } from "@/components/ui/button";
-import { Shield, Truck, Clock, Stethoscope, MessageCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Truck, Clock, Stethoscope, Upload, MapPin, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useServiceability } from "@/contexts/ServiceabilityContext";
 import heroImage from "@/assets/healthcare-hero.jpg";
 
 const HeroSection = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { location, deliveryCoverage } = useServiceability();
+
+  const inDeliveryArea = deliveryCoverage === 'has_partners' || deliveryCoverage === 'available_no_partner';
+
+  const handleUploadPrescription = () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to upload prescriptions",
+        variant: "destructive"
+      });
+      navigate("/auth");
+      return;
+    }
+    toast({
+      title: "Upload Prescription",
+      description: "Opening prescription upload...",
+    });
+  };
 
   const handleOrderMedicines = () => {
     navigate('/medicines');
@@ -17,13 +40,10 @@ const HeroSection = () => {
   };
 
   const handleBookLabTest = () => {
-    const element = document.getElementById('services');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate('/lab-tests');
     toast({
       title: "Lab Tests",
-      description: "Explore our comprehensive lab testing services",
+      description: "Book lab tests with home sample collection",
     });
   };
 
@@ -50,36 +70,63 @@ const HeroSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left content */}
           <div className="space-y-8 animate-fade-in">
+            {/* Location Badge */}
+            {location && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                <span className="text-sm">
+                  {location.address || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
+                </span>
+                {inDeliveryArea && (
+                  <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-300">
+                    Delivery Available
+                  </Badge>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-4">
               <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight">
                 Your Health,
                 <br />
-                <span className="text-primary">Our Priority</span>
+                <span className="text-primary">Delivered</span>
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed">
-                Complete healthcare at your fingertips. Order medicines, book lab tests, 
-                consult doctors online, and access wellness services - all in one place.
+                Order medicines, book lab tests, and consult doctors online. 
+                Complete healthcare solutions at your fingertips.
               </p>
             </div>
             
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            {/* Primary CTA - Upload Prescription */}
+            <div className="space-y-4">
               <Button 
-                variant="hero" 
                 size="lg" 
-                className="text-lg hover:scale-105 transition-transform duration-200"
-                onClick={handleOrderMedicines}
+                className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all duration-200 font-semibold text-lg px-8 py-6"
+                onClick={handleUploadPrescription}
               >
-                Order Medicines
+                <Upload className="w-5 h-5 mr-2" />
+                Upload Prescription & Order
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg border-primary text-primary hover:bg-primary hover:text-white hover:scale-105 transition-all duration-200"
-                onClick={handleBookLabTest}
-              >
-                Book Lab Test
-              </Button>
+              
+              {/* Secondary CTAs */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-primary-foreground hover:scale-105 transition-all duration-200 font-medium px-6 py-3"
+                  onClick={handleOrderMedicines}
+                >
+                  Browse Medicines
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary hover:text-primary-foreground hover:scale-105 transition-all duration-200 font-medium px-6 py-3"
+                  onClick={handleBookLabTest}
+                >
+                  Book Lab Test
+                </Button>
+              </div>
             </div>
             
             {/* Trust indicators */}
