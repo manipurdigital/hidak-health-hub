@@ -66,7 +66,11 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
   const queryClient = useQueryClient();
 
   const today = new Date();
-  const defaultFrom = filters.from || format(today, 'yyyy-MM-dd');
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  
+  // Default to last 7 days instead of just today to catch more consultations
+  const defaultFrom = filters.from || format(weekAgo, 'yyyy-MM-dd');
   const defaultTo = filters.to || format(today, 'yyyy-MM-dd');
 
   const { data: consultations, isLoading } = useQuery({
@@ -80,10 +84,6 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
             name,
             full_name,
             specialization
-          ),
-          patient_profiles:profiles!patient_id (
-            full_name,
-            email
           )
         `);
 
@@ -108,7 +108,29 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
       query = query.order('created_at', { ascending: false });
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching consultations:', error);
+        throw error;
+      }
+      console.log('Fetched consultations:', data);
+      
+      // Fetch patient profiles separately
+      if (data && data.length > 0) {
+        const patientIds = data.map(c => c.patient_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .in('user_id', patientIds);
+        
+        // Map profiles to consultations
+        const consultationsWithProfiles = data.map(consultation => ({
+          ...consultation,
+          patient_profiles: profiles?.find(p => p.user_id === consultation.patient_id) || null
+        }));
+        
+        return consultationsWithProfiles;
+      }
+      
       return (data || []) as any[];
     }
   });
