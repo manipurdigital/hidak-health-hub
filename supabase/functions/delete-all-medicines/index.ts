@@ -85,7 +85,36 @@ serve(async (req) => {
       })
     }
 
-    // Delete all medicines
+    console.log(`Found ${medicineCount} medicines to delete`)
+
+    // Delete related order_items first to avoid foreign key constraint violations
+    const { count: orderItemsCount, error: orderItemsCountError } = await supabase
+      .from('order_items')
+      .select('*', { count: 'exact', head: true })
+
+    if (orderItemsCountError) {
+      console.log('Warning: Could not count order_items:', orderItemsCountError)
+    } else {
+      console.log(`Found ${orderItemsCount} order_items that will be deleted`)
+    }
+
+    // Delete all order_items first
+    const { error: deleteOrderItemsError } = await supabase
+      .from('order_items')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000') // This condition will match all records
+
+    if (deleteOrderItemsError) {
+      console.error('Error deleting order_items:', deleteOrderItemsError)
+      return new Response('Error deleting order items: ' + deleteOrderItemsError.message, { 
+        status: 500, 
+        headers: corsHeaders 
+      })
+    }
+
+    console.log(`Successfully deleted ${orderItemsCount || 0} order_items`)
+
+    // Now delete all medicines
     const { error: deleteError } = await supabase
       .from('medicines')
       .delete()
@@ -99,12 +128,13 @@ serve(async (req) => {
       })
     }
 
-    console.log(`Successfully deleted ${medicineCount} medicines`)
+    console.log(`Successfully deleted ${medicineCount} medicines and ${orderItemsCount || 0} order_items`)
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Successfully deleted ${medicineCount} medicines`,
-      deletedCount: medicineCount
+      message: `Successfully deleted ${medicineCount} medicines and ${orderItemsCount || 0} related order items`,
+      deletedMedicines: medicineCount,
+      deletedOrderItems: orderItemsCount || 0
     }), {
       headers: { 
         'Content-Type': 'application/json',
