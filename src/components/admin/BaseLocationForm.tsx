@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useCreateBaseLocation, useUpdateBaseLocation, type BaseLocation } from '@/hooks/base-location-hooks';
-import { MapPin, Save, X } from 'lucide-react';
+import { MapPin, Save, X, Map } from 'lucide-react';
+import { MapLocationPicker } from '@/components/MapLocationPicker';
 
 interface BaseLocationFormProps {
   baseLocation?: BaseLocation | null;
@@ -28,6 +29,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
     is_active: true,
     is_default: false,
   });
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const createBaseLocation = useCreateBaseLocation();
   const updateBaseLocation = useUpdateBaseLocation();
@@ -170,15 +172,24 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLocationClick}
-              className="w-full"
-            >
-              <MapPin className="h-4 w-4 mr-2" />
-              Use Current Location
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLocationClick}
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Current Location
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMapPicker(true)}
+              >
+                <Map className="h-4 w-4 mr-2" />
+                Choose from Map
+              </Button>
+            </div>
           </div>
 
           {/* Right Column */}
@@ -298,6 +309,21 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <MapLocationPicker
+        isOpen={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onLocationSelect={(location) => {
+          setFormData(prev => ({
+            ...prev,
+            base_lat: location.latitude,
+            base_lng: location.longitude,
+          }));
+          setShowMapPicker(false);
+        }}
+        initialLocation={formData.base_lat && formData.base_lng ? { lat: formData.base_lat, lng: formData.base_lng } : undefined}
+        title="Select Base Location"
+      />
     </Dialog>
   );
 }
