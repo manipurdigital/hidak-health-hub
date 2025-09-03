@@ -876,15 +876,19 @@ export type Database = {
           discount_percentage: number | null
           discount_price: number | null
           dosage_form: string | null
+          external_source_domain: string | null
+          external_source_url: string | null
           fast_delivery: boolean | null
           generic_name: string | null
           id: string
+          image_hash: string | null
           image_url: string | null
           is_active: boolean | null
           is_available: boolean | null
           manufacturer: string | null
           min_stock_level: number | null
           name: string
+          original_image_url: string | null
           original_price: number | null
           pack_size: string | null
           prescription_required: boolean | null
@@ -892,6 +896,9 @@ export type Database = {
           rating: number | null
           requires_prescription: boolean | null
           review_count: number | null
+          source_attribution: string | null
+          source_checksum: string | null
+          source_last_fetched: string | null
           stock_quantity: number | null
           strength: string | null
           thumbnail_url: string | null
@@ -908,15 +915,19 @@ export type Database = {
           discount_percentage?: number | null
           discount_price?: number | null
           dosage_form?: string | null
+          external_source_domain?: string | null
+          external_source_url?: string | null
           fast_delivery?: boolean | null
           generic_name?: string | null
           id?: string
+          image_hash?: string | null
           image_url?: string | null
           is_active?: boolean | null
           is_available?: boolean | null
           manufacturer?: string | null
           min_stock_level?: number | null
           name: string
+          original_image_url?: string | null
           original_price?: number | null
           pack_size?: string | null
           prescription_required?: boolean | null
@@ -924,6 +935,9 @@ export type Database = {
           rating?: number | null
           requires_prescription?: boolean | null
           review_count?: number | null
+          source_attribution?: string | null
+          source_checksum?: string | null
+          source_last_fetched?: string | null
           stock_quantity?: number | null
           strength?: string | null
           thumbnail_url?: string | null
@@ -940,15 +954,19 @@ export type Database = {
           discount_percentage?: number | null
           discount_price?: number | null
           dosage_form?: string | null
+          external_source_domain?: string | null
+          external_source_url?: string | null
           fast_delivery?: boolean | null
           generic_name?: string | null
           id?: string
+          image_hash?: string | null
           image_url?: string | null
           is_active?: boolean | null
           is_available?: boolean | null
           manufacturer?: string | null
           min_stock_level?: number | null
           name?: string
+          original_image_url?: string | null
           original_price?: number | null
           pack_size?: string | null
           prescription_required?: boolean | null
@@ -956,6 +974,9 @@ export type Database = {
           rating?: number | null
           requires_prescription?: boolean | null
           review_count?: number | null
+          source_attribution?: string | null
+          source_checksum?: string | null
+          source_last_fetched?: string | null
           stock_quantity?: number | null
           strength?: string | null
           thumbnail_url?: string | null
