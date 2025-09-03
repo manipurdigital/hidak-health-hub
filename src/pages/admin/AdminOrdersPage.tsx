@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, MapPin, MessageCircle, Package, User, Phone, Copy, Share } from "lucide-react";
+import { ExternalLink, MapPin, MessageCircle, Package, User, Phone, Copy, Share, Stethoscope } from "lucide-react";
 import { AdminLayoutWrapper } from "@/components/AdminLayoutWrapper";
 import { WhatsAppShareButton } from "@/components/WhatsAppShareButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { useUrlFilters } from "@/hooks/use-url-filters";
 import { useNotifyAdminWhatsApp } from "@/hooks/manual-assignment-hooks";
 import { LabOrdersTab } from "@/components/admin/LabOrdersTab";
+import { ConsultationOrdersTab } from "@/components/admin/ConsultationOrdersTab";
 import { DeleteAllOrdersButton } from "@/components/admin/DeleteAllOrdersButton";
 
 interface Order {
@@ -242,7 +243,7 @@ ${order.shipping_address}${googleMapsLink}
           <div>
             <h1 className="text-3xl font-bold">Orders Management</h1>
             <p className="text-muted-foreground">
-              Manage medicine and lab orders
+              Manage medicine orders, lab bookings, and doctor consultations
             </p>
           </div>
         </div>
@@ -395,9 +396,10 @@ ${order.shipping_address}${googleMapsLink}
         </div>
 
         <Tabs defaultValue="medicine" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="medicine">Medicine Orders</TabsTrigger>
             <TabsTrigger value="lab">Lab Orders</TabsTrigger>
+            <TabsTrigger value="consultations">Doctor Consultations</TabsTrigger>
           </TabsList>
           
           <TabsContent value="medicine">
@@ -532,6 +534,10 @@ ${order.shipping_address}${googleMapsLink}
           
           <TabsContent value="lab">
             <LabOrdersTab filters={filters} />
+          </TabsContent>
+          
+          <TabsContent value="consultations">
+            <ConsultationOrdersTab filters={filters} />
           </TabsContent>
         </Tabs>
 
