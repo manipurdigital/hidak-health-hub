@@ -76,7 +76,7 @@ interface Medicine {
   id: string;
   name: string;
   brand?: string;
-  composition_text?: string;
+  salt_composition?: string;
   composition_key?: string;
   composition_family_key?: string;
   price: number;
@@ -87,9 +87,10 @@ interface Medicine {
   category_id: string;
   description: string;
   manufacturer: string;
-  dosage: string;
+  dosage_form?: string;
   pack_size: string;
   image_url?: string;
+  thumbnail_url?: string;
   external_source_url?: string;
   external_source_domain?: string;
   source_last_fetched?: string;
@@ -160,7 +161,7 @@ const AdminMedicinesPage = () => {
       const composition = formData.get('composition') as string;
       const medicineData = {
         name: formData.get('name') as string,
-        composition: composition,
+        salt_composition: composition,
         composition_key: generateCompositionKey(composition),
         composition_family_key: generateCompositionFamilyKey(composition),
         price: parseFloat(formData.get('price') as string),
@@ -171,7 +172,7 @@ const AdminMedicinesPage = () => {
         manufacturer: formData.get('manufacturer') as string,
         dosage_form: formData.get('dosage') as string,
         pack_size: formData.get('pack_size') as string,
-        image_url: formData.get('image_url') as string || null,
+        thumbnail_url: formData.get('image_url') as string || null,
         category_id: selectedCategory || null,
         is_active: true,
         is_available: true
@@ -216,7 +217,7 @@ const AdminMedicinesPage = () => {
       const composition = formData.get('composition') as string;
       const medicineData = {
         name: formData.get('name') as string,
-        composition: composition,
+        salt_composition: composition,
         composition_key: generateCompositionKey(composition),
         composition_family_key: generateCompositionFamilyKey(composition),
         price: parseFloat(formData.get('price') as string),
@@ -225,9 +226,9 @@ const AdminMedicinesPage = () => {
         requires_prescription: formData.get('requires_prescription') === 'true',
         description: formData.get('description') as string,
         manufacturer: formData.get('manufacturer') as string,
-        dosage: formData.get('dosage') as string,
+        dosage_form: formData.get('dosage') as string,
         pack_size: formData.get('pack_size') as string,
-        image_url: formData.get('image_url') as string || null,
+        thumbnail_url: formData.get('image_url') as string || null,
         category_id: selectedEditCategory || null,
         is_active: formData.get('is_active') === 'true'
       };
@@ -431,7 +432,7 @@ const AdminMedicinesPage = () => {
 
   const filteredMedicines = medicines.filter(medicine =>
     medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    medicine.composition?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    medicine.salt_composition?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     medicine.brand?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -719,7 +720,7 @@ const AdminMedicinesPage = () => {
                               />
                             </td>
                             <td className="py-4 font-medium">{medicine.name}</td>
-                            <td className="py-4 text-muted-foreground">{medicine.composition || 'N/A'}</td>
+                            <td className="py-4 text-muted-foreground">{medicine.salt_composition || 'N/A'}</td>
                             <td className="py-4">₹{medicine.price}</td>
                             <td className="py-4">
                               <Badge variant={medicine.stock_quantity > 10 ? "default" : "destructive"}>
@@ -811,7 +812,7 @@ const AdminMedicinesPage = () => {
                     name="composition" 
                     placeholder="Paracetamol 650 mg"
                     rows={2}
-                    defaultValue={editingMedicine.composition || ''}
+                    defaultValue={editingMedicine.salt_composition || ''}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Use active ingredients and strengths; powers substitute matching.
@@ -872,7 +873,7 @@ const AdminMedicinesPage = () => {
                 </div>
                 <div>
                   <Label htmlFor="edit_dosage">Dosage</Label>
-                  <Input id="edit_dosage" name="dosage" defaultValue={editingMedicine.dosage || ''} />
+                  <Input id="edit_dosage" name="dosage" defaultValue={editingMedicine.dosage_form || ''} />
                 </div>
               </div>
               <div>
