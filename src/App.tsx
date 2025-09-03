@@ -92,6 +92,7 @@ function App() {
                   {/* Public Routes */}
                   <Route path="/medicines" element={<MedicinesPage />} />
                   <Route path="/medicines/:id" element={<MedicineDetailPage />} />
+                  <Route path="/medicine/:id" element={<MedicineDetailPage />} />
                   <Route path="/lab-tests" element={<LabTestsPage />} />
                   <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
