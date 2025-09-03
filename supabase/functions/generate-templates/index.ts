@@ -67,70 +67,49 @@ serve(async (req) => {
         categoriesData = categories.map(cat => ({ category_name: cat.name }));
       }
 
-      // Sample medicine data
+      // New streamlined template for focused fields
       templateData = [
         {
-          name: "Calpol 650",
-          composition_text: "Paracetamol 650 mg",
-          category: "Pain Relief",
-          price: 25.50,
-          original_price: 30.00,
-          stock_quantity: 100,
-          requires_prescription: "No",
-          manufacturer: "GSK",
-          dosage: "650mg",
-          pack_size: "10 tablets",
-          image_url: "",
-          description: "Pain and fever relief tablet",
-          source_url: ""
+          "Brand name/trade name": "Calpol 650 Tablet",
+          "Salt Composition": "Paracetamol 650mg",
+          "Requires prescription": "No",
+          "Dosage": "650mg",
+          "Size": "10 tablets",
+          "Thumbnail URL": "https://example.com/calpol-image.jpg",
+          "1mg URL (optional)": "https://www.1mg.com/drugs/calpol-650-tablet-4"
         },
         {
-          name: "Amoxicillin 250mg",
-          composition_text: "Amoxicillin 250 mg",
-          category: "Antibiotics", 
-          price: 45.00,
-          original_price: 60.00,
-          stock_quantity: 50,
-          requires_prescription: "Yes",
-          manufacturer: "Cipla",
-          dosage: "250mg",
-          pack_size: "10 capsules",
-          image_url: "",
-          description: "Antibiotic for bacterial infections",
-          source_url: ""
+          "Brand name/trade name": "Azithromycin 500mg Tablet",
+          "Salt Composition": "Azithromycin 500mg",
+          "Requires prescription": "Yes", 
+          "Dosage": "500mg",
+          "Size": "3 tablets",
+          "Thumbnail URL": "https://example.com/azithromycin-image.jpg",
+          "1mg URL (optional)": "https://www.1mg.com/drugs/azithromycin-500mg-tablet-12345"
         },
         {
-          name: "Aspirin 75mg",
-          composition_text: "Acetylsalicylic Acid 75 mg",
-          category: "Cardiovascular",
-          price: 12.00,
-          original_price: 15.00,
-          stock_quantity: 75,
-          requires_prescription: "No",
-          manufacturer: "Bayer",
-          dosage: "75mg", 
-          pack_size: "30 tablets",
-          image_url: "",
-          description: "Blood thinner and pain relief",
-          source_url: ""
+          "Brand name/trade name": "Aspirin 75mg Tablet",
+          "Salt Composition": "Acetylsalicylic Acid 75mg",
+          "Requires prescription": "No",
+          "Dosage": "75mg",
+          "Size": "30 tablets", 
+          "Thumbnail URL": "https://example.com/aspirin-image.jpg",
+          "1mg URL (optional)": ""
         }
       ];
 
-      // Instructions data
+      // Instructions data for the new focused template
       instructionsData = [
-        { field: "name", description: "Required. Medicine name/brand name", example: "Calpol 650" },
-        { field: "composition_text", description: "Required. Active ingredients and strength. Aliases: 'Salt Composition', 'Salt Composition (Generic)'", example: "Paracetamol 650 mg" },
-        { field: "category", description: "Required. Must match exactly from Categories sheet", example: "Pain Relief" },
-        { field: "price", description: "Required. Selling price in rupees", example: "25.50" },
-        { field: "original_price", description: "Optional. MRP/original price", example: "30.00" },
-        { field: "stock_quantity", description: "Required. Available quantity", example: "100" },
-        { field: "requires_prescription", description: "Required. Yes/No, true/false, 1/0", example: "No" },
-        { field: "manufacturer", description: "Optional. Company name", example: "GSK" },
-        { field: "dosage", description: "Optional. Strength/dosage", example: "650mg" },
-        { field: "pack_size", description: "Optional. Package details", example: "10 tablets" },
-        { field: "image_url", description: "Optional. Direct image URL", example: "https://example.com/image.jpg" },
-        { field: "description", description: "Optional. Medicine description", example: "Pain and fever relief tablet" },
-        { field: "source_url", description: "Optional. For URL-based imports", example: "https://1mg.com/drugs/calpol-650-tablet-4" }
+        { field: "Brand name/trade name", description: "Required. Full brand/trade name of the medicine", example: "Calpol 650 Tablet" },
+        { field: "Salt Composition", description: "Required. Active ingredients with strength", example: "Paracetamol 650mg" },
+        { field: "Requires prescription", description: "Required. Yes/No only", example: "No" },
+        { field: "Dosage", description: "Required. Strength per unit", example: "650mg" },
+        { field: "Size", description: "Required. Pack size/quantity", example: "10 tablets" },
+        { field: "Thumbnail URL", description: "Optional. Direct image URL for product thumbnail", example: "https://example.com/image.jpg" },
+        { field: "1mg URL (optional)", description: "Optional. Tata 1mg product URL to auto-import details", example: "https://www.1mg.com/drugs/product-name" },
+        { note: "IMPORTANT", description: "If '1mg URL' is provided, it will be parsed automatically and override manual entries", example: "" },
+        { note: "PRICING", description: "Prices will be auto-detected from 1mg URLs or set to 0 for manual entry", example: "" },
+        { note: "IMAGES", description: "Images from 1mg will be downloaded and stored locally for copyright compliance", example: "" }
       ];
 
       filename = "medicines_bulk_upload_template.xlsx";

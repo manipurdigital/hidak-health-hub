@@ -180,12 +180,13 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
     if (itemError) throw itemError;
     jobItemId = itemData.id;
 
-    if (row.source_url) {
-      // Use URL importer for rows with source URLs
+    const urlToProcess = row['1mg URL (optional)'] || row.source_url;
+    if (urlToProcess) {
+      // Use URL importer for rows with Tata 1mg URLs
       const importResult = await supabase.functions.invoke('import-medicine-from-url', {
         body: { 
-          url: row.source_url, 
-          options: { downloadImages } 
+          url: urlToProcess, 
+          options: { downloadImages: true } // Always download images for 1mg imports
         }
       });
 
@@ -211,8 +212,8 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
         }
 
         result.items.push({
-          name: row.name,
-          url: row.source_url,
+          name: row['Brand name/trade name'] || row.name,
+          url: row['1mg URL (optional)'] || row.source_url,
           status: mode === 'created' ? 'success' : 'duplicate',
           medicine_id: medicineId
         });
@@ -228,7 +229,7 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
     console.error('Row processing error:', error);
     result.failed++;
     
-    if (jobItemId!) {
+  if (jobItemId) {
       await supabase
         .from('import_job_items')
         .update({
@@ -239,8 +240,8 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
     }
 
     result.items.push({
-      name: row.name || 'Unknown',
-      url: row.source_url,
+      name: row['Brand name/trade name'] || row.name || 'Unknown',
+      url: row['1mg URL (optional)'] || row.source_url,
       status: 'failed',
       error: error.message
     });
@@ -250,41 +251,33 @@ async function processRow(row: any, supabase: any, result: ImportResult, jobId: 
 }
 
 async function processDirectRow(row: any, supabase: any, result: ImportResult, jobItemId: string, downloadImages: boolean) {
-  // Handle column aliases for composition
-  const compositionText = row.composition_text || row['Salt Composition'] || row['Salt Composition (Generic)'] || row['salt_composition'];
+  // Map new column names to internal fields
+  const brandName = row['Brand name/trade name'] || row.name;
+  const saltComposition = row['Salt Composition'] || row.composition_text || row['salt_composition'];
+  const requiresPrescription = row['Requires prescription'] || row.requires_prescription;
+  const dosage = row['Dosage'] || row.dosage;
+  const size = row['Size'] || row.pack_size || row.size;
+  const thumbnailUrl = row['Thumbnail URL'] || row.thumbnail_url || row.image_url;
+  const sourceUrl = row['1mg URL (optional)'] || row.source_url;
   
-  // Validate required fields
-  if (!row.name || !row.price || !compositionText || !row.stock_quantity) {
-    throw new Error('Missing required fields (name, price, composition_text/Salt Composition, stock_quantity)');
+  // Validate required fields based on new template
+  if (!brandName || !saltComposition || !requiresPrescription || !dosage || !size) {
+    throw new Error('Missing required fields: Brand name/trade name, Salt Composition, Requires prescription, Dosage, Size');
   }
 
   // Parse requires_prescription field robustly
-  let requiresPrescription = false;
-  if (row.requires_prescription !== undefined && row.requires_prescription !== null && row.requires_prescription !== '') {
-    const prescValue = String(row.requires_prescription).toLowerCase().trim();
-    requiresPrescription = ['yes', 'true', '1', 'y', 't'].includes(prescValue);
+  let prescriptionRequired = false;
+  if (requiresPrescription !== undefined && requiresPrescription !== null && requiresPrescription !== '') {
+    const prescValue = String(requiresPrescription).toLowerCase().trim();
+    prescriptionRequired = ['yes', 'true', '1', 'y', 't'].includes(prescValue);
   }
 
-  // Map category name to category_id
-  let categoryId = null;
-  if (row.category) {
-    const { data: categoryData } = await supabase
-      .from('medicine_categories')
-      .select('id')
-      .eq('name', row.category)
-      .limit(1);
-    
-    if (categoryData && categoryData.length > 0) {
-      categoryId = categoryData[0].id;
-    }
-  }
-
-  // Check for duplicates
+  // Check for duplicates using the mapped fields
   const { data: existing } = await supabase
     .from('medicines')
     .select('id')
-    .eq('name', row.name)
-    .eq('composition_text', compositionText)
+    .eq('name', brandName)
+    .eq('salt_composition', saltComposition)
     .limit(1);
 
   if (existing && existing.length > 0) {
@@ -298,21 +291,21 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
 
     result.duplicates++;
     result.items.push({
-      name: row.name,
+      name: brandName,
       status: 'duplicate',
       medicine_id: existing[0].id
     });
     return;
   }
 
-  // Process thumbnail if image_url is present
-  let processedImageUrl = row.image_url || null;
-  if (row.image_url && downloadImages) {
+  // Process thumbnail if provided
+  let processedImageUrl = thumbnailUrl || null;
+  if (thumbnailUrl && downloadImages) {
     try {
       const { data: imageData, error: imageError } = await supabase.functions.invoke('fetch-and-store-image', {
         body: {
-          imageUrl: row.image_url,
-          destKey: `${row.name?.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`,
+          imageUrl: thumbnailUrl,
+          destKey: `${brandName?.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`,
           maxSizeBytes: 2097152 // 2MB limit
         }
       });
@@ -325,25 +318,22 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
     }
   }
 
-  // Generate composition keys using the resolved composition text
-  const normalized = normalizeComposition(compositionText);
+  // Generate composition keys using the salt composition
+  const normalized = normalizeComposition(saltComposition);
   
-  // Prepare medicine data to match the form exactly
+  // Prepare medicine data using the new template fields
   const medicineData = {
-    name: row.name,
-    composition_text: compositionText,
-    category_id: categoryId,
-    price: parseFloat(row.price) || 0,
-    original_price: parseFloat(row.original_price) || parseFloat(row.price) || 0,
-    stock_quantity: parseInt(row.stock_quantity) || 0,
-    requires_prescription: requiresPrescription,
-    manufacturer: row.manufacturer || '',
-    dosage: row.dosage || '',
-    pack_size: row.pack_size || '',
-    image_url: processedImageUrl,
-    description: row.description || '',
-    is_active: row.is_active !== 'false',
-    // Generate composition keys
+    name: brandName,
+    salt_composition: saltComposition,
+    requires_prescription: prescriptionRequired,
+    dosage_strength: dosage,
+    pack_size: size,
+    thumbnail_url: processedImageUrl,
+    price: 0, // Default price, will be updated from 1mg if URL provided
+    stock_quantity: 10, // Default stock
+    is_active: true,
+    is_available: true,
+    // Generate composition keys for grouping
     composition_key: generateCompositionKey(normalized),
     composition_family_key: generateCompositionFamilyKey(normalized)
   };
@@ -369,7 +359,7 @@ async function processDirectRow(row: any, supabase: any, result: ImportResult, j
 
   result.successful++;
   result.items.push({
-    name: row.name,
+    name: brandName,
     status: 'success',
     medicine_id: data.id
   });
@@ -436,7 +426,7 @@ async function processUrl(url: string, supabase: any, result: ImportResult, jobI
     console.error('URL processing error:', error);
     result.failed++;
     
-    if (jobItemId!) {
+    if (jobItemId) {
       await supabase
         .from('import_job_items')
         .update({

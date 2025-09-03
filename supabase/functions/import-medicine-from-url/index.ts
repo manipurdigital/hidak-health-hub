@@ -698,6 +698,11 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
       pack_size_unit: null,
       dosage_strength: strengthMatch ? strengthMatch[1].trim() : dosage,
       route_of_administration: null,
+      // KEY FIELDS FOR NEW TEMPLATE
+      salt_composition: saltComposition, // Store salt composition properly
+      thumbnail_url: imageUrl, // Store image URL for display
+      pack_size: packSizeMatch ? packSizeMatch[1].trim() : packSize,
+      requires_prescription: prescriptionRequired,
       prescription_type: prescriptionRequired ? 'Prescription Required' : 'OTC',
       storage_conditions: null,
       country_of_origin: 'India',
@@ -706,14 +711,9 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
       key_highlights: null,
       interaction_warnings: null,
       alternative_brands: null,
-      dosage,
-      pack_size: packSizeMatch ? packSizeMatch[1].trim() : packSize,
       strength: strengthMatch ? strengthMatch[1].trim() : '',
       dosage_form: dosageFormMatch ? dosageFormMatch[1].trim() : '',
       composition: saltComposition,
-      salt_composition: saltComposition,
-      requires_prescription: prescriptionRequired,
-      prescription_required: prescriptionRequired,
       image_url: imageUrl,
       external_source_url: url,
       external_source_domain: urlObj.hostname,

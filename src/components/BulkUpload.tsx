@@ -130,7 +130,7 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
         setUploadProgress(prev => Math.min(prev + 10, 90));
       }, 200);
 
-      const functionName = type === 'medicines' ? 'bulk-upload-medicines' : 'bulk-upload-lab-tests';
+      const functionName = type === 'medicines' ? 'bulk-import-medicines' : 'bulk-upload-lab-tests';
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: formData,
       });

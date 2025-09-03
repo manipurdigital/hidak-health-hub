@@ -665,6 +665,87 @@ export type Database = {
           },
         ]
       }
+      import_job_items: {
+        Row: {
+          created_at: string
+          created_medicine_id: string | null
+          error: string | null
+          id: string
+          job_id: string
+          payload: Json | null
+          source_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_medicine_id?: string | null
+          error?: string | null
+          id?: string
+          job_id: string
+          payload?: Json | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_medicine_id?: string | null
+          error?: string | null
+          id?: string
+          job_id?: string
+          payload?: Json | null
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_job_items_created_medicine_id_fkey"
+            columns: ["created_medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_job_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          status: string
+          summary: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          status?: string
+          summary?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          summary?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lab_bookings: {
         Row: {
           assignment_notes: string | null
