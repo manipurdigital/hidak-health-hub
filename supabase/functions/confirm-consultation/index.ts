@@ -99,17 +99,36 @@ serve(async (req) => {
 
     // Helper function to parse 12-hour time format to 24-hour format
     function parseTimeSlotTo24Hour(timeSlot: string): string {
-      const [time, period] = timeSlot.split(' ');
+      console.log(`Parsing time slot: "${timeSlot}"`);
+      
+      if (!timeSlot || typeof timeSlot !== 'string') {
+        console.error(`Invalid timeSlot: ${timeSlot}`);
+        throw new Error('Invalid time slot format');
+      }
+      
+      const [time, period] = timeSlot.trim().split(' ');
+      if (!time || !period) {
+        console.error(`Unable to split timeSlot: ${timeSlot}`);
+        throw new Error('Invalid time slot format - expected "HH:MM AM/PM"');
+      }
+      
       const [hours, minutes] = time.split(':');
+      if (!hours || !minutes) {
+        console.error(`Unable to parse time: ${time}`);
+        throw new Error('Invalid time format - expected "HH:MM"');
+      }
+      
       let hour24 = parseInt(hours);
       
-      if (period === 'PM' && hour24 !== 12) {
+      if (period.toUpperCase() === 'PM' && hour24 !== 12) {
         hour24 += 12;
-      } else if (period === 'AM' && hour24 === 12) {
+      } else if (period.toUpperCase() === 'AM' && hour24 === 12) {
         hour24 = 0;
       }
       
-      return `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
+      const result = `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
+      console.log(`Parsed "${timeSlot}" to "${result}"`);
+      return result;
     }
 
     // Get doctor details for amount verification
@@ -120,6 +139,7 @@ serve(async (req) => {
       .single();
 
     if (doctorError || !doctor) {
+      console.error("Doctor not found:", doctorError);
       throw new Error("Doctor not found");
     }
 
@@ -127,6 +147,15 @@ serve(async (req) => {
     const consultationTime = parseTimeSlotTo24Hour(timeSlot);
     
     console.log(`Creating consultation for doctor ${doctorId} on ${consultationDate} at ${timeSlot} (parsed: ${consultationTime})`);
+    console.log('Consultation data to insert:', {
+      patient_id: user.id,
+      doctor_id: doctorId,
+      consultation_date: consultationDate,
+      consultation_time: consultationTime,
+      time_slot: timeSlot,
+      consultation_type: consultationType || 'text',
+      consultation_fee: doctor.consultation_fee
+    });
 
     // Create consultation record
     const { data: consultation, error: consultationError } = await supabaseClient
