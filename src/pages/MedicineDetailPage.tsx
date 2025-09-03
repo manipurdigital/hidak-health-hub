@@ -113,11 +113,20 @@ export function MedicineDetailPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                  {medicine.image_url ? (
+                  {(medicine.thumbnail_url || medicine.image_url) ? (
                     <img
-                      src={medicine.image_url}
+                      src={medicine.thumbnail_url || medicine.image_url}
                       alt={medicine.name}
                       className="w-full h-full object-cover rounded-lg"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (target.src === medicine.thumbnail_url && medicine.image_url) {
+                          target.src = medicine.image_url;
+                        } else {
+                          target.style.display = 'none';
+                          target.parentElement!.innerHTML = '<div class="text-muted-foreground">No image available</div>';
+                        }
+                      }}
                     />
                   ) : (
                     <div className="text-muted-foreground">No image available</div>

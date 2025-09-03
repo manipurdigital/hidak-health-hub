@@ -7,19 +7,22 @@ export const useMedicine = (id: string) => {
   return useQuery({
     queryKey: ['medicine', id],
     queryFn: async () => {
-      // Placeholder implementation
-      return {
-        id,
-        name: 'Sample Medicine',
-        description: 'Sample description',
-        price: 100,
-        stock: 10,
-        requiresPrescription: false,
-        image: null,
-        benefits: ['Sample benefit'],
-        alternatives: []
-      };
+      if (!id) throw new Error('Medicine ID is required');
+      
+      const { data, error } = await supabase
+        .from('medicines')
+        .select('*')
+        .eq('id', id)
+        .eq('is_available', true)
+        .eq('is_active', true)
+        .single();
+      
+      if (error) throw error;
+      if (!data) throw new Error('Medicine not found');
+      
+      return data;
     },
+    enabled: !!id,
   });
 };
 
