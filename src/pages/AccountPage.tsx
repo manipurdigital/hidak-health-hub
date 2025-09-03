@@ -27,7 +27,8 @@ import {
   Phone,
   DollarSign,
   User,
-  Mail
+  Mail,
+  Lock
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -96,6 +97,7 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState('orders');
   const [currentPage, setCurrentPage] = useState(1);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [profileForm, setProfileForm] = useState({
     full_name: '',
     phone: '',
@@ -103,6 +105,11 @@ export default function AccountPage() {
     city: '',
     state: '',
     pincode: ''
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
   // Orders query
@@ -238,6 +245,36 @@ export default function AccountPage() {
     }
   });
 
+  // Password update mutation
+  const updatePasswordMutation = useMutation({
+    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsChangingPassword(false);
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully changed.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Password Update Failed",
+        description: error.message || "Failed to update password. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleDownloadPrescription = async (prescriptionId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('get-signed-url', {
@@ -310,6 +347,44 @@ export default function AccountPage() {
       city: '',
       state: '',
       pincode: ''
+    });
+  };
+
+  const handleChangePassword = () => {
+    setIsChangingPassword(true);
+  };
+
+  const handleSavePassword = () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "New password and confirm password do not match.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    updatePasswordMutation.mutate({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword
+    });
+  };
+
+  const handleCancelPasswordChange = () => {
+    setIsChangingPassword(false);
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
     });
   };
 
@@ -503,6 +578,86 @@ export default function AccountPage() {
                           </Button>
                         </div>
                       )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Password Change Section */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-5 h-5" />
+                      Change Password
+                    </div>
+                    {!isChangingPassword && (
+                      <Button variant="outline" onClick={handleChangePassword}>
+                        Change Password
+                      </Button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isChangingPassword ? (
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="currentPassword">Current Password</Label>
+                        <Input
+                          id="currentPassword"
+                          type="password"
+                          value={passwordForm.currentPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                          placeholder="Enter your current password"
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="newPassword">New Password</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={passwordForm.newPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                          placeholder="Enter your new password"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Password must be at least 6 characters long
+                        </p>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          value={passwordForm.confirmPassword}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                          placeholder="Confirm your new password"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-4">
+                        <Button 
+                          onClick={handleSavePassword}
+                          disabled={updatePasswordMutation.isPending || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                        >
+                          {updatePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+                        </Button>
+                        <Button variant="outline" onClick={handleCancelPasswordChange}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground mb-4">
+                        Keep your account secure by regularly updating your password
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Click "Change Password" to update your account password
+                      </p>
                     </div>
                   )}
                 </CardContent>
