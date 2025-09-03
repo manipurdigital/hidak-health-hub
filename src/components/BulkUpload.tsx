@@ -90,59 +90,47 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
 
       if (error) throw error;
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to generate template');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to generate template');
       }
 
-      // Convert base64 to blob and download with better handling
-      try {
-        const base64Data = data.data;
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        
-        const blob = new Blob([bytes], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        });
-        
-        // Create download with better browser compatibility
-        if ((window.navigator as any).msSaveOrOpenBlob) {
-          // IE/Edge
-          (window.navigator as any).msSaveOrOpenBlob(blob, data.filename);
-        } else {
-          // Modern browsers
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = data.filename;
-          link.style.display = 'none';
-          
-          document.body.appendChild(link);
-          link.click();
-          
-          // Clean up with delay to ensure download starts
-          setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }, 100);
-        }
+      // Use a robust base64-safe data URL approach (handles newlines/URL-safe chars)
+      const contentType = data.contentType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const base64 = (data.data || '').toString();
+      const fileName = data.filename || `${type}_bulk_upload_template.xlsx`;
+      const href = `data:${contentType};base64,${base64}`;
 
-        toast({
-          title: "Template Downloaded",
-          description: `${type} template has been downloaded successfully`
-        });
-      } catch (downloadError) {
-        console.error('Download processing error:', downloadError);
-        throw new Error('Failed to process download file');
+      const navAny = window.navigator as any;
+      if (navAny && typeof navAny.msSaveOrOpenBlob === 'function') {
+        // Legacy IE/Edge
+        const blob = await fetch(href).then(r => r.blob());
+        navAny.msSaveOrOpenBlob(blob, fileName);
+      } else {
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        // Safari fallback
+        if (!('download' in HTMLAnchorElement.prototype)) {
+          window.open(href, '_blank');
+        }
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
       }
+
+      toast({
+        title: 'Template Downloaded',
+        description: `${type} template has been downloaded successfully`
+      });
     } catch (error) {
       console.error('Error downloading template:', error);
       toast({
-        title: "Download Failed",
-        description: error instanceof Error ? error.message : "Failed to download template",
-        variant: "destructive"
+        title: 'Download Failed',
+        description: error instanceof Error ? error.message : 'Failed to download template',
+        variant: 'destructive'
       });
     }
   };

@@ -90,37 +90,50 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
 
       if (error) throw error;
 
-      if (data.success) {
-        // Convert base64 to blob
-        const byteCharacters = atob(data.data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: data.contentType });
-
-        // Download the file
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        toast({
-          title: "Success",
-          description: "Template downloaded successfully with instructions and categories",
-        });
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to generate template');
       }
+
+      // Prefer a robust, base64-safe data URL download to avoid atob issues
+      const contentType = data.contentType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const base64 = (data.data || '').toString();
+      const fileName = data.filename || 'medicines_bulk_upload_template.xlsx';
+
+      // Create a data URL directly (handles newlines and URL-safe base64 better)
+      const href = `data:${contentType};base64,${base64}`;
+
+      // Fallback for IE/Edge legacy
+      const navAny = window.navigator as any;
+      if (navAny && typeof navAny.msSaveOrOpenBlob === 'function') {
+        // Convert data URL to Blob using fetch for legacy APIs
+        const blob = await fetch(href).then(r => r.blob());
+        navAny.msSaveOrOpenBlob(blob, fileName);
+      } else {
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        // Safari fallback (download attribute not supported on data URLs)
+        if (!('download' in HTMLAnchorElement.prototype)) {
+          window.open(href, '_blank');
+        }
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Template downloaded successfully with instructions and categories',
+      });
     } catch (error) {
       console.error('Error downloading template:', error);
       toast({
-        title: "Error",
-        description: "Failed to download template. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to download template. Please try again.',
+        variant: 'destructive'
       });
     }
   };
