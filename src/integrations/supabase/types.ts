@@ -2271,6 +2271,21 @@ export type Database = {
         Args: { p_medicine_id: string; p_quantity: number }
         Returns: boolean
       }
+      create_base_location: {
+        Args: {
+          p_base_fare: number
+          p_base_km: number
+          p_base_lat: number
+          p_base_lng: number
+          p_is_active: boolean
+          p_is_default: boolean
+          p_name: string
+          p_per_km_fee: number
+          p_priority: number
+          p_service_type: string
+        }
+        Returns: string
+      }
       create_booking_notification: {
         Args: {
           booking_id: string
@@ -2289,6 +2304,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      delete_base_location: {
+        Args: { p_id: string }
+        Returns: boolean
       }
       disablelongtransactions: {
         Args: Record<PropertyKey, never>
@@ -2572,6 +2591,24 @@ export type Database = {
           priority: number
           store_id: string
           store_name: string
+        }[]
+      }
+      get_base_locations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          base_fare: number
+          base_km: number
+          base_lat: number
+          base_lng: number
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          per_km_fee: number
+          priority: number
+          service_type: string
+          updated_at: string
         }[]
       }
       get_cached_recommendations: {
@@ -4002,6 +4039,22 @@ export type Database = {
       unlockrows: {
         Args: { "": string }
         Returns: number
+      }
+      update_base_location: {
+        Args: {
+          p_base_fare: number
+          p_base_km: number
+          p_base_lat: number
+          p_base_lng: number
+          p_id: string
+          p_is_active: boolean
+          p_is_default: boolean
+          p_name: string
+          p_per_km_fee: number
+          p_priority: number
+          p_service_type: string
+        }
+        Returns: boolean
       }
       updategeometrysrid: {
         Args: {

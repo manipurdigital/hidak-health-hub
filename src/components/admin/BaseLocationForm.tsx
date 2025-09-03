@@ -6,24 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useCreateBaseLocation, useUpdateBaseLocation } from '@/hooks/base-location-placeholders';
-
-interface BaseLocation {
-  id: string;
-  name: string;
-  address: string;
-  latitude?: number;
-  longitude?: number;
-  is_active: boolean;
-  service_type?: string;
-  geofence_id?: string;
-  base_lat?: number;
-  base_lng?: number;
-  base_fare?: number;
-  per_km_fee?: number;
-  priority?: number;
-}
-import { useCentersAndStores } from '@/hooks/geofencing-hooks';
+import { useCreateBaseLocation, useUpdateBaseLocation, type BaseLocation } from '@/hooks/base-location-hooks';
 import { MapPin, Save, X } from 'lucide-react';
 
 interface BaseLocationFormProps {
@@ -36,7 +19,6 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
   const [formData, setFormData] = useState({
     name: '',
     service_type: 'delivery',
-    geofence_id: 'none',
     base_lat: 0,
     base_lng: 0,
     base_fare: 0,
@@ -44,9 +26,9 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
     per_km_fee: 0,
     priority: 1,
     is_active: true,
+    is_default: false,
   });
 
-  const { data: centersAndStores } = useCentersAndStores();
   const createBaseLocation = useCreateBaseLocation();
   const updateBaseLocation = useUpdateBaseLocation();
 
@@ -57,20 +39,19 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
       setFormData({
         name: baseLocation.name || '',
         service_type: baseLocation.service_type || 'delivery',
-        geofence_id: baseLocation.geofence_id || 'none',
         base_lat: baseLocation.base_lat || 0,
         base_lng: baseLocation.base_lng || 0,
         base_fare: baseLocation.base_fare || 0,
-        base_km: (baseLocation as any).base_km || 0,
+        base_km: baseLocation.base_km || 0,
         per_km_fee: baseLocation.per_km_fee || 0,
         priority: baseLocation.priority || 1,
         is_active: baseLocation.is_active ?? true,
+        is_default: baseLocation.is_default ?? false,
       });
     } else {
       setFormData({
         name: '',
         service_type: 'delivery',
-        geofence_id: 'none',
         base_lat: 0,
         base_lng: 0,
         base_fare: 0,
@@ -78,6 +59,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
         per_km_fee: 0,
         priority: 1,
         is_active: true,
+        is_default: false,
       });
     }
   }, [baseLocation, open]);
@@ -87,18 +69,13 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
     if (!formData.base_lat || !formData.base_lng) return;
 
     try {
-      const submitData = {
-        ...formData,
-        geofence_id: formData.geofence_id === 'none' ? undefined : formData.geofence_id,
-      };
-
       if (isEditing && baseLocation) {
         await updateBaseLocation.mutateAsync({
           id: baseLocation.id,
-          data: submitData
+          data: formData
         });
       } else {
-        await createBaseLocation.mutateAsync(submitData);
+        await createBaseLocation.mutateAsync(formData);
       }
       
       onOpenChange(false);
@@ -163,23 +140,6 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
                 <SelectContent>
                   <SelectItem value="delivery">Medicine Delivery</SelectItem>
                   <SelectItem value="lab_collection">Lab Collection</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Geofence (Optional) */}
-            <div className="space-y-2">
-              <Label>Associated Geofence (Optional)</Label>
-              <Select
-                value={formData.geofence_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, geofence_id: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select geofence (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {/* Note: Would need to fetch geofences here */}
                 </SelectContent>
               </Select>
             </div>
@@ -282,6 +242,20 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
               <p className="text-xs text-muted-foreground">
                 Higher priority locations are preferred for calculations
               </p>
+            </div>
+
+            {/* Set as Default */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-0.5">
+                <Label>Set as Default</Label>
+                <p className="text-xs text-muted-foreground">
+                  Make this the default base location for {formData.service_type}
+                </p>
+              </div>
+              <Switch
+                checked={formData.is_default}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_default: checked }))}
+              />
             </div>
 
             {/* Active Status */}

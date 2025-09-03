@@ -11,7 +11,7 @@ import { BaseLocationForm } from '@/components/admin/BaseLocationForm';
 import { FeeTestingPanel } from '@/components/admin/FeeTestingPanel';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { MapPin, Plus, Edit, Trash2, Building, Store } from 'lucide-react';
-import { format } from 'date-fns';
+
 
 export default function AdminBaseLocationsPage() {
   const [selectedBaseLocation, setSelectedBaseLocation] = useState<BaseLocation | null>(null);
@@ -21,10 +21,13 @@ export default function AdminBaseLocationsPage() {
   const updateBaseLocation = useUpdateBaseLocation();
   const deleteBaseLocation = useDeleteBaseLocation();
 
-  const handleToggleActive = async (id: string, currentActive: boolean) => {
+  const handleToggleActive = async (location: BaseLocation) => {
     await updateBaseLocation.mutateAsync({
-      id,
-      data: { is_active: !currentActive }
+      id: location.id,
+      data: { 
+        ...location,
+        is_active: !location.is_active 
+      }
     });
   };
 
@@ -130,6 +133,7 @@ export default function AdminBaseLocationsPage() {
                         <TableHead>Coordinates</TableHead>
                         <TableHead>Pricing</TableHead>
                         <TableHead>Priority</TableHead>
+                        <TableHead>Default</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -151,10 +155,19 @@ export default function AdminBaseLocationsPage() {
                             <Badge variant="secondary">{location.priority}</Badge>
                           </TableCell>
                           <TableCell>
+                            {location.is_default ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                Default
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <div className="flex items-center gap-2">
                               <Switch
                                 checked={location.is_active}
-                                onCheckedChange={() => handleToggleActive(location.id, location.is_active)}
+                                onCheckedChange={() => handleToggleActive(location)}
                                 disabled={updateBaseLocation.isPending}
                               />
                               <span className="text-sm text-muted-foreground">
