@@ -213,12 +213,12 @@ const AdminMedicinesPage = () => {
     if (!editingMedicine) return;
 
     try {
-      const compositionText = formData.get('composition_text') as string;
+      const composition = formData.get('composition') as string;
       const medicineData = {
         name: formData.get('name') as string,
-        composition_text: compositionText,
-        composition_key: generateCompositionKey(compositionText),
-        composition_family_key: generateCompositionFamilyKey(compositionText),
+        composition: composition,
+        composition_key: generateCompositionKey(composition),
+        composition_family_key: generateCompositionFamilyKey(composition),
         price: parseFloat(formData.get('price') as string),
         original_price: parseFloat(formData.get('original_price') as string),
         stock_quantity: parseInt(formData.get('stock_quantity') as string),
@@ -431,7 +431,7 @@ const AdminMedicinesPage = () => {
 
   const filteredMedicines = medicines.filter(medicine =>
     medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    medicine.composition_text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    medicine.composition?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     medicine.brand?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -719,7 +719,7 @@ const AdminMedicinesPage = () => {
                               />
                             </td>
                             <td className="py-4 font-medium">{medicine.name}</td>
-                            <td className="py-4 text-muted-foreground">{medicine.composition_text || 'N/A'}</td>
+                            <td className="py-4 text-muted-foreground">{medicine.composition || 'N/A'}</td>
                             <td className="py-4">₹{medicine.price}</td>
                             <td className="py-4">
                               <Badge variant={medicine.stock_quantity > 10 ? "default" : "destructive"}>
@@ -805,13 +805,13 @@ const AdminMedicinesPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit_composition_text">Salt Composition (Generic)</Label>
+                  <Label htmlFor="edit_composition">Salt Composition (Generic)</Label>
                   <Textarea 
-                    id="edit_composition_text" 
-                    name="composition_text" 
+                    id="edit_composition" 
+                    name="composition" 
                     placeholder="Paracetamol 650 mg"
                     rows={2}
-                    defaultValue={editingMedicine.composition_text || ''} 
+                    defaultValue={editingMedicine.composition || ''}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Use active ingredients and strengths; powers substitute matching.

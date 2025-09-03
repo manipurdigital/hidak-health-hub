@@ -111,7 +111,7 @@ serve(async (req) => {
     // Always update these source-derived fields
     const sourceFields = [
       'price', 'original_price', 'description', 'image_url', 
-      'composition_text', 'composition_key', 'composition_family_key',
+      'composition', 'composition_key', 'composition_family_key',
       'source_checksum', 'source_last_fetched'
     ];
 
