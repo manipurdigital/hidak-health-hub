@@ -80,13 +80,40 @@ export const useDoctorUpcomingConsultations = () => {
             .eq('user_id', consultation.patient_id)
             .single();
           
-          if (profileError) {
-            console.warn('Could not fetch profile for patient:', consultation.patient_id, profileError);
+          let finalProfile = profile;
+          
+          if (profileError || !profile?.full_name) {
+            console.warn('Could not fetch complete profile for patient:', consultation.patient_id, profileError);
+            
+            // Extract patient details from patient_notes if available
+            if (consultation.patient_notes) {
+              const extractPatientInfo = (notes: string) => {
+                const patterns = {
+                  name: /Patient:\s*([^,]+)/i,
+                  phone: /Phone:\s*([^,]+)/i,
+                  email: /Email:\s*([^,]+)/i
+                };
+                
+                const nameMatch = notes.match(patterns.name);
+                const phoneMatch = notes.match(patterns.phone);
+                const emailMatch = notes.match(patterns.email);
+                
+                return {
+                  full_name: nameMatch ? nameMatch[1].trim() : 'Unknown Patient',
+                  phone: phoneMatch ? phoneMatch[1].trim() : '',
+                  email: emailMatch ? emailMatch[1].trim() : ''
+                };
+              };
+              
+              finalProfile = extractPatientInfo(consultation.patient_notes);
+            } else {
+              finalProfile = null;
+            }
           }
           
           return {
             ...consultation,
-            profiles: profile || null, // Ensure null if no profile found
+            profiles: finalProfile,
             consultation_type: consultation.consultation_type || 'video' // Use existing or default
           };
         })
