@@ -639,16 +639,7 @@ const CheckoutPage = () => {
                   <Alert className="mt-4 border-green-200 bg-green-50">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <AlertDescription>
-                      <div>
-                        <span className="text-green-800 font-medium">✓ Delivery Available</span>
-                        {feePreview && (
-                          <div className="mt-1">
-                            <Badge variant="secondary" className="text-xs">
-                              Estimated delivery fee: ₹{feePreview.fee}
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
+                      <span className="text-green-800 font-medium">✓ Delivery Available</span>
                     </AlertDescription>
                   </Alert>
                 )}
