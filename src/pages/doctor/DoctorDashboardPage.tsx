@@ -1,192 +1,387 @@
 
-// @ts-nocheck
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
-  Calendar, 
-  Users, 
-  Bell,
-  Plus,
-  TrendingUp
+  Calendar as CalendarIcon, 
+  Clock, 
+  Activity, 
+  Heart, 
+  FileText, 
+  Settings,
+  Filter,
+  ArrowRight,
+  Stethoscope,
+  Timer,
+  Users,
+  Star
 } from 'lucide-react';
-import { format, startOfDay, addDays } from 'date-fns';
+import { format, addDays, isToday, startOfDay, endOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { useDoctorUpcomingConsultations, useDoctorInfo } from '@/hooks/use-doctor-upcoming';
-import { DoctorStatsCards } from '@/components/doctor/DoctorStatsCards';
-import { UpcomingAppointments } from '@/components/doctor/UpcomingAppointments';
-import { QuickActions } from '@/components/doctor/QuickActions';
+
+type DateFilter = 'today' | 'tomorrow' | 'this-week' | 'next-week' | 'next-7-days' | 'next-30-days' | 'custom';
 
 export default function DoctorDashboardPage() {
   const navigate = useNavigate();
-  
-  const { data: doctorInfo, isLoading: doctorLoading } = useDoctorInfo();
-  const { data: upcomingConsultations = [], isLoading: consultationsLoading } = useDoctorUpcomingConsultations();
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [customDate, setCustomDate] = useState<Date>();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const isLoading = doctorLoading || consultationsLoading;
+  const { data: consultations = [], isLoading } = useDoctorUpcomingConsultations();
+  const { data: doctorInfo } = useDoctorInfo();
 
-  // Get today's date for comparison
-  const today = startOfDay(new Date());
-  const tomorrow = addDays(today, 1);
+  // Filter consultations based on selected date filter
+  const getFilteredConsultations = () => {
+    const now = new Date();
+    let filtered = consultations;
 
-  // Calculate some basic stats for quick actions
-  const pendingCount = upcomingConsultations.filter(c => c.status === 'scheduled').length;
-  const unreadMessages = 3; // This would come from your messaging system
-  const availabilityStatus = doctorInfo?.is_available ? 'available' : 'offline';
+    switch (dateFilter) {
+      case 'today':
+        filtered = consultations.filter(c => isToday(new Date(c.consultation_date)));
+        break;
+      case 'tomorrow':
+        const tomorrow = addDays(now, 1);
+        filtered = consultations.filter(c => 
+          format(new Date(c.consultation_date), 'yyyy-MM-dd') === format(tomorrow, 'yyyy-MM-dd')
+        );
+        break;
+      case 'this-week':
+        // Current week logic
+        break;
+      case 'next-week':
+        // Next week logic
+        break;
+      case 'next-7-days':
+        const next7Days = addDays(now, 7);
+        filtered = consultations.filter(c => {
+          const consultDate = new Date(c.consultation_date);
+          return consultDate >= now && consultDate <= next7Days;
+        });
+        break;
+      case 'next-30-days':
+        const next30Days = addDays(now, 30);
+        filtered = consultations.filter(c => {
+          const consultDate = new Date(c.consultation_date);
+          return consultDate >= now && consultDate <= next30Days;
+        });
+        break;
+      case 'custom':
+        if (customDate) {
+          filtered = consultations.filter(c => 
+            format(new Date(c.consultation_date), 'yyyy-MM-dd') === format(customDate, 'yyyy-MM-dd')
+          );
+        }
+        break;
+      default:
+        filtered = consultations;
+    }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-8 animate-pulse">
-        {/* Header skeleton */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="h-10 bg-muted rounded w-80 mb-2"></div>
-            <div className="h-5 bg-muted rounded w-96"></div>
-          </div>
-          <div className="flex space-x-3">
-            <div className="h-10 bg-muted rounded w-28"></div>
-            <div className="h-10 bg-muted rounded w-36"></div>
-          </div>
-        </div>
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(c => 
+        c.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.patient_notes?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
 
-        {/* Stats cards skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="p-6 border rounded-lg">
-              <div className="flex items-center justify-between mb-4">
-                <div className="h-4 bg-muted rounded w-32"></div>
-                <div className="h-6 w-6 bg-muted rounded"></div>
-              </div>
-              <div className="h-8 bg-muted rounded w-20 mb-2"></div>
-              <div className="h-3 bg-muted rounded w-28"></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Upcoming appointments skeleton */}
-        <div className="border rounded-lg">
-          <div className="p-6 border-b">
-            <div className="h-6 bg-muted rounded w-56 mb-2"></div>
-            <div className="h-4 bg-muted rounded w-72"></div>
-          </div>
-          <div className="p-6 space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-muted rounded-full"></div>
-                  <div>
-                    <div className="h-5 bg-muted rounded w-40 mb-2"></div>
-                    <div className="h-4 bg-muted rounded w-56"></div>
-                  </div>
-                </div>
-                <div className="h-6 bg-muted rounded w-24"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick actions skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="h-10 w-10 bg-muted rounded-lg"></div>
-                <div className="h-5 bg-muted rounded w-8"></div>
-              </div>
-              <div className="h-4 bg-muted rounded w-32 mb-2"></div>
-              <div className="h-3 bg-muted rounded w-24"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Get current time and greeting
-  const hour = new Date().getHours();
-  const getGreeting = () => {
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    return filtered;
   };
 
+  const filteredConsultations = getFilteredConsultations();
+
+  // Calculate stats
+  const todayConsultations = consultations.filter(c => isToday(new Date(c.consultation_date)));
+  const completedToday = todayConsultations.filter(c => c.status === 'completed').length;
+  const inProgressCount = consultations.filter(c => c.status === 'in_progress').length;
+  const activeConsultationsCount = consultations.filter(c => c.status === 'scheduled').length;
+  const followUpsCount = 0; // TODO: Implement follow-ups logic
+
+  const dateFilterButtons = [
+    { key: 'today', label: 'Today' },
+    { key: 'tomorrow', label: 'Tomorrow' },
+    { key: 'this-week', label: 'This Week' },
+    { key: 'next-week', label: 'Next Week' },
+    { key: 'next-7-days', label: 'Next 7 Days' },
+    { key: 'next-30-days', label: 'Next 30 Days' },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Enhanced Welcome Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            {getGreeting()}, Dr. {doctorInfo?.full_name ? doctorInfo.full_name.split(' ')[0] : 'Doctor'}
-          </h1>
-          <p className="text-muted-foreground text-lg mt-2">
-            Today is {format(new Date(), 'EEEE, MMMM do, yyyy')} • Here's your practice overview
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6 max-w-7xl">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Good morning, Dr. {doctorInfo?.name || doctorInfo?.full_name || 'Doctor'}
+            </h1>
+            <p className="text-muted-foreground">
+              Here's what's happening with your practice today
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/doctor/profile')}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Profile
+            </Button>
+            <Button 
+              onClick={() => navigate('/doctor/availability')}
+              className="flex items-center gap-2"
+            >
+              <CalendarIcon className="w-4 h-4" />
+              Availability
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            onClick={() => navigate('/doctor/profile')}
-            variant="outline"
-            className="hover:bg-primary hover:text-primary-foreground"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            My Profile
-          </Button>
-          <Button 
-            onClick={() => navigate('/doctor/availability')}
-            className="bg-primary hover:bg-primary/90"
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Manage Schedule
-          </Button>
-          <Button 
-            onClick={() => navigate('/doctor/appointments?action=new')}
-            variant="outline"
-            className="hover:bg-green-500 hover:text-white border-green-500 text-green-600"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Appointment
-          </Button>
-        </div>
-      </div>
 
-      {/* Enhanced Stats Cards */}
-      <DoctorStatsCards 
-        doctorInfo={doctorInfo} 
-        upcomingConsultations={upcomingConsultations} 
-      />
-
-      {/* Upcoming Appointments */}
-      <UpcomingAppointments consultations={upcomingConsultations} />
-
-      {/* Quick Actions */}
-      <QuickActions 
-        pendingCount={pendingCount}
-        unreadMessages={unreadMessages}
-        availabilityStatus={availabilityStatus}
-      />
-
-      {/* Additional insights section could go here */}
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Practice Insights</h3>
-              <p className="text-muted-foreground">
-                You're doing great! Your patient satisfaction rate is above average.
-              </p>
+        {/* Filter Appointments by Date */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="w-5 h-5" />
+              <CardTitle>Filter Appointments by Date</CardTitle>
             </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+            <p className="text-sm text-muted-foreground">
+              Select a specific date or date range to view appointments
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {dateFilterButtons.map((button) => (
+                <Button
+                  key={button.key}
+                  variant={dateFilter === button.key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDateFilter(button.key as DateFilter)}
+                >
+                  {button.label}
+                </Button>
+              ))}
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={dateFilter === 'custom' ? "default" : "outline"}
+                    size="sm"
+                    className="w-auto justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDate ? format(customDate, "PPP") : "Select date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customDate}
+                    onSelect={(date) => {
+                      setCustomDate(date);
+                      setDateFilter('custom');
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Search functionality */}
+            <div className="relative">
+              <Input
+                placeholder="Search appointments by patient name or notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-4"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-900 mb-1">Today's Appointments</p>
+                  <p className="text-3xl font-bold text-blue-900">{todayConsultations.length}</p>
+                  <p className="text-xs text-blue-700">{completedToday} completed</p>
+                </div>
+                <div className="p-3 bg-blue-200 rounded-full">
+                  <CalendarIcon className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-orange-900 mb-1">In Progress</p>
+                  <p className="text-3xl font-bold text-orange-900">{inProgressCount}</p>
+                  <p className="text-xs text-orange-700">Active consultations</p>
+                </div>
+                <div className="p-3 bg-orange-200 rounded-full">
+                  <Activity className="w-6 h-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-900 mb-1">Follow-ups Active</p>
+                  <p className="text-3xl font-bold text-green-900">{followUpsCount}</p>
+                  <p className="text-xs text-green-700">72-hour windows open</p>
+                </div>
+                <div className="p-3 bg-green-200 rounded-full">
+                  <Timer className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-900 mb-1">Rating</p>
+                  <p className="text-3xl font-bold text-purple-900">
+                    {doctorInfo?.rating ? `${doctorInfo.rating.toFixed(1)}★` : 'N/A'}
+                  </p>
+                  <p className="text-xs text-purple-700">{doctorInfo?.review_count || 0} reviews</p>
+                </div>
+                <div className="p-3 bg-purple-200 rounded-full">
+                  <Star className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Upcoming Appointments */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                <CardTitle>Upcoming Appointments</CardTitle>
+              </div>
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/doctor/analytics')}
+                size="sm"
+                onClick={() => navigate('/doctor/appointments')}
+                className="flex items-center gap-2"
               >
-                View Analytics
+                View All
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <p className="text-sm text-muted-foreground">
+              Priority sorted • {filteredConsultations.length} consultations
+            </p>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : filteredConsultations.length === 0 ? (
+              <div className="text-center py-12">
+                <CalendarIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No consultations found</h3>
+                <p className="text-muted-foreground">
+                  You have no consultations scheduled.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredConsultations.slice(0, 5).map((consultation) => (
+                  <div
+                    key={consultation.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                    onClick={() => navigate(`/doctor/consultations/${consultation.id}`)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{consultation.profiles?.full_name || 'Patient'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(consultation.consultation_date), 'MMM dd, yyyy')} at {consultation.time_slot}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant={consultation.status === 'completed' ? 'default' : 'secondary'}>
+                        {consultation.status}
+                      </Badge>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/doctor/appointments')}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <CalendarIcon className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Manage Appointments</h3>
+                  <p className="text-sm text-muted-foreground">View and manage all consultations</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/doctor/prescriptions')}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <FileText className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Prescriptions</h3>
+                  <p className="text-sm text-muted-foreground">Create and manage prescriptions</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/doctor/availability')}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <Settings className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Set Availability</h3>
+                  <p className="text-sm text-muted-foreground">Update your working hours</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
