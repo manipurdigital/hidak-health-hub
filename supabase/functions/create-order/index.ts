@@ -163,7 +163,7 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const body = await req.json();
-    const { items, shippingAddress, prescriptionUrl, notes, patientName, patientPhone, patientLocation, paymentMethod } = body;
+    const { items, shippingAddress, prescriptionUrl, notes, patientName, patientPhone, patientLocation, paymentMethod, deliveryFee } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("No items provided");
@@ -183,13 +183,15 @@ serve(async (req) => {
       patientName,
       patientPhone,
       paymentMethod: paymentMethod || 'prepaid',
-      hasLocation: !!(patientLocation?.lat && patientLocation?.lng)
+      hasLocation: !!(patientLocation?.lat && patientLocation?.lng),
+      deliveryFee: deliveryFee || 0
     });
 
-    // Calculate total amount
-    const totalAmount = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+    // Calculate total amount including delivery fee
+    const itemsTotal = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+    const totalAmount = itemsTotal + (deliveryFee || 0);
 
-    logStep("Order calculations", { totalAmount });
+    logStep("Order calculations", { itemsTotal, deliveryFee: deliveryFee || 0, totalAmount });
 
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${user.id.substring(0, 8)}`;

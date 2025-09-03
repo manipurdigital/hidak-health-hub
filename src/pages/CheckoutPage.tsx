@@ -406,6 +406,7 @@ const CheckoutPage = () => {
         lat: shippingAddress.latitude,
         lng: shippingAddress.longitude
       } : null,
+      deliveryFee: deliveryFee, // Include delivery fee
     };
 
     const { data: { session } } = await supabase.auth.getSession();
