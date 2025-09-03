@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Stethoscope, User, Phone, Clock, Calendar } from "lucide-react";
+import { Stethoscope, User, Phone, Clock, Calendar, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -64,17 +65,70 @@ const consultationStatuses = [
 export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [dateFilter, setDateFilter] = useState<string>('last-7-days');
 
   const today = new Date();
+  
+  // Calculate date ranges based on filter
+  const getDateRange = (filter: string) => {
+    const today = new Date();
+    let from: Date;
+    let to: Date;
+
+    switch (filter) {
+      case 'today':
+        from = new Date(today);
+        to = new Date(today);
+        break;
+      case 'yesterday':
+        from = new Date(today);
+        from.setDate(from.getDate() - 1);
+        to = new Date(from);
+        break;
+      case 'last-7-days':
+        from = new Date(today);
+        from.setDate(from.getDate() - 7);
+        to = new Date(today);
+        break;
+      case 'next-7-days':
+        from = new Date(today);
+        to = new Date(today);
+        to.setDate(to.getDate() + 7);
+        break;
+      case 'next-30-days':
+        from = new Date(today);
+        to = new Date(today);
+        to.setDate(to.getDate() + 30);
+        break;
+      case 'all-future':
+        from = new Date(today);
+        to = new Date('2030-12-31'); // Far future date
+        break;
+      default:
+        from = new Date(today);
+        from.setDate(from.getDate() - 7);
+        to = new Date(today);
+    }
+
+    return {
+      from: format(from, 'yyyy-MM-dd'),
+      to: format(to, 'yyyy-MM-dd')
+    };
+  };
+
+  const dateRange = filters.from && filters.to 
+    ? { from: filters.from, to: filters.to }
+    : getDateRange(dateFilter);
+
   const weekAgo = new Date(today);
   weekAgo.setDate(weekAgo.getDate() - 7);
   
-  // Default to last 7 days instead of just today to catch more consultations
-  const defaultFrom = filters.from || format(weekAgo, 'yyyy-MM-dd');
-  const defaultTo = filters.to || format(today, 'yyyy-MM-dd');
+  // Use custom date range or calculated range
+  const defaultFrom = dateRange.from;
+  const defaultTo = dateRange.to;
 
   const { data: consultations, isLoading } = useQuery({
-    queryKey: ['admin-consultations', filters],
+    queryKey: ['admin-consultations', filters, dateFilter],
     queryFn: async () => {
       let query = supabase
         .from('consultations')
@@ -177,6 +231,70 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
   }
 
   return (
+    <div className="space-y-4">
+      {/* Consultation-specific filters */}
+      <div className="flex flex-col gap-4 p-4 bg-muted/50 rounded-lg border">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Consultation Filters</span>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <Button
+            variant={dateFilter === 'today' ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter('today')}
+            className="text-xs"
+          >
+            Today
+          </Button>
+          <Button
+            variant={dateFilter === 'yesterday' ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter('yesterday')}
+            className="text-xs"
+          >
+            Yesterday
+          </Button>
+          <Button
+            variant={dateFilter === 'last-7-days' ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter('last-7-days')}
+            className="text-xs"
+          >
+            Last 7 Days
+          </Button>
+          <Button
+            variant={dateFilter === 'next-7-days' ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter('next-7-days')}
+            className="text-xs"
+          >
+            Next 7 Days
+          </Button>
+          <Button
+            variant={dateFilter === 'next-30-days' ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter('next-30-days')}
+            className="text-xs"
+          >
+            Next 30 Days
+          </Button>
+          <Button
+            variant={dateFilter === 'all-future' ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter('all-future')}
+            className="text-xs"
+          >
+            All Future
+          </Button>
+        </div>
+        
+        <div className="text-sm text-muted-foreground">
+          Showing consultations from {format(new Date(defaultFrom), 'MMM dd, yyyy')} to {format(new Date(defaultTo), 'MMM dd, yyyy')}
+        </div>
+      </div>
+
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -321,5 +439,6 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
         )}
       </CardContent>
     </Card>
+    </div>
   );
 };
