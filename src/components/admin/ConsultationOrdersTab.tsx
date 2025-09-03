@@ -65,7 +65,7 @@ const consultationStatuses = [
 export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [dateFilter, setDateFilter] = useState<string>('last-7-days');
+  const [dateFilter, setDateFilter] = useState<string>('next-7-days');
 
   const today = new Date();
   
@@ -166,6 +166,7 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
         console.error('Error fetching consultations:', error);
         throw error;
       }
+      console.log('Date range:', { defaultFrom, defaultTo });
       console.log('Fetched consultations:', data);
       
       // Fetch patient profiles separately
