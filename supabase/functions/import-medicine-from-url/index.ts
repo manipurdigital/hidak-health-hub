@@ -94,12 +94,18 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Import medicine error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
         mode: 'failed' as const,
         warnings: [],
-        error: error.message || 'Failed to import medicine' 
+        error: error.message || 'Failed to import medicine',
+        errorType: error.name || 'Unknown',
+        stack: error.stack || 'No stack trace'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
