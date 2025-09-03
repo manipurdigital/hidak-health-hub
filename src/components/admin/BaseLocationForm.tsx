@@ -126,7 +126,7 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[80vw] max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
@@ -134,165 +134,174 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Location Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g., Imphal Central, Thoubal Hub"
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+          {/* Left Column */}
+          <div className="space-y-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Location Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Imphal Central, Thoubal Hub"
+              />
+            </div>
 
-          {/* Service Type */}
-          <div className="space-y-2">
-            <Label>Service Type</Label>
-            <Select
-              value={formData.service_type}
-              onValueChange={(value) => 
-                setFormData(prev => ({ ...prev, service_type: value }))
-              }
+            {/* Service Type */}
+            <div className="space-y-2">
+              <Label>Service Type</Label>
+              <Select
+                value={formData.service_type}
+                onValueChange={(value) => 
+                  setFormData(prev => ({ ...prev, service_type: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="delivery">Medicine Delivery</SelectItem>
+                  <SelectItem value="lab_collection">Lab Collection</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Geofence (Optional) */}
+            <div className="space-y-2">
+              <Label>Associated Geofence (Optional)</Label>
+              <Select
+                value={formData.geofence_id}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, geofence_id: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select geofence (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {/* Note: Would need to fetch geofences here */}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Coordinates */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lat">Latitude</Label>
+                <Input
+                  id="lat"
+                  type="number"
+                  step="any"
+                  value={formData.base_lat}
+                  onChange={(e) => setFormData(prev => ({ ...prev, base_lat: parseFloat(e.target.value) || 0 }))}
+                  placeholder="24.817"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lng">Longitude</Label>
+                <Input
+                  id="lng"
+                  type="number"
+                  step="any"
+                  value={formData.base_lng}
+                  onChange={(e) => setFormData(prev => ({ ...prev, base_lng: parseFloat(e.target.value) || 0 }))}
+                  placeholder="93.938"
+                />
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLocationClick}
+              className="w-full"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="delivery">Medicine Delivery</SelectItem>
-                <SelectItem value="lab_collection">Lab Collection</SelectItem>
-              </SelectContent>
-            </Select>
+              <MapPin className="h-4 w-4 mr-2" />
+              Use Current Location
+            </Button>
           </div>
 
-          {/* Geofence (Optional) */}
-          <div className="space-y-2">
-            <Label>Associated Geofence (Optional)</Label>
-            <Select
-              value={formData.geofence_id}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, geofence_id: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select geofence (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {/* Note: Would need to fetch geofences here */}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Coordinates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="lat">Latitude</Label>
-              <Input
-                id="lat"
-                type="number"
-                step="any"
-                value={formData.base_lat}
-                onChange={(e) => setFormData(prev => ({ ...prev, base_lat: parseFloat(e.target.value) || 0 }))}
-                placeholder="24.817"
-              />
+          {/* Right Column */}
+          <div className="space-y-4">
+            {/* Pricing */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Pricing Configuration</h3>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="base_fare">Base Fare (₹)</Label>
+                  <Input
+                    id="base_fare"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.base_fare}
+                    onChange={(e) => setFormData(prev => ({ ...prev, base_fare: parseFloat(e.target.value) || 0 }))}
+                    placeholder="20.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="base_km">Base KM</Label>
+                  <Input
+                    id="base_km"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={formData.base_km}
+                    onChange={(e) => setFormData(prev => ({ ...prev, base_km: parseFloat(e.target.value) || 0 }))}
+                    placeholder="5.0"
+                  />
+                  <p className="text-xs text-muted-foreground">Distance covered by base fare</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="per_km_fee">Per KM Fee (₹)</Label>
+                  <Input
+                    id="per_km_fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.per_km_fee}
+                    onChange={(e) => setFormData(prev => ({ ...prev, per_km_fee: parseFloat(e.target.value) || 0 }))}
+                    placeholder="5.00"
+                  />
+                  <p className="text-xs text-muted-foreground">Fee for each additional KM</p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lng">Longitude</Label>
-              <Input
-                id="lng"
-                type="number"
-                step="any"
-                value={formData.base_lng}
-                onChange={(e) => setFormData(prev => ({ ...prev, base_lng: parseFloat(e.target.value) || 0 }))}
-                placeholder="93.938"
-              />
-            </div>
-          </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLocationClick}
-            className="w-full"
-          >
-            <MapPin className="h-4 w-4 mr-2" />
-            Use Current Location
-          </Button>
-
-          {/* Pricing */}
-          <div className="grid grid-cols-3 gap-4">
+            {/* Priority */}
             <div className="space-y-2">
-              <Label htmlFor="base_fare">Base Fare (₹)</Label>
+              <Label htmlFor="priority">Priority (1-10)</Label>
               <Input
-                id="base_fare"
+                id="priority"
                 type="number"
-                step="0.01"
-                min="0"
-                value={formData.base_fare}
-                onChange={(e) => setFormData(prev => ({ ...prev, base_fare: parseFloat(e.target.value) || 0 }))}
-                placeholder="20.00"
+                min="1"
+                max="10"
+                value={formData.priority}
+                onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value) || 1 }))}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="base_km">Base KM</Label>
-              <Input
-                id="base_km"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.base_km}
-                onChange={(e) => setFormData(prev => ({ ...prev, base_km: parseFloat(e.target.value) || 0 }))}
-                placeholder="5.0"
-              />
-              <p className="text-xs text-muted-foreground">Distance covered by base fare</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="per_km_fee">Per KM Fee (₹)</Label>
-              <Input
-                id="per_km_fee"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.per_km_fee}
-                onChange={(e) => setFormData(prev => ({ ...prev, per_km_fee: parseFloat(e.target.value) || 0 }))}
-                placeholder="5.00"
-              />
-              <p className="text-xs text-muted-foreground">Fee for each additional KM</p>
-            </div>
-          </div>
-
-          {/* Priority */}
-          <div className="space-y-2">
-            <Label htmlFor="priority">Priority (1-10)</Label>
-            <Input
-              id="priority"
-              type="number"
-              min="1"
-              max="10"
-              value={formData.priority}
-              onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value) || 1 }))}
-            />
-            <p className="text-xs text-muted-foreground">
-              Higher priority locations are preferred for calculations
-            </p>
-          </div>
-
-          {/* Active Status */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Active Status</Label>
               <p className="text-xs text-muted-foreground">
-                Enable or disable this base location
+                Higher priority locations are preferred for calculations
               </p>
             </div>
-            <Switch
-              checked={formData.is_active}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-            />
+
+            {/* Active Status */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-0.5">
+                <Label>Active Status</Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable or disable this base location
+                </p>
+              </div>
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+              />
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="flex gap-2">
-          <Button 
+        <DialogFooter className="flex flex-row gap-2 justify-end pt-4 border-t">
+          <Button
             variant="outline" 
             onClick={() => onOpenChange(false)}
             disabled={createBaseLocation.isPending || updateBaseLocation.isPending}
