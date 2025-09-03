@@ -42,9 +42,9 @@ export const useCreateBaseLocation = () => {
         p_base_fare: location.base_fare,
         p_base_km: location.base_km,
         p_per_km_fee: location.per_km_fee,
+        p_priority: location.priority,
         p_is_active: location.is_active,
-        p_is_default: location.is_default,
-        p_priority: location.priority
+        p_is_default: location.is_default
       });
       
       if (error) throw error;

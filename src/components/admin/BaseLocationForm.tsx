@@ -105,12 +105,15 @@ export function BaseLocationForm({ baseLocation, open, onOpenChange }: BaseLocat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80vw] max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[80vw] max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="base-location-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
             {isEditing ? 'Edit Base Location' : 'Create Base Location'}
           </DialogTitle>
+          <div id="base-location-description" className="sr-only">
+            {isEditing ? 'Edit the details of an existing base location' : 'Create a new base location for delivery services'}
+          </div>
         </DialogHeader>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">

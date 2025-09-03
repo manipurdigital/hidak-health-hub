@@ -107,6 +107,54 @@ export type Database = {
         }
         Relationships: []
       }
+      base_locations: {
+        Row: {
+          base_fare: number
+          base_km: number
+          base_lat: number
+          base_lng: number
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          per_km_fee: number
+          priority: number
+          service_type: string
+          updated_at: string
+        }
+        Insert: {
+          base_fare?: number
+          base_km?: number
+          base_lat: number
+          base_lng: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          per_km_fee?: number
+          priority?: number
+          service_type: string
+          updated_at?: string
+        }
+        Update: {
+          base_fare?: number
+          base_km?: number
+          base_lat?: number
+          base_lng?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          per_km_fee?: number
+          priority?: number
+          service_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       center_staff: {
         Row: {
           center_id: string
@@ -2272,18 +2320,31 @@ export type Database = {
         Returns: boolean
       }
       create_base_location: {
-        Args: {
-          p_base_fare: number
-          p_base_km: number
-          p_base_lat: number
-          p_base_lng: number
-          p_is_active: boolean
-          p_is_default: boolean
-          p_name: string
-          p_per_km_fee: number
-          p_priority: number
-          p_service_type: string
-        }
+        Args:
+          | {
+              p_base_fare: number
+              p_base_km: number
+              p_base_lat: number
+              p_base_lng: number
+              p_is_active: boolean
+              p_is_default: boolean
+              p_name: string
+              p_per_km_fee: number
+              p_priority: number
+              p_service_type: string
+            }
+          | {
+              p_base_fare: number
+              p_base_km: number
+              p_base_lat: number
+              p_base_lng: number
+              p_is_active: boolean
+              p_is_default: boolean
+              p_name: string
+              p_per_km_fee: number
+              p_priority: number
+              p_service_type: string
+            }
         Returns: string
       }
       create_booking_notification: {
@@ -4041,20 +4102,48 @@ export type Database = {
         Returns: number
       }
       update_base_location: {
-        Args: {
-          p_base_fare: number
-          p_base_km: number
-          p_base_lat: number
-          p_base_lng: number
-          p_id: string
-          p_is_active: boolean
-          p_is_default: boolean
-          p_name: string
-          p_per_km_fee: number
-          p_priority: number
-          p_service_type: string
+        Args:
+          | {
+              p_base_fare: number
+              p_base_km: number
+              p_base_lat: number
+              p_base_lng: number
+              p_id: string
+              p_is_active: boolean
+              p_is_default: boolean
+              p_name: string
+              p_per_km_fee: number
+              p_priority: number
+              p_service_type: string
+            }
+          | {
+              p_base_fare: number
+              p_base_km: number
+              p_base_lat: number
+              p_base_lng: number
+              p_id: string
+              p_is_active: boolean
+              p_is_default: boolean
+              p_name: string
+              p_per_km_fee: number
+              p_priority: number
+              p_service_type: string
+            }
+        Returns: {
+          base_fare: number
+          base_km: number
+          base_lat: number
+          base_lng: number
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          per_km_fee: number
+          priority: number
+          service_type: string
+          updated_at: string
         }
-        Returns: boolean
       }
       updategeometrysrid: {
         Args: {
