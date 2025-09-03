@@ -842,26 +842,41 @@ export type Database = {
         Row: {
           booking_id: string | null
           created_at: string | null
+          file_size: number | null
+          file_type: string | null
           id: string
           report_data: Json | null
+          report_name: string | null
           report_url: string | null
           status: string | null
+          uploaded_at: string
+          user_id: string | null
         }
         Insert: {
           booking_id?: string | null
           created_at?: string | null
+          file_size?: number | null
+          file_type?: string | null
           id?: string
           report_data?: Json | null
+          report_name?: string | null
           report_url?: string | null
           status?: string | null
+          uploaded_at?: string
+          user_id?: string | null
         }
         Update: {
           booking_id?: string | null
           created_at?: string | null
+          file_size?: number | null
+          file_type?: string | null
           id?: string
           report_data?: Json | null
+          report_name?: string | null
           report_url?: string | null
           status?: string | null
+          uploaded_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
