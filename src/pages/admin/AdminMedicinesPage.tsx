@@ -262,37 +262,13 @@ const AdminMedicinesPage = () => {
     if (!confirm('Are you sure you want to delete this medicine?')) return;
 
     try {
-      // First check if this medicine is referenced in any orders
-      const { data: orderItems, error: checkError } = await supabase
-        .from('order_items')
-        .select('id')
-        .eq('medicine_id', medicineId)
-        .limit(1);
-
-      if (checkError) {
-        console.error('Error checking order references:', checkError);
-        throw new Error('Failed to check medicine usage');
-      }
-
-      if (orderItems && orderItems.length > 0) {
-        toast({
-          title: "Cannot Delete Medicine",
-          description: "This medicine has been used in orders and cannot be deleted. You can deactivate it instead.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Proceed with deletion if no order references exist
+      // Try direct delete first; rely on DB constraints for integrity
       const { error } = await supabase
         .from('medicines')
         .delete()
         .eq('id', medicineId);
 
-      if (error) {
-        console.error('Delete error:', error);
-        throw error;
-      }
+      if (error) throw error as any;
 
       toast({
         title: "Success",
@@ -300,11 +276,44 @@ const AdminMedicinesPage = () => {
       });
 
       fetchMedicines();
-    } catch (error) {
-      console.error('Delete medicine error:', error);
+    } catch (err: any) {
+      console.error('Delete medicine error:', err);
+      const code = err?.code || '';
+      const message = err?.message || '';
+      const fkViolation = code === '23503' || /foreign key|violates foreign key/i.test(message);
+
+      if (fkViolation) {
+        const proceed = confirm(
+          'This medicine is referenced in existing orders and cannot be hard-deleted.\n\nDo you want to deactivate it instead (hide from catalog and stop sales)?'
+        );
+        if (proceed) {
+          const { error: updateError } = await supabase
+            .from('medicines')
+            .update({ is_active: false, is_available: false })
+            .eq('id', medicineId);
+
+          if (updateError) {
+            console.error('Deactivate medicine error:', updateError);
+            toast({
+              title: 'Error',
+              description: updateError.message || 'Failed to deactivate medicine',
+              variant: 'destructive'
+            });
+            return;
+          }
+
+          toast({
+            title: 'Medicine deactivated',
+            description: 'The medicine is now hidden from catalog and cannot be ordered.'
+          });
+          fetchMedicines();
+          return;
+        }
+      }
+
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete medicine",
+        description: message || "Failed to delete medicine",
         variant: "destructive"
       });
     }
