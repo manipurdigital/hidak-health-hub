@@ -1,28 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 // Doctor-related hooks
 export const useDoctor = (id: string) => {
   return useQuery({
     queryKey: ['doctor', id],
     queryFn: async () => {
-      // Placeholder implementation
-      return {
-        id,
-        name: 'Dr. Sample',
-        specialization: 'General Medicine',
-        experience_years: 5,
-        consultation_fee: 500,
-        is_available: true,
-        rating: 4.5,
-        review_count: 100,
-        languages: ['English'],
-        hospital_affiliation: 'Sample Hospital',
-        bio: 'Sample doctor bio',
-        qualification: 'MBBS',
-        profile_image_url: null,
-        is_verified: true
-      };
+      const { data, error } = await supabase
+        .from('doctors')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
+    enabled: !!id,
   });
 };
 
