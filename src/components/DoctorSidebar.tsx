@@ -74,7 +74,7 @@ export function DoctorSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <SidebarGroupLabel className="text-xs font-semibold text-foreground/70 uppercase tracking-wider px-3 mb-2">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -87,17 +87,17 @@ export function DoctorSidebar() {
                       className={({ isActive }) =>
                         `group flex items-center justify-between gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
                           isActive
-                            ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                            ? 'bg-primary text-primary-foreground shadow-sm font-medium'
+                            : 'hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground font-medium'
                         }`
                       }
                     >
                       <div className="flex items-center gap-3">
                         <item.icon className="h-4 w-4 flex-shrink-0" />
-                        {!collapsed && <span className="font-medium">{item.name}</span>}
+                        {!collapsed && <span className="font-medium text-sm">{item.name}</span>}
                       </div>
                       {!collapsed && item.badge && (
-                        <Badge variant="destructive" className="text-xs">
+                        <Badge variant="destructive" className="text-xs min-w-[20px] h-5 flex items-center justify-center">
                           {item.badge}
                         </Badge>
                       )}

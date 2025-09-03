@@ -227,11 +227,11 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
               <div>
                 <p className="text-sm text-muted-foreground">Max Consultations/Week</p>
                 <p className="text-2xl font-bold">
-                  {Object.values(dayAvailability).reduce((total, day) => 
-                    total + day.slots.reduce((dayTotal, slot) => 
-                      dayTotal + (slot.max_appointments || 0), 0
-                    ), 0
-                  )}
+          {Object.values(dayAvailability).reduce((total: number, day: DayAvailability) => 
+            total + day.slots.reduce((dayTotal: number, slot: TimeSlot) => 
+              dayTotal + (slot.max_appointments || 0), 0
+            ), 0
+          )}
                 </p>
               </div>
               <Calendar className="h-8 w-8 text-purple-500" />
@@ -260,9 +260,9 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                         </Badge>
                       )}
                       {totalHours > 0 && (
-                        <Badge variant="secondary">
-                          {totalHours.toFixed(1)}h • {dayData.slots.reduce((total, slot) => total + (slot.max_appointments || 0), 0)} slots
-                        </Badge>
+                         <Badge variant="secondary">
+                           {totalHours.toFixed(1)}h • {dayData.slots.length} slots
+                         </Badge>
                       )}
                     </div>
                   </div>
