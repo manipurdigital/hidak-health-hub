@@ -87,7 +87,35 @@ serve(async (req) => {
 
     console.log(`Found ${medicineCount} medicines to delete`)
 
-    // Delete related order_items first to avoid foreign key constraint violations
+    // Delete related import_job_items first to avoid foreign key constraint violations
+    const { count: importItemsCount, error: importItemsCountError } = await supabase
+      .from('import_job_items')
+      .select('*', { count: 'exact', head: true })
+      .not('created_medicine_id', 'is', null)
+
+    if (importItemsCountError) {
+      console.log('Warning: Could not count import_job_items:', importItemsCountError)
+    } else {
+      console.log(`Found ${importItemsCount} import_job_items that will be deleted`)
+    }
+
+    // Delete all import_job_items that reference medicines
+    const { error: deleteImportItemsError } = await supabase
+      .from('import_job_items')
+      .delete()
+      .not('created_medicine_id', 'is', null)
+
+    if (deleteImportItemsError) {
+      console.error('Error deleting import_job_items:', deleteImportItemsError)
+      return new Response('Error deleting import job items: ' + deleteImportItemsError.message, { 
+        status: 500, 
+        headers: corsHeaders 
+      })
+    }
+
+    console.log(`Successfully deleted ${importItemsCount || 0} import_job_items`)
+
+    // Delete related order_items to avoid foreign key constraint violations
     const { count: orderItemsCount, error: orderItemsCountError } = await supabase
       .from('order_items')
       .select('*', { count: 'exact', head: true })
@@ -128,13 +156,14 @@ serve(async (req) => {
       })
     }
 
-    console.log(`Successfully deleted ${medicineCount} medicines and ${orderItemsCount || 0} order_items`)
+    console.log(`Successfully deleted ${medicineCount} medicines, ${orderItemsCount || 0} order_items, and ${importItemsCount || 0} import_job_items`)
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Successfully deleted ${medicineCount} medicines and ${orderItemsCount || 0} related order items`,
+      message: `Successfully deleted ${medicineCount} medicines, ${orderItemsCount || 0} order items, and ${importItemsCount || 0} import job items`,
       deletedMedicines: medicineCount,
-      deletedOrderItems: orderItemsCount || 0
+      deletedOrderItems: orderItemsCount || 0,
+      deletedImportItems: importItemsCount || 0
     }), {
       headers: { 
         'Content-Type': 'application/json',
