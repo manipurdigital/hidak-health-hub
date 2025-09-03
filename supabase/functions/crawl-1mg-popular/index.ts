@@ -154,64 +154,101 @@ serve(async (req) => {
       });
     }
 
-    // Step 2: Import each product using existing import-medicine-from-url function
-    // For now, let's create medicines directly to avoid the 500 error
+    // Step 2: Import each product using robust import-medicine-from-url function
+    let withComposition = 0;
+    let withDescription = 0;
+    
     for (const productUrl of productUrls) {
       try {
         console.log(`[CRAWL-1MG] Processing product: ${productUrl}`);
 
-        // Extract basic medicine info from URL
-        const urlParts = productUrl.split('/');
-        const productSlug = urlParts[urlParts.length - 1] || '';
-        const medicineNameFromUrl = productSlug.split('-').slice(0, -1).join(' ').replace(/\b\w/g, l => l.toUpperCase());
+        // Use the robust import-medicine-from-url function with retry logic
+        let importResponse = null;
+        let retryCount = 0;
+        const maxRetries = 2;
 
-        if (!medicineNameFromUrl) {
-          result.failedCount!++;
-          result.errors?.push(`Cannot extract medicine name from URL: ${productUrl}`);
-          continue;
+        while (retryCount <= maxRetries) {
+          try {
+            importResponse = await supabase.functions.invoke('import-medicine-from-url', {
+              body: {
+                url: productUrl,
+                downloadImages: false,
+                respectRobots: false,
+                storeHtmlAudit: false
+              }
+            });
+
+            if (importResponse.error) {
+              throw new Error(importResponse.error.message || 'Import function error');
+            }
+            break; // Success, exit retry loop
+          } catch (retryError) {
+            retryCount++;
+            if (retryCount > maxRetries) {
+              throw retryError;
+            }
+            console.warn(`[CRAWL-1MG] Retry ${retryCount}/${maxRetries} for ${productUrl}:`, retryError.message);
+            await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Exponential backoff
+          }
         }
 
-        // Create a basic medicine entry
-        const { data: existingMedicine, error: checkError } = await supabase
-          .from('medicines')
-          .select('id, name')
-          .ilike('name', medicineNameFromUrl)
-          .limit(1)
-          .single();
+        if (importResponse && importResponse.data) {
+          const importData = importResponse.data;
+          
+          if (importData.success) {
+            // Track composition and description coverage
+            if (importData.medicineData?.composition) withComposition++;
+            if (importData.medicineData?.description) withDescription++;
 
-        if (existingMedicine) {
-          result.skippedCount!++;
-          console.log(`[CRAWL-1MG] Skipped duplicate: ${medicineNameFromUrl}`);
-          continue;
-        }
+            if (importData.duplicate) {
+              // Enrich existing record if it's missing composition or description
+              if (importData.medicineData) {
+                const existingMedicine = await supabase
+                  .from('medicines')
+                  .select('composition, description')
+                  .eq('id', importData.medicineId)
+                  .single();
 
-        // Insert new medicine with basic info
-        const { data: newMedicine, error: insertError } = await supabase
-          .from('medicines')
-          .insert({
-            name: medicineNameFromUrl,
-            price: 100, // Default price, will be updated when proper parsing is implemented
-            generic_name: medicineNameFromUrl,
-            manufacturer: 'Unknown',
-            description: `Imported from ${productUrl}`,
-            is_available: true,
-            is_active: true,
-            stock_quantity: 100,
-            image_url: '/placeholder.svg'
-          })
-          .select()
-          .single();
+                if (existingMedicine.data) {
+                  const updateFields: any = {};
+                  
+                  // Only update empty fields to avoid overwriting manual edits
+                  if (!existingMedicine.data.composition && importData.medicineData.composition) {
+                    updateFields.composition = importData.medicineData.composition;
+                    updateFields.composition_key = importData.medicineData.composition_key;
+                    updateFields.composition_family_key = importData.medicineData.composition_family_key;
+                  }
+                  
+                  if (!existingMedicine.data.description && importData.medicineData.description) {
+                    updateFields.description = importData.medicineData.description;
+                  }
 
-        if (insertError) {
-          console.error(`[CRAWL-1MG] Insert failed for ${productUrl}:`, insertError);
-          result.failedCount!++;
-          result.errors?.push(`Insert failed for ${productUrl}: ${insertError.message}`);
+                  if (Object.keys(updateFields).length > 0) {
+                    await supabase
+                      .from('medicines')
+                      .update(updateFields)
+                      .eq('id', importData.medicineId);
+                    
+                    console.log(`[CRAWL-1MG] Enriched existing: ${importData.medicine?.name} with ${Object.keys(updateFields).join(', ')}`);
+                  }
+                }
+              }
+              result.skippedCount!++;
+              console.log(`[CRAWL-1MG] Processed duplicate: ${importData.medicine?.name || 'Unknown'}`);
+            } else {
+              result.importedCount!++;
+              console.log(`[CRAWL-1MG] Successfully imported: ${importData.medicineData?.name || 'Unknown'}`);
+            }
+          } else {
+            result.failedCount!++;
+            result.errors?.push(`Import failed for ${productUrl}: ${importData.error || 'Unknown error'}`);
+          }
         } else {
-          result.importedCount!++;
-          console.log(`[CRAWL-1MG] Successfully imported: ${medicineNameFromUrl}`);
+          result.failedCount!++;
+          result.errors?.push(`No response data for ${productUrl}`);
         }
 
-        // Add delay to avoid rate limiting
+        // Add delay to respect rate limits
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
@@ -220,6 +257,9 @@ serve(async (req) => {
         result.errors?.push(`Import error for ${productUrl}: ${error.message}`);
       }
     }
+
+    // Enhanced logging with composition/description coverage
+    console.log(`[CRAWL-1MG] Coverage - With composition: ${withComposition}/${productUrls.length}, With description: ${withDescription}/${productUrls.length}`);
 
     result.success = true;
     console.log(`[CRAWL-1MG] Crawl completed - Imported: ${result.importedCount}, Skipped: ${result.skippedCount}, Failed: ${result.failedCount}`);

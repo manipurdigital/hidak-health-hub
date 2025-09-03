@@ -22,6 +22,11 @@ interface ImportResult {
   warnings: string[];
   error?: string;
   auditUrl?: string;
+  duplicate?: boolean;
+  medicine?: {
+    id: string;
+    name: string;
+  };
 }
 
 interface MedicineData {
@@ -36,7 +41,7 @@ interface MedicineData {
   pack_size?: string;
   requires_prescription: boolean;
   image_url?: string;
-  composition_text?: string;
+  composition?: string;
   composition_key?: string;
   composition_family_key?: string;
   external_source_url: string;
@@ -45,6 +50,8 @@ interface MedicineData {
   original_image_url?: string;
   thumbnail_url?: string;
   image_hash?: string;
+  strength?: string;
+  dosage_form?: string;
 }
 
 // Trusted domain allowlist for copyright compliance
@@ -138,15 +145,21 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
   // Normalize and build composition keys
   await normalizeComposition(medicineData);
 
-  // Check for duplicates
+  // Check for duplicates but always return medicine data for enrichment
   const dedupeResult = await checkForDuplicates(medicineData);
   if (dedupeResult.isDuplicate) {
     return {
       success: true,
       medicineId: dedupeResult.existingId,
+      medicineData: medicineData, // Include parsed data for enrichment
       mode: 'updated',
       dedupeReason: dedupeResult.reason,
-      warnings
+      warnings,
+      duplicate: true,
+      medicine: {
+        id: dedupeResult.existingId!,
+        name: medicineData.name
+      }
     };
   }
 
@@ -178,7 +191,7 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
   // Generate source checksum
   const sourceData = {
     name: medicineData.name,
-    composition: medicineData.composition_text,
+    composition: medicineData.composition,
     manufacturer: medicineData.manufacturer,
     price: medicineData.price
   };
@@ -393,14 +406,38 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
   const urlObj = new URL(url);
   const warnings: string[] = [];
   
-  const nameMatch = html.match(/<h1[^>]*class="[^"]*ProductTitle[^"]*"[^>]*>([^<]+)</i);
+  // Enhanced 1mg parsing for name, composition, and description
+  const nameMatch = html.match(/<h1[^>]*class="[^"]*ProductTitle[^"]*"[^>]*>([^<]+)</i) ||
+                   html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
   const priceMatch = html.match(/₹\s*([0-9,]+(?:\.[0-9]{2})?)/);
   const mrpMatch = html.match(/M\.R\.P\..*?₹\s*([0-9,]+(?:\.[0-9]{2})?)/i);
-  const manufacturerMatch = html.match(/Manufacturer[^>]*>.*?<[^>]*>([^<]+)/i);
+  const manufacturerMatch = html.match(/Manufacturer[^>]*>.*?<[^>]*>([^<]+)/i) ||
+                           html.match(/Marketed by[^>]*>.*?<[^>]*>([^<]+)/i);
   const imageMatch = html.match(/<img[^>]*src="([^"]*product[^"]*\.(?:jpg|jpeg|png|webp)[^"]*)"[^>]*>/i);
+  
+  // Extract Salt Composition
+  const saltCompositionMatch = html.match(/Salt Composition[^>]*>.*?<[^>]*>([^<]+)/i) ||
+                              html.match(/Ingredients[^>]*>.*?<[^>]*>([^<]+)/i) ||
+                              html.match(/Active Ingredients[^>]*>.*?<[^>]*>([^<]+)/i) ||
+                              html.match(/Composition[^>]*>.*?<[^>]*>([^<]+)/i);
+  
+  // Extract Description
+  const descriptionMatch = html.match(/Description[^>]*>.*?<p[^>]*>([^<]+)/i) ||
+                          html.match(/Product Introduction[^>]*>.*?<p[^>]*>([^<]+)/i) ||
+                          html.match(/Overview[^>]*>.*?<p[^>]*>([^<]+)/i);
+  
+  // Extract additional fields
+  const strengthMatch = html.match(/Strength[^>]*>.*?<[^>]*>([^<]+)/i);
+  const dosageFormMatch = html.match(/Dosage Form[^>]*>.*?<[^>]*>([^<]+)/i) ||
+                         html.match(/Form[^>]*>.*?<[^>]*>([^<]+)/i);
+  const packSizeMatch = html.match(/Pack Size[^>]*>.*?<[^>]*>([^<]+)/i) ||
+                       html.match(/Quantity[^>]*>.*?<[^>]*>([^<]+)/i);
   
   const name = nameMatch ? nameMatch[1].trim() : extractFromTitle(html);
   const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
+  
+  // Use extracted salt composition or fallback to name extraction
+  const saltComposition = saltCompositionMatch ? saltCompositionMatch[1].trim() : composition;
 
   // Log parsing warnings for reviewer attention
   if (!priceMatch) {
@@ -427,13 +464,16 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
     medicineData: {
       name,
       brand,
+      generic_name: name,
       manufacturer: manufacturerMatch ? manufacturerMatch[1].trim() : '',
       price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
       original_price: mrpMatch ? parseFloat(mrpMatch[1].replace(/,/g, '')) : 0,
-      description: '',
+      description: descriptionMatch ? descriptionMatch[1].trim() : '',
       dosage,
-      pack_size: packSize,
-      composition_text: composition,
+      pack_size: packSizeMatch ? packSizeMatch[1].trim() : packSize,
+      strength: strengthMatch ? strengthMatch[1].trim() : '',
+      dosage_form: dosageFormMatch ? dosageFormMatch[1].trim() : '',
+      composition: saltComposition,
       requires_prescription: html.toLowerCase().includes('prescription'),
       image_url: imageMatch ? imageMatch[1] : undefined,
       external_source_url: url,
@@ -469,7 +509,7 @@ async function parseGenericProduct(html: string, url: string): Promise<{medicine
       description: '',
       dosage,
       pack_size: packSize,
-      composition_text: composition,
+      composition: composition,
       requires_prescription: false,
       external_source_url: url,
       external_source_domain: urlObj.hostname,
@@ -518,10 +558,10 @@ function extractMedicineDetails(name: string): {
 }
 
 async function normalizeComposition(medicineData: MedicineData): Promise<void> {
-  if (!medicineData.composition_text) return;
+  if (!medicineData.composition) return;
 
   // Normalize composition text
-  let normalized = medicineData.composition_text
+  let normalized = medicineData.composition
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
