@@ -144,14 +144,22 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
   }
 
   // Fetch and parse HTML
+  console.log('Starting parseProductPage for:', url);
   const parseResult = await parseProductPage(url);
   const medicineData = parseResult.medicineData;
   rawHtml = parseResult.rawHtml;
+  console.log('Parsed medicine data:', { name: medicineData.name, composition: medicineData.composition });
   
   // Normalize and build composition keys
+  console.log('Starting normalizeComposition');
   await normalizeComposition(medicineData);
+  console.log('Composition normalized. Keys:', { 
+    composition_key: medicineData.composition_key, 
+    composition_family_key: medicineData.composition_family_key 
+  });
 
   // Check for duplicates but always return medicine data for enrichment
+  console.log('Starting checkForDuplicates');
   const dedupeResult = await checkForDuplicates(medicineData);
   if (dedupeResult.isDuplicate) {
     return {
@@ -204,26 +212,45 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
   const sourceChecksum = await generateChecksum(JSON.stringify(sourceData));
 
   // Save to database
+  console.log('Starting database insert');
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
+  const insertData = {
+    ...medicineData,
+    source_checksum: sourceChecksum,
+    source_last_fetched: new Date().toISOString(),
+    stock_quantity: 10,
+    is_active: true
+  };
+  
+  console.log('Insert data:', {
+    name: insertData.name,
+    price: insertData.price,
+    composition: insertData.composition,
+    composition_key: insertData.composition_key,
+    hasAllRequiredFields: !!(insertData.name && insertData.price !== undefined)
+  });
+
   const { data, error } = await supabase
     .from('medicines')
-    .insert({
-      ...medicineData,
-      source_checksum: sourceChecksum,
-      source_last_fetched: new Date().toISOString(),
-      stock_quantity: 10,
-      is_active: true
-    })
+    .insert(insertData)
     .select('id')
     .single();
 
   if (error) {
+    console.error('Database insert error details:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
     throw new Error(`Database insert failed: ${error.message}`);
   }
+
+  console.log('Successfully inserted medicine with id:', data.id);
 
   const returnResult: ImportResult = {
     success: true,
