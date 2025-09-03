@@ -173,6 +173,18 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
     }, 0);
   };
 
+  const formatTime12Hour = (time24: string) => {
+    const [hours, minutes] = time24.split(':');
+    const hour24 = parseInt(hours);
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  const formatDateIndian = (date: Date) => {
+    return format(date, 'dd-MM-yy');
+  };
+
   const quickAddOptions = [
     { label: 'Morning (9 AM - 12 PM)', start: '09:00', end: '12:00' },
     { label: 'Afternoon (2 PM - 6 PM)', start: '14:00', end: '18:00' },
@@ -323,7 +335,7 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
               {selectedDate && (
                 <div className="space-y-3 pt-4 border-t">
                   <p className="text-sm font-medium">
-                    {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                    {format(selectedDate, 'EEEE, d MMMM')} ({formatDateIndian(selectedDate)})
                   </p>
                   <Button
                     onClick={() => addNewDate(selectedDate)}
@@ -395,7 +407,7 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                           <div className="flex items-center justify-between">
                             <div className="space-y-1">
                               <h3 className="font-semibold text-lg">
-                                {format(dateObj, 'EEEE, MMMM d')}
+                                {format(dateObj, 'EEEE, d MMMM')} ({formatDateIndian(dateObj)})
                               </h3>
                               <div className="flex items-center gap-3">
                                 {isPast && (
@@ -433,7 +445,7 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
                                   <Clock className="w-4 h-4 text-muted-foreground" />
                                   <div className="space-y-1">
                                     <p className="font-medium">
-                                      {slot.start_time} - {slot.end_time}
+                                      {formatTime12Hour(slot.start_time)} - {formatTime12Hour(slot.end_time)}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
                                       {slot.max_appointments} appointments • {slot.break_duration}min breaks
