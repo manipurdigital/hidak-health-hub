@@ -110,8 +110,11 @@ serve(async (req) => {
 
     // Always update these source-derived fields
     const sourceFields = [
-      'price', 'original_price', 'description', 'image_url', 
-      'composition', 'composition_key', 'composition_family_key',
+      'price', 'original_price', 'mrp', 'discount_percent', 'description', 'image_url', 
+      'composition', 'salt_composition', 'composition_key', 'composition_family_key',
+      'uses', 'side_effects', 'how_to_use', 'how_it_works', 'safety_advice',
+      'storage_conditions', 'therapeutic_class', 'chemical_class', 'action_class',
+      'substitute_available', 'habit_forming', 'prescription_type',
       'source_checksum', 'source_last_fetched'
     ];
 
@@ -127,8 +130,9 @@ serve(async (req) => {
     // Conditionally update fields that might have manual overrides
     if (options.overwriteManualChanges) {
       const manualFields = [
-        'name', 'brand', 'manufacturer', 'dosage', 'pack_size',
-        'requires_prescription', 'stock_quantity'
+        'name', 'brand', 'manufacturer', 'marketed_by', 'dosage', 'pack_size',
+        'dosage_form', 'dosage_strength', 'requires_prescription', 'prescription_required',
+        'stock_quantity'
       ];
 
       for (const field of manualFields) {

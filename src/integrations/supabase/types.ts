@@ -866,121 +866,202 @@ export type Database = {
       }
       medicines: {
         Row: {
+          action_class: string | null
+          alternative_brands: Json | null
           brand: string | null
           category_id: string | null
+          chemical_class: string | null
           composition: string | null
           composition_family_key: string | null
           composition_key: string | null
+          country_of_origin: string | null
           created_at: string | null
           description: string | null
+          discount_percent: number | null
           discount_percentage: number | null
           discount_price: number | null
           dosage_form: string | null
+          dosage_strength: string | null
+          expiry_date: string | null
           external_source_domain: string | null
           external_source_url: string | null
+          facts: string | null
+          faq: Json | null
           fast_delivery: boolean | null
           generic_name: string | null
+          habit_forming: boolean | null
+          how_it_works: string | null
+          how_to_use: string | null
           id: string
           image_hash: string | null
           image_url: string | null
+          interaction_warnings: Json | null
           is_active: boolean | null
           is_available: boolean | null
+          key_highlights: Json | null
           manufacturer: string | null
+          marketed_by: string | null
           min_stock_level: number | null
+          mrp: number | null
           name: string
           original_image_url: string | null
           original_price: number | null
           pack_size: string | null
+          pack_size_unit: string | null
           prescription_required: boolean | null
+          prescription_type: string | null
           price: number
           rating: number | null
           requires_prescription: boolean | null
           review_count: number | null
+          route_of_administration: string | null
+          safety_advice: string | null
+          salt_composition: string | null
+          side_effects: string | null
           source_attribution: string | null
           source_checksum: string | null
           source_last_fetched: string | null
           stock_quantity: number | null
+          storage_conditions: string | null
           strength: string | null
+          substitute_available: boolean | null
+          therapeutic_class: string | null
           thumbnail_url: string | null
           updated_at: string | null
+          uses: string | null
+          what_if_you_forget: string | null
         }
         Insert: {
+          action_class?: string | null
+          alternative_brands?: Json | null
           brand?: string | null
           category_id?: string | null
+          chemical_class?: string | null
           composition?: string | null
           composition_family_key?: string | null
           composition_key?: string | null
+          country_of_origin?: string | null
           created_at?: string | null
           description?: string | null
+          discount_percent?: number | null
           discount_percentage?: number | null
           discount_price?: number | null
           dosage_form?: string | null
+          dosage_strength?: string | null
+          expiry_date?: string | null
           external_source_domain?: string | null
           external_source_url?: string | null
+          facts?: string | null
+          faq?: Json | null
           fast_delivery?: boolean | null
           generic_name?: string | null
+          habit_forming?: boolean | null
+          how_it_works?: string | null
+          how_to_use?: string | null
           id?: string
           image_hash?: string | null
           image_url?: string | null
+          interaction_warnings?: Json | null
           is_active?: boolean | null
           is_available?: boolean | null
+          key_highlights?: Json | null
           manufacturer?: string | null
+          marketed_by?: string | null
           min_stock_level?: number | null
+          mrp?: number | null
           name: string
           original_image_url?: string | null
           original_price?: number | null
           pack_size?: string | null
+          pack_size_unit?: string | null
           prescription_required?: boolean | null
+          prescription_type?: string | null
           price: number
           rating?: number | null
           requires_prescription?: boolean | null
           review_count?: number | null
+          route_of_administration?: string | null
+          safety_advice?: string | null
+          salt_composition?: string | null
+          side_effects?: string | null
           source_attribution?: string | null
           source_checksum?: string | null
           source_last_fetched?: string | null
           stock_quantity?: number | null
+          storage_conditions?: string | null
           strength?: string | null
+          substitute_available?: boolean | null
+          therapeutic_class?: string | null
           thumbnail_url?: string | null
           updated_at?: string | null
+          uses?: string | null
+          what_if_you_forget?: string | null
         }
         Update: {
+          action_class?: string | null
+          alternative_brands?: Json | null
           brand?: string | null
           category_id?: string | null
+          chemical_class?: string | null
           composition?: string | null
           composition_family_key?: string | null
           composition_key?: string | null
+          country_of_origin?: string | null
           created_at?: string | null
           description?: string | null
+          discount_percent?: number | null
           discount_percentage?: number | null
           discount_price?: number | null
           dosage_form?: string | null
+          dosage_strength?: string | null
+          expiry_date?: string | null
           external_source_domain?: string | null
           external_source_url?: string | null
+          facts?: string | null
+          faq?: Json | null
           fast_delivery?: boolean | null
           generic_name?: string | null
+          habit_forming?: boolean | null
+          how_it_works?: string | null
+          how_to_use?: string | null
           id?: string
           image_hash?: string | null
           image_url?: string | null
+          interaction_warnings?: Json | null
           is_active?: boolean | null
           is_available?: boolean | null
+          key_highlights?: Json | null
           manufacturer?: string | null
+          marketed_by?: string | null
           min_stock_level?: number | null
+          mrp?: number | null
           name?: string
           original_image_url?: string | null
           original_price?: number | null
           pack_size?: string | null
+          pack_size_unit?: string | null
           prescription_required?: boolean | null
+          prescription_type?: string | null
           price?: number
           rating?: number | null
           requires_prescription?: boolean | null
           review_count?: number | null
+          route_of_administration?: string | null
+          safety_advice?: string | null
+          salt_composition?: string | null
+          side_effects?: string | null
           source_attribution?: string | null
           source_checksum?: string | null
           source_last_fetched?: string | null
           stock_quantity?: number | null
+          storage_conditions?: string | null
           strength?: string | null
+          substitute_available?: boolean | null
+          therapeutic_class?: string | null
           thumbnail_url?: string | null
           updated_at?: string | null
+          uses?: string | null
+          what_if_you_forget?: string | null
         }
         Relationships: [
           {

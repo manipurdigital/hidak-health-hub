@@ -439,50 +439,216 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
   const urlObj = new URL(url);
   const warnings: string[] = [];
   
-  // Enhanced 1mg parsing for name, composition, and description
-  const nameMatch = html.match(/<h1[^>]*class="[^"]*ProductTitle[^"]*"[^>]*>([^<]+)</i) ||
-                   html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-  const priceMatch = html.match(/₹\s*([0-9,]+(?:\.[0-9]{2})?)/);
-  const mrpMatch = html.match(/M\.R\.P\..*?₹\s*([0-9,]+(?:\.[0-9]{2})?)/i);
-  const manufacturerMatch = html.match(/Manufacturer[^>]*>.*?<[^>]*>([^<]+)/i) ||
-                           html.match(/Marketed by[^>]*>.*?<[^>]*>([^<]+)/i);
-  const imageMatch = html.match(/<img[^>]*src="([^"]*product[^"]*\.(?:jpg|jpeg|png|webp)[^"]*)"[^>]*>/i);
+  console.log('Enhanced 1mg parsing for comprehensive medicine data extraction');
   
-  // Extract Salt Composition with improved patterns
-  const saltCompositionMatch = html.match(/Salt Composition.*?(?:<[^>]*>){1,3}([^<>]+(?:\([^)]*\))?[^<>]*)/i) ||
-                              html.match(/salt composition[":]*\s*([^"<>,]{3,})/i) ||
-                              html.match(/ingredients[":]*\s*([^"<>,]{3,})/i) ||
-                              html.match(/active ingredients[":]*\s*([^"<>,]{3,})/i) ||
-                              html.match(/composition[":]*\s*([^"<>,]{3,})/i) ||
-                              html.match(/generic[^>]*>.*?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s*\([^)]*\))?)/i) ||
-                              html.match(/"salt"[^}]*"value"[^"]*"([^"]+)"/i) ||
-                              html.match(/bevacizumab|paracetamol|ibuprofen|aspirin|metformin|atorvastatin|omeprazole|sertraline|amlodipine|levothyroxine/gi);
+  // Try to parse JSON-LD structured data first for better accuracy
+  let structuredData = null;
+  try {
+    const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs);
+    if (jsonLdMatches) {
+      for (const jsonMatch of jsonLdMatches) {
+        const jsonContent = jsonMatch.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
+        try {
+          const parsed = JSON.parse(jsonContent);
+          if (parsed && (parsed['@type'] === 'Product' || parsed.name)) {
+            structuredData = parsed;
+            console.log('Found structured product data:', structuredData.name);
+            break;
+          }
+        } catch (e) {
+          // Continue to next JSON-LD block
+        }
+      }
+    }
+  } catch (e) {
+    console.log('No valid JSON-LD found, using HTML parsing');
+  }
+
+  // Enhanced product name extraction with multiple fallbacks
+  const nameSelectors = [
+    /<h1[^>]*class="[^"]*ProductTitle[^"]*"[^>]*>([^<]+)/i,
+    /<h1[^>]*class="[^"]*PageTitle__product-title[^"]*"[^>]*>([^<]+)/i,
+    /<h1[^>]*class="[^"]*product-title[^"]*"[^>]*>([^<]+)/i,
+    /<h1[^>]*>([^<]+(?:Tablet|Injection|Capsule|Syrup|Cream|Ointment|Drop|Solution)[^<]*)<\/h1>/i,
+    /<title>([^<]+(?:Tablet|Injection|Capsule|Syrup|Cream|Ointment|Drop|Solution)[^|<]*)/i
+  ];
   
-  // Extract Description
-  const descriptionMatch = html.match(/Description[^>]*>.*?<p[^>]*>([^<]+)/i) ||
-                          html.match(/Product Introduction[^>]*>.*?<p[^>]*>([^<]+)/i) ||
-                          html.match(/Overview[^>]*>.*?<p[^>]*>([^<]+)/i);
+  let name = structuredData?.name || '';
+  if (!name) {
+    for (const selector of nameSelectors) {
+      const match = html.match(selector);
+      if (match && match[1].trim().length > 3) {
+        name = match[1].trim();
+        break;
+      }
+    }
+  }
   
+  if (!name) {
+    name = extractFromTitle(html);
+  }
+
+  const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
+
+  // Comprehensive salt composition extraction with multiple strategies
+  const saltCompositionSelectors = [
+    /Salt Composition.*?(?:<[^>]*>){1,3}([^<>]+(?:\([^)]*\))?[^<>]*)/i,
+    /salt composition[":]*\s*([^"<>,]{3,})/i,
+    /Generic Name[^:]*:?\s*([^<\n]+)/i,
+    /Active Ingredient[^:]*:?\s*([^<\n]+)/i,
+    /ingredients[":]*\s*([^"<>,]{3,})/i,
+    /composition[":]*\s*([^"<>,]{3,})/i,
+    /<div[^>]*class="[^"]*salt[^"]*"[^>]*>([^<]+)/i,
+    /<span[^>]*class="[^"]*composition[^"]*"[^>]*>([^<]+)/i,
+    /"salt"[^}]*"value"[^"]*"([^"]+)"/i,
+    /\(([^)]*(?:mg|ml|g|%|IU|mcg|units)[^)]*)\)/i // Extract from parentheses with units
+  ];
+
+  let saltComposition = '';
+  for (const selector of saltCompositionSelectors) {
+    const match = html.match(selector);
+    if (match && match[1] && match[1].trim().length > 2) {
+      saltComposition = match[1].trim().replace(/&amp;/g, '&');
+      break;
+    }
+  }
+
+  // Enhanced price extraction
+  const priceSelectors = [
+    /₹\s*([0-9,]+(?:\.[0-9]{2})?)/,
+    /Price[^:]*:?\s*₹\s*([0-9,]+(?:\.[0-9]{2})?)/i,
+    /Current Price[^:]*:?\s*₹\s*([0-9,]+(?:\.[0-9]{2})?)/i
+  ];
+
+  let price = structuredData?.offers?.price || 0;
+  if (!price) {
+    for (const selector of priceSelectors) {
+      const match = html.match(selector);
+      if (match) {
+        price = parseFloat(match[1].replace(/,/g, ''));
+        break;
+      }
+    }
+  }
+
+  // Enhanced MRP extraction
+  const mrpSelectors = [
+    /M\.R\.P\..*?₹\s*([0-9,]+(?:\.[0-9]{2})?)/i,
+    /MRP[^:]*:?\s*₹\s*([0-9,]+(?:\.[0-9]{2})?)/i,
+    /Market Price[^:]*:?\s*₹\s*([0-9,]+(?:\.[0-9]{2})?)/i
+  ];
+
+  let mrp = null;
+  for (const selector of mrpSelectors) {
+    const match = html.match(selector);
+    if (match) {
+      mrp = parseFloat(match[1].replace(/,/g, ''));
+      break;
+    }
+  }
+
+  // Calculate discount
+  const discountMatch = html.match(/([0-9]+)%\s*(?:off|discount)/i);
+  const discountPercent = discountMatch ? parseInt(discountMatch[1]) : null;
+
+  // Enhanced manufacturer extraction
+  const manufacturerSelectors = [
+    /Manufacturer[^>]*>.*?<[^>]*>([^<]+)/i,
+    /Marketed by[^>]*>.*?<[^>]*>([^<]+)/i,
+    /Mfg[^:]*:?\s*([^<\n]+)/i,
+    /Company[^:]*:?\s*([^<\n]+)/i
+  ];
+
+  let manufacturer = structuredData?.manufacturer?.name || '';
+  if (!manufacturer) {
+    for (const selector of manufacturerSelectors) {
+      const match = html.match(selector);
+      if (match && match[1].trim()) {
+        manufacturer = match[1].trim();
+        break;
+      }
+    }
+  }
+
+  // Enhanced image extraction
+  const imageSelectors = [
+    /<img[^>]*src="([^"]*product[^"]*\.(?:jpg|jpeg|png|webp)[^"]*)"[^>]*>/i,
+    /<img[^>]*class="[^"]*product[^"]*"[^>]+src="([^"]+)"/i,
+    /<img[^>]+src="(https:\/\/[^"]+\.(?:jpg|jpeg|png|webp))"/i
+  ];
+
+  let imageUrl = structuredData?.image || null;
+  if (!imageUrl) {
+    for (const selector of imageSelectors) {
+      const match = html.match(selector);
+      if (match) {
+        imageUrl = match[1];
+        break;
+      }
+    }
+  }
+
+  // Extract comprehensive medicine information sections
+  const usesSelectors = [
+    /Uses[^:]*:?\s*<[^>]*>([^<]+(?:<[^>]*>[^<]*<\/[^>]*>)*[^<]*)/i,
+    /Indication[^:]*:?\s*([^<\n]{10,})/i,
+    /Treatment[^:]*:?\s*([^<\n]{10,})/i
+  ];
+
+  let uses = '';
+  for (const selector of usesSelectors) {
+    const match = html.match(selector);
+    if (match && match[1]) {
+      uses = match[1].replace(/<[^>]*>/g, '').trim();
+      if (uses.length > 10) break;
+    }
+  }
+
+  const sideEffectsSelectors = [
+    /Side Effects[^:]*:?\s*<[^>]*>([^<]+(?:<[^>]*>[^<]*<\/[^>]*>)*[^<]*)/i,
+    /Adverse Effects[^:]*:?\s*([^<\n]{10,})/i,
+    /Common side effects[^:]*:?\s*([^<\n]{10,})/i
+  ];
+
+  let sideEffects = '';
+  for (const selector of sideEffectsSelectors) {
+    const match = html.match(selector);
+    if (match && match[1]) {
+      sideEffects = match[1].replace(/<[^>]*>/g, '').trim();
+      if (sideEffects.length > 10) break;
+    }
+  }
+
   // Extract additional fields
   const strengthMatch = html.match(/Strength[^>]*>.*?<[^>]*>([^<]+)/i);
   const dosageFormMatch = html.match(/Dosage Form[^>]*>.*?<[^>]*>([^<]+)/i) ||
                          html.match(/Form[^>]*>.*?<[^>]*>([^<]+)/i);
   const packSizeMatch = html.match(/Pack Size[^>]*>.*?<[^>]*>([^<]+)/i) ||
                        html.match(/Quantity[^>]*>.*?<[^>]*>([^<]+)/i);
-  
-  const name = nameMatch ? nameMatch[1].trim() : extractFromTitle(html);
-  const { brand, dosage, packSize, composition } = extractMedicineDetails(name);
-  
-  // Use extracted salt composition or fallback to name extraction, with special handling for Avastin
-  const saltComposition = saltCompositionMatch ? 
-    (Array.isArray(saltCompositionMatch) ? saltCompositionMatch[1] || saltCompositionMatch[0] : saltCompositionMatch).trim() : 
-    (name.toLowerCase().includes('avastin') ? 'Bevacizumab (100mg)' : composition);
-  
-  // Debug logging for composition extraction
-  console.log('Composition extraction debug for:', name);
-  console.log('Salt composition match:', saltCompositionMatch ? saltCompositionMatch[1] : 'No match');
-  console.log('Name extraction composition:', composition);
-  console.log('Final composition used:', saltComposition);
+
+  // Extract prescription requirement
+  const prescriptionRequired = html.includes('prescription required') || 
+                               html.includes('Prescription Required') ||
+                               html.includes('Schedule H') ||
+                               html.includes('Rx required') ||
+                               html.includes('Doctor\'s prescription');
+
+  // Fallback composition handling
+  if (!saltComposition) {
+    if (name.toLowerCase().includes('avastin')) {
+      saltComposition = 'Bevacizumab (100mg)';
+    } else {
+      saltComposition = composition || '';
+    }
+  }
+
+  // Debug logging for enhanced extraction
+  console.log('Enhanced extraction results for:', name);
+  console.log('Salt composition:', saltComposition);
+  console.log('Price:', price, 'MRP:', mrp);
+  console.log('Uses found:', uses ? 'Yes' : 'No');
+  console.log('Side effects found:', sideEffects ? 'Yes' : 'No');
+  console.log('Image found:', imageUrl ? 'Yes' : 'No');
 
   // Log parsing warnings for reviewer attention
   if (!priceMatch) {
@@ -510,17 +676,45 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
       name,
       brand,
       generic_name: name,
-      manufacturer: manufacturerMatch ? manufacturerMatch[1].trim() : '',
-      price: priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0,
-      original_price: mrpMatch ? parseFloat(mrpMatch[1].replace(/,/g, '')) : 0,
-      description: descriptionMatch ? descriptionMatch[1].trim() : '',
+      manufacturer: manufacturer,
+      marketed_by: manufacturer,
+      price: price,
+      original_price: mrp,
+      mrp: mrp,
+      discount_percent: discountPercent,
+      description: uses || sideEffects || null,
+      uses: uses,
+      side_effects: sideEffects,
+      how_to_use: null, // Will be extracted in future iterations
+      how_it_works: null, // Will be extracted in future iterations
+      safety_advice: null,
+      what_if_you_forget: null,
+      facts: null,
+      substitute_available: html.includes('substitute available') || html.includes('alternatives available'),
+      habit_forming: html.includes('habit forming') || html.includes('addictive'),
+      therapeutic_class: null,
+      chemical_class: null,
+      action_class: null,
+      pack_size_unit: null,
+      dosage_strength: strengthMatch ? strengthMatch[1].trim() : dosage,
+      route_of_administration: null,
+      prescription_type: prescriptionRequired ? 'Prescription Required' : 'OTC',
+      storage_conditions: null,
+      country_of_origin: 'India',
+      expiry_date: null,
+      faq: null,
+      key_highlights: null,
+      interaction_warnings: null,
+      alternative_brands: null,
       dosage,
       pack_size: packSizeMatch ? packSizeMatch[1].trim() : packSize,
       strength: strengthMatch ? strengthMatch[1].trim() : '',
       dosage_form: dosageFormMatch ? dosageFormMatch[1].trim() : '',
       composition: saltComposition,
-      requires_prescription: html.toLowerCase().includes('prescription'),
-      image_url: imageMatch ? imageMatch[1] : undefined,
+      salt_composition: saltComposition,
+      requires_prescription: prescriptionRequired,
+      prescription_required: prescriptionRequired,
+      image_url: imageUrl,
       external_source_url: url,
       external_source_domain: urlObj.hostname,
       source_attribution: ''

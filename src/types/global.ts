@@ -24,16 +24,50 @@ export interface Medicine {
   price: number;
   brand?: string;
   original_price?: number;
+  mrp?: number;
   discount_percentage?: number;
+  discount_percent?: number;
   requires_prescription?: boolean;
+  prescription_required?: boolean;
+  prescription_type?: string;
   fast_delivery?: boolean;
   rating?: number;
   review_count?: number;
   thumbnail_url?: string;
+  image_url?: string;
   manufacturer?: string;
+  marketed_by?: string;
   composition?: string;
+  salt_composition?: string;
   category_id?: string;
   description?: string;
+  uses?: string;
+  side_effects?: string;
+  how_to_use?: string;
+  how_it_works?: string;
+  safety_advice?: string;
+  what_if_you_forget?: string;
+  facts?: string;
+  substitute_available?: boolean;
+  habit_forming?: boolean;
+  therapeutic_class?: string;
+  chemical_class?: string;
+  action_class?: string;
+  pack_size?: string;
+  pack_size_unit?: string;
+  dosage?: string;
+  dosage_form?: string;
+  dosage_strength?: string;
+  route_of_administration?: string;
+  storage_conditions?: string;
+  country_of_origin?: string;
+  expiry_date?: string;
+  stock_quantity?: number;
+  form?: string; // Legacy field
+  faq?: any;
+  key_highlights?: any;
+  interaction_warnings?: any;
+  alternative_brands?: any;
 }
 
 export interface LabTest {

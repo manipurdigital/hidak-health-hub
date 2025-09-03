@@ -180,18 +180,55 @@ export function MedicineDetailPage() {
                 </div>
 
                 {/* Salt Composition */}
-                {medicine.composition && (
+                {(medicine.salt_composition || medicine.composition) && (
                   <div>
                     <h4 className="font-semibold text-sm mb-1">Salt Composition (Generic)</h4>
-                    <p className="text-sm text-muted-foreground">{medicine.composition}</p>
+                    <p className="text-sm text-muted-foreground">{medicine.salt_composition || medicine.composition}</p>
                   </div>
                 )}
+
+                {/* Manufacturer & MRP Info */}
+                <div className="space-y-2">
+                  {(medicine.marketed_by || medicine.manufacturer) && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-1">Marketed by</h4>
+                      <p className="text-sm text-muted-foreground">{medicine.marketed_by || medicine.manufacturer}</p>
+                    </div>
+                  )}
+                  
+                  {medicine.mrp && medicine.mrp > medicine.price && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">MRP:</span>
+                      <span className="line-through text-muted-foreground">₹{medicine.mrp}</span>
+                      {medicine.discount_percent && (
+                        <Badge variant="secondary" className="text-xs">
+                          {medicine.discount_percent}% OFF
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Pack Size & Form */}
                 <div className="flex gap-4 text-sm text-muted-foreground">
                   {medicine.pack_size && <span>Pack: {medicine.pack_size}</span>}
-                  {medicine.form && <span>Form: {medicine.form}</span>}
+                  {medicine.dosage_form && <span>Form: {medicine.dosage_form}</span>}
+                  {medicine.dosage_strength && <span>Strength: {medicine.dosage_strength}</span>}
                 </div>
+
+                {/* Prescription Type */}
+                {medicine.prescription_type && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant={medicine.prescription_type === 'OTC' ? 'secondary' : 'destructive'}>
+                      {medicine.prescription_type}
+                    </Badge>
+                    {medicine.habit_forming && (
+                      <Badge variant="outline" className="text-orange-600 border-orange-600">
+                        Habit Forming
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 {/* Stock Status */}
                 <div className="flex items-center gap-2">
@@ -270,6 +307,133 @@ export function MedicineDetailPage() {
           </div>
         </div>
 
+        {/* Enhanced Medicine Information Sections */}
+        <div className="mt-8 space-y-6">
+          {/* Uses */}
+          {medicine.uses && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-primary rounded"></div>
+                  Uses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{medicine.uses}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Side Effects */}
+          {medicine.side_effects && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-orange-500 rounded"></div>
+                  Side Effects
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{medicine.side_effects}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* How to Use */}
+          {medicine.how_to_use && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-blue-500 rounded"></div>
+                  How to Use
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{medicine.how_to_use}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* How it Works */}
+          {medicine.how_it_works && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-green-500 rounded"></div>
+                  How it Works
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{medicine.how_it_works}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Safety Advice */}
+          {medicine.safety_advice && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-red-500 rounded"></div>
+                  Safety Advice
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{medicine.safety_advice}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Storage Conditions */}
+          {medicine.storage_conditions && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-1 h-6 bg-purple-500 rounded"></div>
+                  Storage Conditions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">{medicine.storage_conditions}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Therapeutic Class */}
+          {medicine.therapeutic_class && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Therapeutic Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Therapeutic Class</h4>
+                    <p className="text-sm text-muted-foreground">{medicine.therapeutic_class}</p>
+                  </div>
+                  {medicine.chemical_class && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-1">Chemical Class</h4>
+                      <p className="text-sm text-muted-foreground">{medicine.chemical_class}</p>
+                    </div>
+                  )}
+                  {medicine.action_class && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-1">Action Class</h4>
+                      <p className="text-sm text-muted-foreground">{medicine.action_class}</p>
+                    </div>
+                  )}
+                  {medicine.country_of_origin && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-1">Country of Origin</h4>
+                      <p className="text-sm text-muted-foreground">{medicine.country_of_origin}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Medicine Alternatives Section */}
         <div className="mt-8">
