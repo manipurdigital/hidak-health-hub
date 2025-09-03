@@ -17,17 +17,14 @@ interface Prescription {
   doctor_id: string;
   patient_id: string;
   consultation_id: string;
-  diagnosis: string;
-  instructions: string;
-  medications: any;
+  prescription_data: any;
   status: string;
   created_at: string;
-  updated_at: string;
-  follow_up_date: string;
-  consultations: {
+  consultations?: {
     consultation_date: string;
     time_slot: string;
-    profiles: {
+    patient_id: string;
+    profiles?: {
       full_name: string;
       phone: string;
       email: string;
@@ -52,7 +49,10 @@ export default function DoctorPrescriptionsPage() {
         .eq('user_id', user.id)
         .single();
 
-      if (doctorError) throw doctorError;
+      if (doctorError) {
+        console.error('Doctor lookup error:', doctorError);
+        return [];
+      }
       if (!doctorInfo) return [];
 
       const { data, error } = await supabase
@@ -62,18 +62,40 @@ export default function DoctorPrescriptionsPage() {
           consultations(
             consultation_date,
             time_slot,
-            profiles!consultations_patient_id_fkey(
-              full_name,
-              phone,
-              email
-            )
+            patient_id
           )
         `)
         .eq('doctor_id', doctorInfo.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error('Prescriptions fetch error:', error);
+        return [];
+      }
+      
+      // Get patient profiles for the prescriptions
+      const prescriptionsWithProfiles = await Promise.all(
+        (data || []).map(async (prescription) => {
+          if (prescription.consultations?.patient_id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, phone, email')
+              .eq('user_id', prescription.consultations.patient_id)
+              .single();
+            
+            return {
+              ...prescription,
+              consultations: {
+                ...prescription.consultations,
+                profiles: profile
+              }
+            };
+          }
+          return prescription;
+        })
+      );
+
+      return prescriptionsWithProfiles;
     },
     enabled: !!user?.id,
   });
@@ -91,25 +113,48 @@ export default function DoctorPrescriptionsPage() {
         .eq('user_id', user.id)
         .single();
 
-      if (doctorError) throw doctorError;
+      if (doctorError) {
+        console.error('Doctor lookup error for consultations:', doctorError);
+        return [];
+      }
       if (!doctorInfo) return [];
 
       const { data, error } = await supabase
         .from('consultations')
         .select(`
-          *,
-          profiles!consultations_patient_id_fkey(
-            full_name,
-            phone
-          )
+          id,
+          consultation_date,
+          time_slot,
+          status,
+          patient_id
         `)
         .eq('doctor_id', doctorInfo.id)
         .in('status', ['completed', 'in_progress'])
         .order('consultation_date', { ascending: false })
         .limit(5);
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error('Consultations fetch error:', error);
+        return [];
+      }
+
+      // Get patient profiles for the consultations
+      const consultationsWithProfiles = await Promise.all(
+        (data || []).map(async (consultation) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('user_id', consultation.patient_id)
+            .single();
+          
+          return {
+            ...consultation,
+            profiles: profile
+          };
+        })
+      );
+
+      return consultationsWithProfiles;
     },
     enabled: !!user?.id,
   });
@@ -282,31 +327,37 @@ export default function DoctorPrescriptionsPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Diagnosis:</p>
-                    <p className="text-sm">{prescription.diagnosis}</p>
-                  </div>
-                  
-                  {prescription.medications && Array.isArray(prescription.medications) && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Medications:</p>
-                      <div className="text-sm">
-                        {prescription.medications.map((med: any, index: number) => (
-                          <span key={index} className="inline-block mr-2 mb-1">
-                            <Badge variant="secondary" className="text-xs">
-                              {med.name} - {med.dosage}
-                            </Badge>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {prescription.instructions && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Instructions:</p>
-                      <p className="text-sm">{prescription.instructions}</p>
-                    </div>
+                  {prescription.prescription_data && (
+                    <>
+                      {prescription.prescription_data.diagnosis && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Diagnosis:</p>
+                          <p className="text-sm">{prescription.prescription_data.diagnosis}</p>
+                        </div>
+                      )}
+                      
+                      {prescription.prescription_data.medications && Array.isArray(prescription.prescription_data.medications) && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Medications:</p>
+                          <div className="text-sm">
+                            {prescription.prescription_data.medications.map((med: any, index: number) => (
+                              <span key={index} className="inline-block mr-2 mb-1">
+                                <Badge variant="secondary" className="text-xs">
+                                  {med.name} - {med.dosage}
+                                </Badge>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {prescription.prescription_data.instructions && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Instructions:</p>
+                          <p className="text-sm">{prescription.prescription_data.instructions}</p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
                 

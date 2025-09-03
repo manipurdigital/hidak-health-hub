@@ -5,21 +5,26 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface UpcomingConsultation {
   id: string;
   patient_id: string;
+  doctor_id: string;
   consultation_date: string;
+  consultation_time: string;
   time_slot: string;
   status: string;
-  consultation_type: string;
-  patient_notes: string;
-  doctor_notes: string;
+  consultation_type?: string; // Optional field for compatibility
+  consultation_fee: number;
   total_amount: number;
+  payment_status: string;
+  notes: string;
+  patient_notes: string;
   created_at: string;
-  completed_at: string | null;
-  follow_up_expires_at: string | null;
+  paid_at: string | null;
+  razorpay_order_id: string | null;
+  razorpay_payment_id: string | null;
   profiles: {
     full_name: string;
     phone: string;
     email: string;
-  };
+  } | null;
 }
 
 export const useDoctorUpcomingConsultations = () => {
@@ -50,13 +55,10 @@ export const useDoctorUpcomingConsultations = () => {
 
       console.log('Found doctor:', doctorInfo.id);
 
-      // Get all consultations with status priority ordering
+      // Get all consultations
       const { data, error } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_patient_id_fkey(full_name, phone, email)
-        `)
+        .select('*')
         .eq('doctor_id', doctorInfo.id)
         .not('status', 'eq', 'cancelled')
         .order('consultation_date')
@@ -69,6 +71,23 @@ export const useDoctorUpcomingConsultations = () => {
 
       console.log('Raw consultations data:', data);
 
+      // Get patient profiles for each consultation
+      const consultationsWithProfiles = await Promise.all(
+        (data || []).map(async (consultation) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone, email')
+            .eq('user_id', consultation.patient_id)
+            .single();
+          
+          return {
+            ...consultation,
+            profiles: profile,
+            consultation_type: 'video' // Default consultation type for compatibility
+          };
+        })
+      );
+
       // Sort by priority: in_progress > scheduled > pending > completed
       const statusPriority = {
         'in_progress': 1,
@@ -78,7 +97,7 @@ export const useDoctorUpcomingConsultations = () => {
         'completed': 5
       };
 
-      const sortedData = data.sort((a, b) => {
+      const sortedData = consultationsWithProfiles.sort((a, b) => {
         const aPriority = statusPriority[a.status as keyof typeof statusPriority] || 6;
         const bPriority = statusPriority[b.status as keyof typeof statusPriority] || 6;
         
@@ -90,13 +109,10 @@ export const useDoctorUpcomingConsultations = () => {
         const dateCompare = new Date(a.consultation_date).getTime() - new Date(b.consultation_date).getTime();
         if (dateCompare !== 0) return dateCompare;
         
-        return a.consultation_time.localeCompare(b.consultation_time);
+        return a.time_slot?.localeCompare(b.time_slot || '') || 0;
       });
 
-      const result = sortedData.map(item => ({
-        ...item,
-        profiles: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
-      })) as unknown as UpcomingConsultation[];
+      const result = sortedData as unknown as UpcomingConsultation[];
 
       console.log('Processed consultations:', result);
       return result;
