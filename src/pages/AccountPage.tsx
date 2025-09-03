@@ -6,10 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { QuickLocationInput } from '@/components/QuickLocationInput';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -76,11 +78,32 @@ interface Address {
   is_default: boolean;
 }
 
+interface Profile {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
 export default function AccountPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('orders');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
 
   // Orders query
   const { data: orders, isLoading: ordersLoading } = useQuery({
@@ -169,6 +192,52 @@ export default function AccountPage() {
     enabled: !!user?.id && activeTab === 'addresses'
   });
 
+  // Profile query
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      return data as Profile;
+    },
+    enabled: !!user?.id && activeTab === 'profile'
+  });
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (profileData: Partial<Profile>) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('user_id', user?.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
+      setIsEditingProfile(false);
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been successfully updated.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleDownloadPrescription = async (prescriptionId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('get-signed-url', {
@@ -214,6 +283,36 @@ export default function AccountPage() {
 
   const resetPagination = () => setCurrentPage(1);
 
+  const handleEditProfile = () => {
+    if (profile) {
+      setProfileForm({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        address: profile.address || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        pincode: profile.pincode || ''
+      });
+    }
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = () => {
+    updateProfileMutation.mutate(profileForm);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingProfile(false);
+    setProfileForm({
+      full_name: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      pincode: ''
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -226,7 +325,11 @@ export default function AccountPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); resetPagination(); }}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Profile
+              </TabsTrigger>
               <TabsTrigger value="orders" className="flex items-center gap-2">
                 <Package className="w-4 h-4" />
                 Orders
@@ -252,6 +355,159 @@ export default function AccountPage() {
                 Care+
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      Profile Information
+                    </div>
+                    {!isEditingProfile && (
+                      <Button variant="outline" onClick={handleEditProfile}>
+                        Edit Profile
+                      </Button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {profileLoading ? (
+                    <div className="text-center py-8">Loading profile...</div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Email - Read Only */}
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {profile?.email || user?.email || 'Not provided'}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">Read Only</Badge>
+                        </div>
+                      </div>
+
+                      {/* Editable Fields */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-2">
+                          <Label htmlFor="full_name">Full Name</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="full_name"
+                              value={profileForm.full_name}
+                              onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                              placeholder="Enter your full name"
+                            />
+                          ) : (
+                            <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                              {profile?.full_name || 'Not provided'}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="phone">Phone Number</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="phone"
+                              value={profileForm.phone}
+                              onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                              placeholder="Enter your phone number"
+                            />
+                          ) : (
+                            <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                              {profile?.phone || 'Not provided'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="address">Address</Label>
+                        {isEditingProfile ? (
+                          <Input
+                            id="address"
+                            value={profileForm.address}
+                            onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                            placeholder="Enter your address"
+                          />
+                        ) : (
+                          <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                            {profile?.address || 'Not provided'}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="grid gap-2">
+                          <Label htmlFor="city">City</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="city"
+                              value={profileForm.city}
+                              onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
+                              placeholder="Enter city"
+                            />
+                          ) : (
+                            <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                              {profile?.city || 'Not provided'}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="state">State</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="state"
+                              value={profileForm.state}
+                              onChange={(e) => setProfileForm({ ...profileForm, state: e.target.value })}
+                              placeholder="Enter state"
+                            />
+                          ) : (
+                            <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                              {profile?.state || 'Not provided'}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="pincode">PIN Code</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="pincode"
+                              value={profileForm.pincode}
+                              onChange={(e) => setProfileForm({ ...profileForm, pincode: e.target.value })}
+                              placeholder="Enter PIN code"
+                            />
+                          ) : (
+                            <div className="h-10 flex items-center px-3 border rounded-md bg-muted text-sm">
+                              {profile?.pincode || 'Not provided'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons for Edit Mode */}
+                      {isEditingProfile && (
+                        <div className="flex gap-2 pt-4">
+                          <Button 
+                            onClick={handleSaveProfile}
+                            disabled={updateProfileMutation.isPending}
+                          >
+                            {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                          </Button>
+                          <Button variant="outline" onClick={handleCancelEdit}>
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="orders">
               <Card>
