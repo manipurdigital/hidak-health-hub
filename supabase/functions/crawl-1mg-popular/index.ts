@@ -118,8 +118,8 @@ serve(async (req) => {
 
         // Extract product URLs using regex patterns
         const productUrlPatterns = [
-          /https:\/\/www\.1mg\.com\/drugs\/[^"\s<>]+/g,
-          /\/drugs\/[^"\s<>]+/g
+          /https:\/\/www\.1mg\.com\/drugs\/[a-zA-Z0-9\-]+(?:-\d+)?/g,
+          /\/drugs\/[a-zA-Z0-9\-]+(?:-\d+)?/g
         ];
 
         for (const pattern of productUrlPatterns) {
