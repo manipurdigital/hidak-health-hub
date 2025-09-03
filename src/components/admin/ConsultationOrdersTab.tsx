@@ -141,12 +141,12 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
           )
         `);
 
-      // Apply date filters
+      // Apply date filters to consultation_date instead of created_at
       if (defaultFrom) {
-        query = query.gte('created_at', `${defaultFrom}T00:00:00.000Z`);
+        query = query.gte('consultation_date', defaultFrom);
       }
       if (defaultTo) {
-        query = query.lte('created_at', `${defaultTo}T23:59:59.999Z`);
+        query = query.lte('consultation_date', defaultTo);
       }
 
       // Apply status filter
