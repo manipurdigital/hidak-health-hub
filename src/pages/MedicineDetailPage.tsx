@@ -112,20 +112,18 @@ export function MedicineDetailPage() {
           <div className="space-y-4">
             <Card>
               <CardContent className="p-6">
-                <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
+                <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                   {(medicine.thumbnail_url || medicine.image_url) ? (
                     <img
                       src={medicine.thumbnail_url || medicine.image_url}
                       alt={medicine.name}
-                      className="w-full h-full object-cover rounded-lg"
+                      className="w-full h-full object-contain"
                       onError={(e) => {
+                        console.log('Image failed to load:', medicine.thumbnail_url || medicine.image_url);
                         const target = e.target as HTMLImageElement;
-                        if (target.src === medicine.thumbnail_url && medicine.image_url) {
-                          target.src = medicine.image_url;
-                        } else {
-                          target.style.display = 'none';
-                          target.parentElement!.innerHTML = '<div class="text-muted-foreground">No image available</div>';
-                        }
+                        target.style.display = 'none';
+                        const parent = target.parentElement!;
+                        parent.innerHTML = '<div class="text-muted-foreground">Image not available</div>';
                       }}
                     />
                   ) : (
