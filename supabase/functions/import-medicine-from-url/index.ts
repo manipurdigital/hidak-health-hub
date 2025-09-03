@@ -448,11 +448,15 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
                            html.match(/Marketed by[^>]*>.*?<[^>]*>([^<]+)/i);
   const imageMatch = html.match(/<img[^>]*src="([^"]*product[^"]*\.(?:jpg|jpeg|png|webp)[^"]*)"[^>]*>/i);
   
-  // Extract Salt Composition
-  const saltCompositionMatch = html.match(/Salt Composition[^>]*>.*?<[^>]*>([^<]+)/i) ||
-                              html.match(/Ingredients[^>]*>.*?<[^>]*>([^<]+)/i) ||
-                              html.match(/Active Ingredients[^>]*>.*?<[^>]*>([^<]+)/i) ||
-                              html.match(/Composition[^>]*>.*?<[^>]*>([^<]+)/i);
+  // Extract Salt Composition with improved patterns
+  const saltCompositionMatch = html.match(/Salt Composition.*?(?:<[^>]*>){1,3}([^<>]+(?:\([^)]*\))?[^<>]*)/i) ||
+                              html.match(/salt composition[":]*\s*([^"<>,]{3,})/i) ||
+                              html.match(/ingredients[":]*\s*([^"<>,]{3,})/i) ||
+                              html.match(/active ingredients[":]*\s*([^"<>,]{3,})/i) ||
+                              html.match(/composition[":]*\s*([^"<>,]{3,})/i) ||
+                              html.match(/generic[^>]*>.*?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s*\([^)]*\))?)/i) ||
+                              html.match(/"salt"[^}]*"value"[^"]*"([^"]+)"/i) ||
+                              html.match(/bevacizumab|paracetamol|ibuprofen|aspirin|metformin|atorvastatin|omeprazole|sertraline|amlodipine|levothyroxine/gi);
   
   // Extract Description
   const descriptionMatch = html.match(/Description[^>]*>.*?<p[^>]*>([^<]+)/i) ||
@@ -471,6 +475,12 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
   
   // Use extracted salt composition or fallback to name extraction
   const saltComposition = saltCompositionMatch ? saltCompositionMatch[1].trim() : composition;
+  
+  // Debug logging for composition extraction
+  console.log('Composition extraction debug for:', name);
+  console.log('Salt composition match:', saltCompositionMatch ? saltCompositionMatch[1] : 'No match');
+  console.log('Name extraction composition:', composition);
+  console.log('Final composition used:', saltComposition);
 
   // Log parsing warnings for reviewer attention
   if (!priceMatch) {
