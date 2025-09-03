@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -52,6 +57,7 @@ interface MedicineData {
   image_hash?: string;
   strength?: string;
   dosage_form?: string;
+  dedupe_key?: string;
 }
 
 // Trusted domain allowlist for copyright compliance
@@ -223,10 +229,6 @@ async function importMedicineFromUrl(url: string, options: ImportOptions): Promi
 
   // Save to database
   console.log('Starting database insert');
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
 
   const insertData = {
     ...medicineData,
@@ -680,22 +682,22 @@ async function parse1mgProduct(html: string, url: string): Promise<{medicineData
   console.log('Image found:', imageUrl ? 'Yes' : 'No');
 
   // Log parsing warnings for reviewer attention
-  if (!priceMatch) {
+  if (!price) {
     console.warn(`No price found for ${name} - manual review needed`);
     warnings.push('No price found - requires manual review');
   }
   
-  if (!manufacturerMatch) {
+  if (!manufacturer) {
     console.warn(`No manufacturer found for ${name} - manual review needed`);
     warnings.push('No manufacturer found - requires manual review');
   }
   
-  if (!composition) {
+  if (!saltComposition) {
     console.warn(`Composition uncertain for ${name} - manual review needed`);
     warnings.push('Composition uncertain - requires manual review');
   }
 
-  if (!imageMatch) {
+  if (!imageUrl) {
     console.warn(`No product image found for ${name}`);
     warnings.push('No product image found');
   }
@@ -874,10 +876,6 @@ async function checkForDuplicates(medicineData: MedicineData): Promise<{
   existingId?: string;
   reason?: string;
 }> {
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
 
   // Check exact match on composition + manufacturer + pack size
   if (medicineData.composition_key && medicineData.manufacturer && medicineData.pack_size) {
@@ -962,10 +960,6 @@ function getEditDistance(str1: string, str2: string): number {
 }
 
 async function processImage(imageUrl: string): Promise<any> {
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
 
   const { data, error } = await supabase.functions.invoke('fetch-and-store-image', {
     body: { imageUrl }
