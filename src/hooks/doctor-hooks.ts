@@ -131,31 +131,86 @@ export const useDoctorAvailability = (doctorId: string) => {
   });
 };
 
-export const useAvailableSlots = (doctorId: string, date: string) => {
+export const useAvailableSlots = (doctorId: string, availability: any[]) => {
   return useQuery({
-    queryKey: ['available-slots', doctorId, date],
+    queryKey: ['available-slots', doctorId, availability?.length],
     queryFn: async () => {
-      if (!doctorId || !date) return [];
+      if (!doctorId || !availability || availability.length === 0) return [];
 
-      const { data, error } = await supabase
-        .from('doctor_availability')
-        .select('*')
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
+      // Get booked time slots to exclude them
+      const { data: bookedSlots, error: bookingError } = await supabase
+        .from('consultations')
+        .select('consultation_date, time_slot')
         .eq('doctor_id', doctorId)
-        .eq('availability_date', date)
-        .eq('is_available', true)
-        .eq('is_active', true)
-        .order('start_time', { ascending: true });
+        .neq('status', 'cancelled')
+        .gte('consultation_date', todayStr);
 
-      if (error) throw error;
+      if (bookingError) throw bookingError;
+
+      // Create a set of booked slots for quick lookup
+      const bookedSet = new Set(
+        (bookedSlots || []).map(slot => `${slot.consultation_date}|${slot.time_slot}`)
+      );
+
+      // Transform availability into discrete 30-minute slots
+      const slots: any[] = [];
       
-      // Transform the data into time slots
-      return (data || []).map(slot => ({
-        id: slot.id,
-        start_time: slot.start_time,
-        end_time: slot.end_time,
-        is_available: slot.is_available
-      }));
+      availability.forEach(avail => {
+        const availDate = avail.availability_date;
+        
+        // Only include dates >= today
+        if (availDate < todayStr) return;
+
+        // Parse start and end times
+        const [startHour, startMin] = avail.start_time.split(':').map(Number);
+        const [endHour, endMin] = avail.end_time.split(':').map(Number);
+
+        // Create 30-minute slots between start and end time
+        let currentHour = startHour;
+        let currentMin = startMin;
+
+        while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+          // Format time as 12-hour format
+          const timeStr = formatTo12Hour(currentHour, currentMin);
+          const slotKey = `${availDate}|${timeStr}`;
+
+          // Only add if not already booked
+          if (!bookedSet.has(slotKey)) {
+            // Create datetime for sorting
+            const datetime = new Date(`${availDate}T${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}:00`);
+            
+            slots.push({
+              date: availDate,
+              time: timeStr,
+              datetime: datetime.toISOString(),
+              availability_id: avail.id
+            });
+          }
+
+          // Increment by 30 minutes
+          currentMin += 30;
+          if (currentMin >= 60) {
+            currentMin = 0;
+            currentHour += 1;
+          }
+        }
+      });
+
+      // Sort by date and time
+      return slots.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
     },
-    enabled: !!doctorId && !!date,
+    enabled: !!doctorId && Array.isArray(availability),
   });
 };
+
+// Helper function to format time to 12-hour format
+function formatTo12Hour(hour: number, minute: number): string {
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const displayMinute = minute.toString().padStart(2, '0');
+  return `${displayHour}:${displayMinute} ${period}`;
+}

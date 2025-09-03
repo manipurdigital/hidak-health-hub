@@ -402,13 +402,37 @@ function AvailabilityPicker({ doctor, availableSlots, onSlotSelected }: any) {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    if (!dateString) return '';
+    const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('en-US', { 
       weekday: 'short', 
       month: 'short', 
       day: 'numeric' 
     });
   };
+
+  // Show message when no slots are available
+  if (!availableSlots || availableSlots.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Available Slot for Dr. {doctor.full_name}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-12">
+            <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Available Slots</h3>
+            <p className="text-muted-foreground mb-4">
+              Dr. {doctor.full_name} doesn't have any available slots in the next 30 days.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Please check back later or contact the doctor directly.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
