@@ -497,7 +497,7 @@ function AvailabilityPicker({ doctor, availableSlots, onSlotSelected }: any) {
 
           {selectedDate && selectedTime && (
             <Button onClick={handleContinue} className="w-full" size="lg">
-              Continue to Patient Details
+              Add Patient Details
             </Button>
           )}
         </CardContent>
