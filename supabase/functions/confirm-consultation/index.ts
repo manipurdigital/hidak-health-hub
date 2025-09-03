@@ -97,6 +97,21 @@ serve(async (req) => {
       throw new Error("This time slot is already booked. Please select another slot or contact support for a refund.");
     }
 
+    // Helper function to parse 12-hour time format to 24-hour format
+    function parseTimeSlotTo24Hour(timeSlot: string): string {
+      const [time, period] = timeSlot.split(' ');
+      const [hours, minutes] = time.split(':');
+      let hour24 = parseInt(hours);
+      
+      if (period === 'PM' && hour24 !== 12) {
+        hour24 += 12;
+      } else if (period === 'AM' && hour24 === 12) {
+        hour24 = 0;
+      }
+      
+      return `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
+    }
+
     // Get doctor details for amount verification
     const { data: doctor, error: doctorError } = await supabaseClient
       .from('doctors')
@@ -108,6 +123,11 @@ serve(async (req) => {
       throw new Error("Doctor not found");
     }
 
+    // Parse time slot to consultation_time
+    const consultationTime = parseTimeSlotTo24Hour(timeSlot);
+    
+    console.log(`Creating consultation for doctor ${doctorId} on ${consultationDate} at ${timeSlot} (parsed: ${consultationTime})`);
+
     // Create consultation record
     const { data: consultation, error: consultationError } = await supabaseClient
       .from('consultations')
@@ -115,8 +135,10 @@ serve(async (req) => {
         patient_id: user.id,
         doctor_id: doctorId,
         consultation_date: consultationDate,
+        consultation_time: consultationTime,
         time_slot: timeSlot,
         consultation_type: consultationType || 'text',
+        consultation_fee: doctor.consultation_fee,
         patient_notes: notes,
         total_amount: doctor.consultation_fee,
         status: 'scheduled',
