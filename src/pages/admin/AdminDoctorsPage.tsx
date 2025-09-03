@@ -102,10 +102,12 @@ const AdminDoctorsPage = () => {
 
   const handleAddDoctor = async (formData: FormData) => {
     try {
+      const fullName = formData.get('full_name') as string;
       const doctorData = {
         user_id: null,
         contact_email: formData.get('contact_email') as string,
-        full_name: formData.get('full_name') as string,
+        name: fullName, // Required field
+        full_name: fullName,
         specialization: formData.get('specialization') as string,
         qualification: formData.get('qualification') as string,
         experience_years: parseInt(formData.get('experience_years') as string),
@@ -308,8 +310,10 @@ const AdminDoctorsPage = () => {
     if (!editingDoctor) return;
 
     try {
+      const fullName = formData.get('full_name') as string;
       const doctorData = {
-        full_name: formData.get('full_name') as string,
+        name: fullName, // Required field
+        full_name: fullName,
         specialization: formData.get('specialization') as string,
         qualification: formData.get('qualification') as string,
         experience_years: parseInt(formData.get('experience_years') as string),
