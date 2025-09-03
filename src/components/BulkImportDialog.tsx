@@ -102,25 +102,29 @@ export function BulkImportDialog({ open, onOpenChange, onSuccess }: BulkImportDi
       // Create a data URL directly (handles newlines and URL-safe base64 better)
       const href = `data:${contentType};base64,${base64}`;
 
-      // Fallback for IE/Edge legacy
       const navAny = window.navigator as any;
+      const blob = await fetch(href).then(r => r.blob());
+
+      const inIframe = (() => {
+        try { return window.top !== window.self; } catch (_) { return true; }
+      })();
+
       if (navAny && typeof navAny.msSaveOrOpenBlob === 'function') {
-        // Convert data URL to Blob using fetch for legacy APIs
-        const blob = await fetch(href).then(r => r.blob());
         navAny.msSaveOrOpenBlob(blob, fileName);
+      } else if (inIframe) {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
       } else {
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = href;
+        link.href = url;
         link.download = fileName;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        // Safari fallback (download attribute not supported on data URLs)
-        if (!('download' in HTMLAnchorElement.prototype)) {
-          window.open(href, '_blank');
-        }
         setTimeout(() => {
           document.body.removeChild(link);
+          URL.revokeObjectURL(url);
         }, 100);
       }
 

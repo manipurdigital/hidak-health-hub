@@ -101,26 +101,33 @@ export const BulkUpload: React.FC<BulkUploadProps> = ({ type, onUploadComplete }
       const href = `data:${contentType};base64,${base64}`;
 
       const navAny = window.navigator as any;
+      const blob = await fetch(href).then(r => r.blob());
+
+      const inIframe = (() => {
+        try { return window.top !== window.self; } catch (_) { return true; }
+      })();
+
       if (navAny && typeof navAny.msSaveOrOpenBlob === 'function') {
         // Legacy IE/Edge
-        const blob = await fetch(href).then(r => r.blob());
         navAny.msSaveOrOpenBlob(blob, fileName);
+      } else if (inIframe) {
+        // In sandboxed iframe, force new tab to allow download
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
       } else {
+        // Normal path for modern browsers
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = href;
+        link.href = url;
         link.download = fileName;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
-        // Safari fallback
-        if (!('download' in HTMLAnchorElement.prototype)) {
-          window.open(href, '_blank');
-        }
         setTimeout(() => {
           document.body.removeChild(link);
+          URL.revokeObjectURL(url);
         }, 100);
       }
-
       toast({
         title: 'Template Downloaded',
         description: `${type} template has been downloaded successfully`
