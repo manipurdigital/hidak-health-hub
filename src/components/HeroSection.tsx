@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Shield, Truck, Clock, Users, MessageCircle } from "lucide-react";
+import { Shield, Truck, Clock, Stethoscope, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/healthcare-hero.jpg";
@@ -89,8 +89,8 @@ const HeroSection = () => {
                   <Shield className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <div className="font-semibold text-sm">100% Authentic</div>
-                  <div className="text-xs text-muted-foreground">Verified medicines</div>
+                  <div className="font-semibold text-sm">Licensed Pharmacy</div>
+                  <div className="text-xs text-muted-foreground">Verified & regulated</div>
                 </div>
               </div>
               
@@ -99,28 +99,28 @@ const HeroSection = () => {
                   <Truck className="w-6 h-6 text-accent" />
                 </div>
                 <div>
-                  <div className="font-semibold text-sm">Free Delivery</div>
-                  <div className="text-xs text-muted-foreground">On orders ₹499+</div>
+                  <div className="font-semibold text-sm">Quick Delivery</div>
+                  <div className="text-xs text-muted-foreground">Same day delivery</div>
                 </div>
               </div>
               
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-trust-badge rounded-lg">
-                  <Clock className="w-6 h-6 text-medical-teal" />
+                  <Stethoscope className="w-6 h-6 text-medical-teal" />
                 </div>
                 <div>
-                  <div className="font-semibold text-sm">24/7 Support</div>
-                  <div className="text-xs text-muted-foreground">Always available</div>
+                  <div className="font-semibold text-sm">Expert Doctors</div>
+                  <div className="text-xs text-muted-foreground">Online consultations</div>
                 </div>
               </div>
               
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-trust-badge rounded-lg">
-                  <Users className="w-6 h-6 text-success" />
+                  <Clock className="w-6 h-6 text-success" />
                 </div>
                 <div>
-                  <div className="font-semibold text-sm">50L+ Users</div>
-                  <div className="text-xs text-muted-foreground">Trust us</div>
+                  <div className="font-semibold text-sm">24/7 Care</div>
+                  <div className="text-xs text-muted-foreground">Round-the-clock support</div>
                 </div>
               </div>
             </div>
