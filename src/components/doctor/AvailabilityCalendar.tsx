@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
+import { format, addDays, isSameDay, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { 
   Calendar as CalendarIcon, 
@@ -16,9 +17,13 @@ import {
   Trash2, 
   Save, 
   Copy, 
-  RotateCcw,
-  AlertCircle,
-  CheckCircle
+  CheckCircle2,
+  Settings,
+  Timer,
+  Users,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface TimeSlot {
@@ -43,10 +48,11 @@ interface AvailabilityCalendarProps {
 }
 
 export function AvailabilityCalendar({ availability, onSave, isLoading }: AvailabilityCalendarProps) {
-  const [editingDate, setEditingDate] = useState<string | null>(null);
   const [dateAvailability, setDateAvailability] = useState<Record<string, DateAvailability>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   // Initialize availability from props
   React.useEffect(() => {
@@ -123,20 +129,6 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
     updateDateAvailability(dateKey, { slots: newSlots });
   };
 
-  const copyToNewDate = (fromDateKey: string) => {
-    if (!selectedDate) return;
-    
-    const toDateKey = format(selectedDate, 'yyyy-MM-dd');
-    const currentDate = dateAvailability[fromDateKey];
-    
-    if (currentDate && currentDate.slots.length > 0) {
-      updateDateAvailability(toDateKey, {
-        slots: [...currentDate.slots],
-        is_active: true
-      });
-    }
-  };
-
   const removeDate = (dateKey: string) => {
     setDateAvailability(prev => {
       const updated = { ...prev };
@@ -146,15 +138,18 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
     setHasChanges(true);
   };
 
-  const addNewDate = () => {
-    if (!selectedDate) return;
-    
-    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+  const addNewDate = (date: Date) => {
+    const dateKey = format(date, 'yyyy-MM-dd');
     updateDateAvailability(dateKey, {
-      slots: [],
-      is_active: false
+      slots: [{
+        start_time: '09:00',
+        end_time: '17:00',
+        break_duration: 15,
+        max_appointments: 8
+      }],
+      is_active: true
     });
-    setEditingDate(dateKey);
+    setSelectedDate(date);
   };
 
   const handleSave = () => {
@@ -167,7 +162,6 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
     
     onSave(updates);
     setHasChanges(false);
-    setEditingDate(null);
   };
 
   const getTotalHours = (slots: TimeSlot[]) => {
@@ -179,370 +173,417 @@ export function AvailabilityCalendar({ availability, onSave, isLoading }: Availa
     }, 0);
   };
 
+  const quickAddOptions = [
+    { label: 'Morning (9 AM - 12 PM)', start: '09:00', end: '12:00' },
+    { label: 'Afternoon (2 PM - 6 PM)', start: '14:00', end: '18:00' },
+    { label: 'Full Day (9 AM - 6 PM)', start: '09:00', end: '18:00' },
+    { label: 'Evening (6 PM - 9 PM)', start: '18:00', end: '21:00' }
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Calendar className="w-8 h-8" />
-            Manage Availability
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Configure your weekly schedule and consultation slots
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {hasChanges && (
-            <div className="flex items-center gap-2 text-orange-600">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">Unsaved changes</span>
-            </div>
-          )}
-          <Button 
-            onClick={handleSave} 
-            disabled={!hasChanges || isLoading}
-            className="bg-primary hover:bg-primary/90"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
-          </Button>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Dates</p>
-                <p className="text-2xl font-bold">
-                  {Object.values(dateAvailability).filter(d => d.is_active).length}
-                </p>
+    <div className="space-y-8 max-w-7xl mx-auto">
+      {/* Modern Header */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Manage Availability
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Set your consultation hours and manage your schedule
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {hasChanges && (
+              <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+                <Timer className="h-4 w-4" />
+                <span className="text-sm font-medium">Unsaved changes</span>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Hours</p>
-                <p className="text-2xl font-bold">
-                  {Object.values(dateAvailability).reduce((total, date) => 
-                    total + getTotalHours(date.slots), 0
-                  ).toFixed(1)}h
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Consultation Slots</p>
-                <p className="text-2xl font-bold">
-                  {Object.values(dateAvailability).reduce((total: number, date: DateAvailability) => 
-                    total + date.slots.reduce((dateTotal: number, slot: TimeSlot) => 
-                      dateTotal + (slot.max_appointments || 0), 0
-                    ), 0
-                  )}
-                </p>
-              </div>
-              <CalendarIcon className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Add New Date */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            <Button onClick={addNewDate} disabled={!selectedDate}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Availability
+            )}
+            <Button 
+              onClick={handleSave} 
+              disabled={!hasChanges || isLoading}
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Changes
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Date-Based Availability Configuration */}
-      <div className="space-y-4">
-        {Object.entries(dateAvailability)
-          .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-          .map(([dateKey, dateData]) => {
-          const isEditing = editingDate === dateKey;
-          const totalHours = getTotalHours(dateData.slots);
-          const dateObj = new Date(dateKey);
-          const isPast = dateObj < new Date();
-
-          return (
-            <Card key={dateKey} className={`transition-all ${isEditing ? 'ring-2 ring-primary' : ''} ${isPast ? 'opacity-60' : ''}`}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CardTitle className="text-xl">
-                      {format(dateObj, 'EEEE, MMMM d, yyyy')}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                      {isPast && (
-                        <Badge variant="secondary" className="text-muted-foreground">
-                          Past
-                        </Badge>
-                      )}
-                      {dateData.is_active && !isPast && (
-                        <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">
-                          Available
-                        </Badge>
-                      )}
-                      {totalHours > 0 && (
-                        <Badge variant="secondary">
-                          {totalHours.toFixed(1)}h • {dateData.slots.length} slots
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!isPast && (
-                      <>
-                        {!isEditing ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingDate(dateKey)}
-                          >
-                            Edit
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingDate(null)}
-                          >
-                            Done
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeDate(dateKey)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-green-700">Active Dates</p>
+                  <p className="text-3xl font-bold text-green-900">
+                    {Object.values(dateAvailability).filter(d => d.is_active).length}
+                  </p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {!isEditing || isPast ? (
-                  <div>
-                    {dateData.slots.length === 0 ? (
-                      <div className="text-sm text-muted-foreground py-4">
-                        No slots configured
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {dateData.slots.map((slot, index) => (
-                          <div key={index} className="flex items-center gap-4 text-sm">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            <span>{slot.start_time} - {slot.end_time}</span>
-                            <span className="text-muted-foreground">
-                              • {slot.max_appointments} appointments
-                            </span>
-                            {slot.break_duration && (
-                              <span className="text-muted-foreground">
-                                • {slot.break_duration}min breaks
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Time Slots */}
-                    {dateData.slots.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">
-                          No time slots configured for this date
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => addTimeSlot(dateKey)}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Time Slot
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {dateData.slots.map((slot, index) => (
-                          <div key={index} className="p-4 border rounded-lg bg-muted/30">
-                            <div className="flex items-center justify-between mb-4">
-                              <h4 className="font-medium">Slot {index + 1}</h4>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeTimeSlot(dateKey, index)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                              <div>
-                                <Label className="text-sm">Start Time</Label>
-                                <Input
-                                  type="time"
-                                  value={slot.start_time}
-                                  onChange={(e) => updateTimeSlot(dateKey, index, { start_time: e.target.value })}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-sm">End Time</Label>
-                                <Input
-                                  type="time"
-                                  value={slot.end_time}
-                                  onChange={(e) => updateTimeSlot(dateKey, index, { end_time: e.target.value })}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-sm">Break Duration (min)</Label>
-                                <Input
-                                  type="number"
-                                  value={slot.break_duration || 15}
-                                  onChange={(e) => updateTimeSlot(dateKey, index, { break_duration: parseInt(e.target.value) })}
-                                  className="mt-1"
-                                  min="5"
-                                  max="60"
-                                />
-                              </div>
-                              <div>
-                                <Label className="text-sm">Max Appointments</Label>
-                                <Input
-                                  type="number"
-                                  value={slot.max_appointments || 8}
-                                  onChange={(e) => updateTimeSlot(dateKey, index, { max_appointments: parseInt(e.target.value) })}
-                                  className="mt-1"
-                                  min="1"
-                                  max="20"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addTimeSlot(dateKey)}
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Another Slot
-                          </Button>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Copy className="w-4 h-4 mr-2" />
-                                Copy to Date
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(date) => {
-                                  setSelectedDate(date);
-                                  if (date) {
-                                    copyToNewDate(dateKey);
-                                  }
-                                }}
-                                disabled={(date) => date < new Date() || date.toDateString() === dateObj.toDateString()}
-                                initialFocus
-                                className="p-3 pointer-events-auto"
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    <div>
-                      <Label className="text-sm">Notes (optional)</Label>
-                      <Textarea
-                        value={dateData.notes || ''}
-                        onChange={(e) => updateDateAvailability(dateKey, { notes: e.target.value })}
-                        placeholder="Add any special notes for this date..."
-                        className="mt-1"
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-        
-        {Object.keys(dateAvailability).length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <CalendarIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No availability set</h3>
-              <p className="text-muted-foreground mb-4">
-                Select a date above to start setting your availability
-              </p>
+                <CheckCircle2 className="h-10 w-10 text-green-600" />
+              </div>
             </CardContent>
           </Card>
-        )}
+
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-cyan-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-blue-700">Total Hours</p>
+                  <p className="text-3xl font-bold text-blue-900">
+                    {Object.values(dateAvailability).reduce((total, date) => 
+                      total + getTotalHours(date.slots), 0
+                    ).toFixed(1)}h
+                  </p>
+                </div>
+                <Clock className="h-10 w-10 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-violet-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-purple-700">Total Slots</p>
+                  <p className="text-3xl font-bold text-purple-900">
+                    {Object.values(dateAvailability).reduce((total: number, date: DateAvailability) => 
+                      total + date.slots.reduce((dateTotal: number, slot: TimeSlot) => 
+                        dateTotal + (slot.max_appointments || 0), 0
+                      ), 0
+                    )}
+                  </p>
+                </div>
+                <Users className="h-10 w-10 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-md bg-gradient-to-br from-orange-50 to-amber-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-orange-700">Upcoming</p>
+                  <p className="text-3xl font-bold text-orange-900">
+                    {Object.keys(dateAvailability).filter(date => 
+                      new Date(date) > new Date() && dateAvailability[date].is_active
+                    ).length}
+                  </p>
+                </div>
+                <CalendarIcon className="h-10 w-10 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Tips */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-2 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
-            Best Practices
+      {/* Main Calendar Interface */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Calendar Selection */}
+        <div className="lg:col-span-1">
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <CalendarIcon className="h-5 w-5" />
+                  Select Dates
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowQuickAdd(!showQuickAdd)}
+                  className="text-xs"
+                >
+                  Quick Add
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date && !isBefore(date, new Date())) {
+                    setSelectedDate(date);
+                  }
+                }}
+                disabled={(date) => isBefore(date, new Date())}
+                className="rounded-md border-0"
+                modifiers={{
+                  available: Object.keys(dateAvailability).map(date => new Date(date))
+                }}
+                modifiersStyles={{
+                  available: { backgroundColor: 'rgb(34 197 94 / 0.1)', color: 'rgb(22 163 74)' }
+                }}
+              />
+              
+              {selectedDate && (
+                <div className="space-y-3 pt-4 border-t">
+                  <p className="text-sm font-medium">
+                    {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                  </p>
+                  <Button
+                    onClick={() => addNewDate(selectedDate)}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Availability
+                  </Button>
+                </div>
+              )}
+
+              {/* Quick Add Options */}
+              {showQuickAdd && selectedDate && (
+                <div className="space-y-2 pt-4 border-t">
+                  <p className="text-sm font-medium text-muted-foreground">Quick Templates</p>
+                  {quickAddOptions.map((option) => (
+                    <Button
+                      key={option.label}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-xs"
+                      onClick={() => {
+                        const dateKey = format(selectedDate, 'yyyy-MM-dd');
+                        updateDateAvailability(dateKey, {
+                          slots: [{
+                            start_time: option.start,
+                            end_time: option.end,
+                            break_duration: 15,
+                            max_appointments: 8
+                          }],
+                          is_active: true
+                        });
+                        setShowQuickAdd(false);
+                      }}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Availability List */}
+        <div className="lg:col-span-2">
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Your Schedule
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {Object.entries(dateAvailability)
+                  .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+                  .map(([dateKey, dateData]) => {
+                  const dateObj = new Date(dateKey);
+                  const isPast = isBefore(dateObj, new Date());
+                  const totalHours = getTotalHours(dateData.slots);
+
+                  return (
+                    <Card key={dateKey} className={`transition-all border ${isPast ? 'opacity-60' : 'hover:shadow-md'}`}>
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          {/* Date Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <h3 className="font-semibold text-lg">
+                                {format(dateObj, 'EEEE, MMMM d')}
+                              </h3>
+                              <div className="flex items-center gap-3">
+                                {isPast && (
+                                  <Badge variant="secondary" className="text-xs">Past</Badge>
+                                )}
+                                {dateData.is_active && !isPast && (
+                                  <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                                    Available
+                                  </Badge>
+                                )}
+                                {totalHours > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {totalHours.toFixed(1)}h • {dateData.slots.length} slots
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            {!isPast && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeDate(dateKey)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Time Slots */}
+                          <div className="space-y-3">
+                            {dateData.slots.map((slot, index) => (
+                              <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                                <div className="flex items-center gap-4">
+                                  <Clock className="w-4 h-4 text-muted-foreground" />
+                                  <div className="space-y-1">
+                                    <p className="font-medium">
+                                      {slot.start_time} - {slot.end_time}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {slot.max_appointments} appointments • {slot.break_duration}min breaks
+                                    </p>
+                                  </div>
+                                </div>
+                                {!isPast && (
+                                  <div className="flex items-center gap-2">
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                          <Settings className="w-4 h-4" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-80">
+                                        <div className="space-y-4">
+                                          <h4 className="font-medium">Edit Time Slot</h4>
+                                          <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                              <Label className="text-sm">Start Time</Label>
+                                              <Input
+                                                type="time"
+                                                value={slot.start_time}
+                                                onChange={(e) => updateTimeSlot(dateKey, index, { start_time: e.target.value })}
+                                                className="mt-1"
+                                              />
+                                            </div>
+                                            <div>
+                                              <Label className="text-sm">End Time</Label>
+                                              <Input
+                                                type="time"
+                                                value={slot.end_time}
+                                                onChange={(e) => updateTimeSlot(dateKey, index, { end_time: e.target.value })}
+                                                className="mt-1"
+                                              />
+                                            </div>
+                                            <div>
+                                              <Label className="text-sm">Break (min)</Label>
+                                              <Input
+                                                type="number"
+                                                value={slot.break_duration || 15}
+                                                onChange={(e) => updateTimeSlot(dateKey, index, { break_duration: parseInt(e.target.value) })}
+                                                className="mt-1"
+                                                min="5"
+                                                max="60"
+                                              />
+                                            </div>
+                                            <div>
+                                              <Label className="text-sm">Max Patients</Label>
+                                              <Input
+                                                type="number"
+                                                value={slot.max_appointments || 8}
+                                                onChange={(e) => updateTimeSlot(dateKey, index, { max_appointments: parseInt(e.target.value) })}
+                                                className="mt-1"
+                                                min="1"
+                                                max="20"
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </PopoverContent>
+                                    </Popover>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeTimeSlot(dateKey, index)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+
+                            {!isPast && (
+                              <Button
+                                variant="outline"
+                                onClick={() => addTimeSlot(dateKey)}
+                                className="w-full"
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Time Slot
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Notes */}
+                          {!isPast && (
+                            <div className="pt-2">
+                              <Label className="text-sm">Notes (optional)</Label>
+                              <Textarea
+                                value={dateData.notes || ''}
+                                onChange={(e) => updateDateAvailability(dateKey, { notes: e.target.value })}
+                                placeholder="Add any special notes for this date..."
+                                className="mt-1 resize-none"
+                                rows={2}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+
+                {Object.keys(dateAvailability).length === 0 && (
+                  <div className="text-center py-12">
+                    <CalendarIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-xl font-semibold mb-2">No availability set</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Select dates from the calendar to start setting your availability
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Professional Tips */}
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardContent className="p-6">
+          <h3 className="font-semibold mb-4 text-blue-900 flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5" />
+            Best Practices for Healthcare Scheduling
           </h3>
-          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>Set realistic break durations between appointments (15-30 minutes recommended)</li>
-            <li>Consider buffer time for emergencies and follow-ups</li>
-            <li>Update availability regularly to reflect your current schedule</li>
-            <li>Use notes to communicate special availability conditions</li>
-          </ul>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                Set realistic break durations between appointments (15-30 minutes)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                Consider buffer time for emergencies and follow-ups
+              </li>
+            </ul>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                Update availability regularly to reflect your current schedule
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                Use notes to communicate special availability conditions
+              </li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
     </div>
