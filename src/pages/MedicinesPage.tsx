@@ -15,7 +15,8 @@ import { SortSelect } from '@/components/ui/sort-select';
 import { ResultCount } from '@/components/ui/result-count';
 import { MedicineCardSkeleton } from '@/components/ui/loading-skeletons';
 import { EmptyState, LoadingError } from '@/components/ui/error-states';
-import { Search, Filter, Star, Truck, Upload, ShoppingCart, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Search, Filter, Star, Truck, Upload, ShoppingCart, X, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useServiceability } from '@/contexts/ServiceabilityContext';
+import { QuickLocationInput } from '@/components/QuickLocationInput';
 
 interface Medicine {
   id: string;
@@ -57,12 +59,13 @@ const MedicinesPage = () => {
   const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
   const [uploadingPrescription, setUploadingPrescription] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [isLocationPopoverOpen, setIsLocationPopoverOpen] = useState(false);
   
   const { toast } = useToast();
   const { addItem } = useCart();
   const { user } = useAuth();
   const { filters, updateFilters, clearFilters } = useUrlFilters();
-  const { inDeliveryArea, feePreview } = useServiceability();
+  const { inDeliveryArea, feePreview, setManualLocation } = useServiceability();
 
   const page = filters.page || 1;
   const pageSize = 12;
@@ -324,9 +327,33 @@ const MedicinesPage = () => {
           
           {inDeliveryArea === false && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">
-                <span className="font-medium">Delivery unavailable:</span> Medicine delivery is not available in your location yet.
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-red-700 text-sm">
+                  <span className="font-medium">Delivery unavailable:</span> Medicine delivery is not available in your location yet.
+                </p>
+                <Popover open={isLocationPopoverOpen} onOpenChange={setIsLocationPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-red-700 border-red-300 hover:bg-red-100">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Change Location
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4">
+                    <QuickLocationInput
+                      onLocationSelect={async ({ latitude, longitude, address }) => {
+                        await setManualLocation({ lat: latitude, lng: longitude, address });
+                        setIsLocationPopoverOpen(false);
+                        toast({
+                          title: "Location Updated",
+                          description: "Checking delivery availability in your new location...",
+                        });
+                      }}
+                      title="Change Your Location"
+                      description="Set a new location to check if medicine delivery is available there"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           )}
 
