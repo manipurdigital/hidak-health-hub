@@ -170,7 +170,7 @@ serve(async (req) => {
         consultation_fee: doctor.consultation_fee,
         patient_notes: notes,
         total_amount: doctor.consultation_fee,
-        status: 'scheduled',
+        status: 'pending',
         payment_status: 'paid',
         razorpay_order_id: razorpay_order_id,
         razorpay_payment_id: razorpay_payment_id,
