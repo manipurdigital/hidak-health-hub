@@ -8,9 +8,13 @@ const corsHeaders = {
 
 interface CrawlOptions {
   maxProducts?: number;
+  maxDiscoveryPages?: number;
   categories?: string[];
   useFirecrawl?: boolean;
   dryRun?: boolean;
+  includeOTC?: boolean;
+  includePagination?: boolean;
+  extraSeedUrls?: string[];
 }
 
 interface CrawlResult {
@@ -39,13 +43,17 @@ serve(async (req) => {
 
   try {
     const { 
-      maxProducts = 50, 
+      maxProducts = 50,
+      maxDiscoveryPages = 10,
       categories = ['bestsellers', 'popular'], 
       useFirecrawl = true,
-      dryRun = false 
+      dryRun = false,
+      includeOTC = true,
+      includePagination = true,
+      extraSeedUrls = []
     }: CrawlOptions = await req.json();
 
-    console.log('[CRAWL-1MG] Request parameters:', { maxProducts, categories, useFirecrawl, dryRun });
+    console.log('[CRAWL-1MG] Request parameters:', { maxProducts, maxDiscoveryPages, categories, useFirecrawl, dryRun, includeOTC, includePagination });
 
     const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
     if (useFirecrawl && !firecrawlApiKey) {
@@ -63,80 +71,213 @@ serve(async (req) => {
       categories: []
     };
 
-    // Step 1: Discover product URLs from popular/bestseller pages
-    const baseUrls = [
+    // Step 1: Enhanced discovery with broader coverage
+    const allProductUrls = new Set<string>();
+    const discoveredPages = new Set<string>();
+    
+    // Enhanced base URLs for broader discovery
+    const seedUrls = [
       'https://www.1mg.com/drugs-all-medicines',
+      'https://www.1mg.com/drugs-bestsellers',
       'https://www.1mg.com/categories',
-      'https://www.1mg.com/drugs-bestsellers'
+      'https://www.1mg.com/drugs/popular',
+      'https://www.1mg.com/drugs/new-launches',
+      'https://www.1mg.com/drugs/trending',
+      ...extraSeedUrls
     ];
 
-    const allProductUrls = new Set<string>();
+    // Add OTC medicine URLs if enabled
+    if (includeOTC) {
+      seedUrls.push(
+        'https://www.1mg.com/otc',
+        'https://www.1mg.com/drugs/otc-medicines',
+        'https://www.1mg.com/categories/otc'
+      );
+    }
 
-    for (const baseUrl of baseUrls) {
+    // Use Firecrawl's crawl endpoint for comprehensive discovery if available
+    if (useFirecrawl && firecrawlApiKey) {
       try {
-        console.log(`[CRAWL-1MG] Discovering products from: ${baseUrl}`);
+        console.log('[CRAWL-1MG] Using Firecrawl crawl endpoint for comprehensive discovery');
         
-        let content = '';
-        
-        if (useFirecrawl && firecrawlApiKey) {
-          // Use Firecrawl for robust scraping
-          const firecrawlResponse = await fetch('https://api.firecrawl.dev/v0/scrape', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${firecrawlApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              url: baseUrl,
+        const crawlResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${firecrawlApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: 'https://www.1mg.com/drugs-all-medicines',
+            limit: Math.min(maxDiscoveryPages, 50),
+            scrapeOptions: {
               formats: ['markdown'],
-              onlyMainContent: true
-            })
-          });
+              onlyMainContent: true,
+              includeRawHtml: false
+            },
+            allowBackwardCrawling: false,
+            allowExternalCrawling: false,
+            includePaths: ['/drugs/', '/otc/'].filter(path => includeOTC || path !== '/otc/')
+          })
+        });
 
-          if (firecrawlResponse.ok) {
-            const firecrawlData = await firecrawlResponse.json();
-            content = firecrawlData.data?.markdown || '';
-            console.log(`[CRAWL-1MG] Firecrawl scraped ${content.length} characters from ${baseUrl}`);
+        if (crawlResponse.ok) {
+          const crawlData = await crawlResponse.json();
+          console.log(`[CRAWL-1MG] Firecrawl crawl initiated with ID: ${crawlData.id}`);
+          
+          // Poll for results
+          let crawlResults = null;
+          let pollAttempts = 0;
+          const maxPollAttempts = 30; // 5 minutes max
+          
+          while (pollAttempts < maxPollAttempts && !crawlResults) {
+            await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+            
+            const statusResponse = await fetch(`https://api.firecrawl.dev/v1/crawl/${crawlData.id}`, {
+              headers: {
+                'Authorization': `Bearer ${firecrawlApiKey}`,
+              }
+            });
+            
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json();
+              console.log(`[CRAWL-1MG] Crawl status: ${statusData.status}, completed: ${statusData.completed}/${statusData.total}`);
+              
+              if (statusData.status === 'completed') {
+                crawlResults = statusData.data;
+                break;
+              } else if (statusData.status === 'failed') {
+                throw new Error('Firecrawl crawl failed');
+              }
+            }
+            pollAttempts++;
+          }
+          
+          if (crawlResults) {
+            console.log(`[CRAWL-1MG] Firecrawl found ${crawlResults.length} pages`);
+            
+            // Extract product URLs from all crawled pages
+            for (const page of crawlResults) {
+              if (page.markdown && page.sourceURL) {
+                const productUrlMatches = page.markdown.match(/\/drugs\/[a-zA-Z0-9\-]+(?:-\d+)?/g) || [];
+                productUrlMatches.forEach(url => {
+                  const fullUrl = `https://www.1mg.com${url}`;
+                  if (!fullUrl.includes('#') && !fullUrl.includes('?')) {
+                    allProductUrls.add(fullUrl);
+                  }
+                });
+              }
+            }
+            
+            console.log(`[CRAWL-1MG] Firecrawl extracted ${allProductUrls.size} unique product URLs`);
           } else {
-            throw new Error(`Firecrawl failed with status: ${firecrawlResponse.status}`);
+            console.warn('[CRAWL-1MG] Firecrawl crawl timed out, falling back to page-by-page discovery');
           }
         } else {
-          // Fallback to direct fetch
-          const response = await fetch(baseUrl, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-          });
-          
-          if (response.ok) {
-            content = await response.text();
-            console.log(`[CRAWL-1MG] Direct fetch scraped ${content.length} characters from ${baseUrl}`);
-          } else {
-            throw new Error(`Direct fetch failed with status: ${response.status}`);
-          }
+          console.warn('[CRAWL-1MG] Firecrawl crawl endpoint failed, falling back to scraping');
         }
-
-        // Extract product URLs using regex patterns
-        const productUrlPatterns = [
-          /https:\/\/www\.1mg\.com\/drugs\/[a-zA-Z0-9\-]+(?:-\d+)?/g,
-          /\/drugs\/[a-zA-Z0-9\-]+(?:-\d+)?/g
-        ];
-
-        for (const pattern of productUrlPatterns) {
-          const matches = content.match(pattern) || [];
-          matches.forEach(url => {
-            const fullUrl = url.startsWith('http') ? url : `https://www.1mg.com${url}`;
-            if (fullUrl.includes('/drugs/') && !fullUrl.includes('#') && !fullUrl.includes('?')) {
-              allProductUrls.add(fullUrl);
-            }
-          });
-        }
-
-        console.log(`[CRAWL-1MG] Found ${allProductUrls.size} unique product URLs so far`);
-
       } catch (error) {
-        console.error(`[CRAWL-1MG] Error discovering from ${baseUrl}:`, error);
-        result.errors?.push(`Discovery failed for ${baseUrl}: ${error.message}`);
+        console.warn('[CRAWL-1MG] Firecrawl crawl error, falling back:', error.message);
+      }
+    }
+
+    // Fallback: Page-by-page discovery with BFS-style exploration
+    if (allProductUrls.size < maxProducts) {
+      console.log(`[CRAWL-1MG] Starting page-by-page discovery. Current URLs: ${allProductUrls.size}`);
+      
+      const urlsToProcess = [...seedUrls];
+      let processedCount = 0;
+
+      while (urlsToProcess.length > 0 && processedCount < maxDiscoveryPages && allProductUrls.size < maxProducts * 2) {
+        const currentUrl = urlsToProcess.shift()!;
+        
+        if (discoveredPages.has(currentUrl)) continue;
+        discoveredPages.add(currentUrl);
+        processedCount++;
+
+        try {
+          console.log(`[CRAWL-1MG] Discovering from page ${processedCount}/${maxDiscoveryPages}: ${currentUrl}`);
+          
+          let content = '';
+          
+          if (useFirecrawl && firecrawlApiKey) {
+            const firecrawlResponse = await fetch('https://api.firecrawl.dev/v0/scrape', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${firecrawlApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                url: currentUrl,
+                formats: ['markdown'],
+                onlyMainContent: true
+              })
+            });
+
+            if (firecrawlResponse.ok) {
+              const firecrawlData = await firecrawlResponse.json();
+              content = firecrawlData.data?.markdown || '';
+            }
+          } else {
+            const response = await fetch(currentUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+              }
+            });
+            
+            if (response.ok) {
+              content = await response.text();
+            }
+          }
+
+          if (content) {
+            // Extract product URLs
+            const productUrlPatterns = [
+              /https:\/\/www\.1mg\.com\/drugs\/[a-zA-Z0-9\-]+(?:-\d+)?/g,
+              /\/drugs\/[a-zA-Z0-9\-]+(?:-\d+)?/g,
+              ...(includeOTC ? [/\/otc\/[a-zA-Z0-9\-]+(?:-\d+)?/g] : [])
+            ];
+
+            for (const pattern of productUrlPatterns) {
+              const matches = content.match(pattern) || [];
+              matches.forEach(url => {
+                const fullUrl = url.startsWith('http') ? url : `https://www.1mg.com${url}`;
+                if ((fullUrl.includes('/drugs/') || (includeOTC && fullUrl.includes('/otc/'))) && 
+                    !fullUrl.includes('#') && !fullUrl.includes('?')) {
+                  allProductUrls.add(fullUrl);
+                }
+              });
+            }
+
+            // Extract pagination and category links for further exploration
+            if (includePagination && urlsToProcess.length < maxDiscoveryPages) {
+              const pageUrlPatterns = [
+                /\/drugs-all-medicines\?page=\d+/g,
+                /\/categories\/[a-zA-Z0-9\-]+/g,
+                /\/drugs\/[a-zA-Z0-9\-]+-category/g,
+                ...(includeOTC ? [/\/otc\?page=\d+/g] : [])
+              ];
+
+              for (const pattern of pageUrlPatterns) {
+                const pageMatches = content.match(pattern) || [];
+                pageMatches.slice(0, 3).forEach(url => { // Limit new pages to avoid exponential growth
+                  const fullUrl = url.startsWith('http') ? url : `https://www.1mg.com${url}`;
+                  if (!discoveredPages.has(fullUrl) && urlsToProcess.length < maxDiscoveryPages) {
+                    urlsToProcess.push(fullUrl);
+                  }
+                });
+              }
+            }
+
+            console.log(`[CRAWL-1MG] Page ${processedCount}: Found ${allProductUrls.size} total unique product URLs`);
+          }
+
+          // Rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+        } catch (error) {
+          console.error(`[CRAWL-1MG] Error discovering from ${currentUrl}:`, error);
+          result.errors?.push(`Discovery failed for ${currentUrl}: ${error.message}`);
+        }
       }
     }
 

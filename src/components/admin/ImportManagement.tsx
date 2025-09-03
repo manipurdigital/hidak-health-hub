@@ -28,8 +28,12 @@ export const ImportManagement = () => {
   const [results, setResults] = useState<CrawlResult | null>(null);
   const [config, setConfig] = useState({
     maxProducts: 50,
+    maxDiscoveryPages: 10,
     useFirecrawl: true,
-    dryRun: false
+    dryRun: false,
+    includeOTC: true,
+    includePagination: true,
+    extraSeedUrls: []
   });
 
   const handleStartCrawl = async () => {
@@ -97,7 +101,7 @@ export const ImportManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="maxProducts">Maximum Products</Label>
               <Input
@@ -106,11 +110,27 @@ export const ImportManagement = () => {
                 value={config.maxProducts}
                 onChange={(e) => setConfig({...config, maxProducts: parseInt(e.target.value) || 50})}
                 min="1"
-                max="500"
+                max="1000"
                 disabled={isRunning}
               />
               <p className="text-sm text-muted-foreground">
-                Limit the number of products to import (1-500)
+                Limit the number of products to import (1-1000)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="maxDiscoveryPages">Discovery Pages</Label>
+              <Input
+                id="maxDiscoveryPages"
+                type="number"
+                value={config.maxDiscoveryPages}
+                onChange={(e) => setConfig({...config, maxDiscoveryPages: parseInt(e.target.value) || 10})}
+                min="1"
+                max="50"
+                disabled={isRunning}
+              />
+              <p className="text-sm text-muted-foreground">
+                Pages to crawl for discovery (1-50)
               </p>
             </div>
 
@@ -119,13 +139,43 @@ export const ImportManagement = () => {
                 <div className="space-y-0.5">
                   <Label htmlFor="useFirecrawl">Use Firecrawl API</Label>
                   <p className="text-sm text-muted-foreground">
-                    More reliable but uses API credits
+                    More reliable crawling
                   </p>
                 </div>
                 <Switch
                   id="useFirecrawl"
                   checked={config.useFirecrawl}
                   onCheckedChange={(checked) => setConfig({...config, useFirecrawl: checked})}
+                  disabled={isRunning}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="includeOTC">Include OTC</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Include over-the-counter medicines
+                  </p>
+                </div>
+                <Switch
+                  id="includeOTC"
+                  checked={config.includeOTC}
+                  onCheckedChange={(checked) => setConfig({...config, includeOTC: checked})}
+                  disabled={isRunning}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="includePagination">Deep Discovery</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Follow pagination and category links
+                  </p>
+                </div>
+                <Switch
+                  id="includePagination"
+                  checked={config.includePagination}
+                  onCheckedChange={(checked) => setConfig({...config, includePagination: checked})}
                   disabled={isRunning}
                 />
               </div>
@@ -273,6 +323,8 @@ export const ImportManagement = () => {
               </Badge>
               {config.dryRun && <Badge variant="outline">Dry Run</Badge>}
               {config.useFirecrawl && <Badge variant="secondary">Firecrawl</Badge>}
+              {config.includeOTC && <Badge variant="secondary">OTC</Badge>}
+              {config.includePagination && <Badge variant="secondary">Deep Discovery</Badge>}
             </div>
           </CardContent>
         </Card>
