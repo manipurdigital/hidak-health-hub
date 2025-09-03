@@ -74,9 +74,9 @@ export const useUpdateBaseLocation = () => {
         p_base_fare: data.base_fare,
         p_base_km: data.base_km,
         p_per_km_fee: data.per_km_fee,
+        p_priority: data.priority,
         p_is_active: data.is_active,
-        p_is_default: data.is_default,
-        p_priority: data.priority
+        p_is_default: data.is_default
       });
       
       if (error) throw error;
