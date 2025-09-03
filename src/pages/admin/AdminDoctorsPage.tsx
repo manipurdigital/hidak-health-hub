@@ -43,7 +43,6 @@ interface Doctor {
   is_available: boolean;
   is_verified: boolean;
   hospital_affiliation: string;
-  license_number: string;
   bio: string;
 }
 
@@ -113,7 +112,6 @@ const AdminDoctorsPage = () => {
         experience_years: parseInt(formData.get('experience_years') as string),
         consultation_fee: parseFloat(formData.get('consultation_fee') as string),
         hospital_affiliation: formData.get('hospital_affiliation') as string,
-        license_number: formData.get('license_number') as string,
         bio: formData.get('bio') as string,
         is_available: true,
         is_verified: false,
@@ -134,10 +132,11 @@ const AdminDoctorsPage = () => {
 
       setIsAddDialogOpen(false);
       fetchDoctors();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Add doctor error:', error);
       toast({
         title: "Error",
-        description: "Failed to add doctor",
+        description: error.message || "Failed to add doctor",
         variant: "destructive"
       });
     }
@@ -319,7 +318,6 @@ const AdminDoctorsPage = () => {
         experience_years: parseInt(formData.get('experience_years') as string),
         consultation_fee: parseFloat(formData.get('consultation_fee') as string),
         hospital_affiliation: formData.get('hospital_affiliation') as string,
-        license_number: formData.get('license_number') as string,
         bio: formData.get('bio') as string,
         is_available: formData.get('is_available') === 'true',
         is_verified: formData.get('is_verified') === 'true'
@@ -340,10 +338,11 @@ const AdminDoctorsPage = () => {
       setIsEditDialogOpen(false);
       setEditingDoctor(null);
       fetchDoctors();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Update doctor error:', error);
       toast({
         title: "Error",
-        description: "Failed to update doctor",
+        description: error.message || "Failed to update doctor",
         variant: "destructive"
       });
     }
@@ -470,16 +469,10 @@ const AdminDoctorsPage = () => {
                           <Input id="experience_years" name="experience_years" type="number" required />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="consultation_fee">Consultation Fee</Label>
-                          <Input id="consultation_fee" name="consultation_fee" type="number" step="0.01" required />
-                        </div>
-                        <div>
-                          <Label htmlFor="license_number">License Number</Label>
-                          <Input id="license_number" name="license_number" required />
-                        </div>
-                      </div>
+                       <div>
+                         <Label htmlFor="consultation_fee">Consultation Fee</Label>
+                         <Input id="consultation_fee" name="consultation_fee" type="number" step="0.01" required />
+                       </div>
                       <div>
                         <Label htmlFor="hospital_affiliation">Hospital Affiliation</Label>
                         <Input id="hospital_affiliation" name="hospital_affiliation" />
@@ -747,16 +740,10 @@ const AdminDoctorsPage = () => {
                   <Input id="edit_experience_years" name="experience_years" type="number" defaultValue={editingDoctor.experience_years} required />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit_consultation_fee">Consultation Fee</Label>
-                  <Input id="edit_consultation_fee" name="consultation_fee" type="number" step="0.01" defaultValue={editingDoctor.consultation_fee} required />
-                </div>
-                <div>
-                  <Label htmlFor="edit_license_number">License Number</Label>
-                  <Input id="edit_license_number" name="license_number" defaultValue={editingDoctor.license_number} required />
-                </div>
-              </div>
+               <div>
+                 <Label htmlFor="edit_consultation_fee">Consultation Fee</Label>
+                 <Input id="edit_consultation_fee" name="consultation_fee" type="number" step="0.01" defaultValue={editingDoctor.consultation_fee} required />
+               </div>
               <div>
                 <Label htmlFor="edit_hospital_affiliation">Hospital Affiliation</Label>
                 <Input id="edit_hospital_affiliation" name="hospital_affiliation" defaultValue={editingDoctor.hospital_affiliation || ''} />
