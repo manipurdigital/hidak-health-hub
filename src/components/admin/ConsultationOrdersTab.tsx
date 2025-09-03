@@ -116,14 +116,10 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
     };
   };
 
-  const dateRange = filters.from && filters.to 
-    ? { from: filters.from, to: filters.to }
-    : getDateRange(dateFilter);
-
-  const weekAgo = new Date(today);
-  weekAgo.setDate(weekAgo.getDate() - 7);
+  // Always use internal date filter, ignore global URL filters for consultations
+  const dateRange = getDateRange(dateFilter);
   
-  // Use custom date range or calculated range
+  // Use consultation-specific date range
   const defaultFrom = dateRange.from;
   const defaultTo = dateRange.to;
 
@@ -149,8 +145,8 @@ export const ConsultationOrdersTab = ({ filters }: ConsultationOrdersTabProps) =
         query = query.lte('consultation_date', defaultTo);
       }
 
-      // Apply status filter
-      if (filters.status && filters.status !== 'all') {
+      // Apply status filter only if it's a valid consultation status
+      if (filters.status && filters.status !== 'all' && consultationStatuses.includes(filters.status)) {
         query = query.eq('status', filters.status);
       }
 
