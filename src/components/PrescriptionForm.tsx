@@ -70,24 +70,9 @@ export function PrescriptionForm() {
   // Create prescription mutation
   const createPrescriptionMutation = useMutation({
     mutationFn: async (prescriptionData: any) => {
-      // First get the doctor record for the current user
-      const { data: doctorData, error: doctorError } = await supabase
-        .from('doctors')
-        .select('id')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (doctorError) throw new Error('Doctor record not found');
-
-      // Update the prescription data with the correct doctor_id (user_id, not doctor table id)
-      const finalPrescriptionData = {
-        ...prescriptionData,
-        doctor_id: user?.id // Use the auth user ID, not the doctor table ID
-      };
-
       const { data, error } = await supabase
         .from('prescriptions')
-        .insert(finalPrescriptionData)
+        .insert(prescriptionData)
         .select()
         .single();
 

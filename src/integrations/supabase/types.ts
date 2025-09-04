@@ -1589,13 +1589,6 @@ export type Database = {
             referencedRelation: "consultations"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "prescriptions_doctor_id_fkey"
-            columns: ["doctor_id"]
-            isOneToOne: false
-            referencedRelation: "doctors"
-            referencedColumns: ["id"]
-          },
         ]
       }
       profiles: {
