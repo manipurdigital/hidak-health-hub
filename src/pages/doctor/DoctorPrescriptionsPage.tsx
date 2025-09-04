@@ -1,10 +1,11 @@
 
 // @ts-nocheck
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Plus, User, Calendar, Download, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileText, Plus, User, Calendar, Download, Eye, Printer } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,7 @@ interface Prescription {
 export default function DoctorPrescriptionsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
 
   // Fetch doctor's prescriptions
   const { data: prescriptions = [], isLoading, error } = useQuery({
@@ -168,6 +170,61 @@ export default function DoctorPrescriptionsPage() {
       // Navigate to a page where doctor can select a consultation first
       navigate('/doctor/prescriptions/select-consultation');
     }
+  };
+
+  const handleViewPrescription = (prescription: Prescription) => {
+    setSelectedPrescription(prescription);
+  };
+
+  const handleDownloadPrescription = (prescription: Prescription) => {
+    // Create prescription content for download
+    const prescriptionContent = `
+PRESCRIPTION
+${'-'.repeat(50)}
+
+Prescription Number: ${prescription.prescription_number}
+Date: ${new Date(prescription.created_at).toLocaleDateString()}
+Status: ${prescription.status.toUpperCase()}
+
+PATIENT INFORMATION:
+Name: ${prescription.consultations?.profiles?.full_name || 'Unknown Patient'}
+Phone: ${prescription.consultations?.profiles?.phone || 'N/A'}
+Email: ${prescription.consultations?.profiles?.email || 'N/A'}
+
+CONSULTATION DETAILS:
+${prescription.consultations ? `Date: ${new Date(prescription.consultations.consultation_date).toLocaleDateString()}
+Time: ${prescription.consultations.time_slot}` : 'No consultation details available'}
+
+DIAGNOSIS:
+${prescription.prescription_data?.diagnosis || 'No diagnosis recorded'}
+
+MEDICATIONS:
+${prescription.prescription_data?.medications?.map((med: any, index: number) => 
+  `${index + 1}. ${med.name} - ${med.dosage}
+     Frequency: ${med.frequency}
+     Duration: ${med.duration}
+     Instructions: ${med.instructions || 'No specific instructions'}`
+).join('\n\n') || 'No medications prescribed'}
+
+GENERAL INSTRUCTIONS:
+${prescription.prescription_data?.instructions || 'No additional instructions'}
+
+${prescription.prescription_data?.follow_up_date ? `FOLLOW-UP DATE: ${new Date(prescription.prescription_data.follow_up_date).toLocaleDateString()}` : ''}
+
+${'-'.repeat(50)}
+Generated on ${new Date().toLocaleString()}
+    `.trim();
+
+    // Create and download the file
+    const blob = new Blob([prescriptionContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prescription_${prescription.prescription_number}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   };
 
   if (isLoading) {
@@ -308,11 +365,19 @@ export default function DoctorPrescriptionsPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewPrescription(prescription)}
+                    >
                       <Eye className="w-4 h-4 mr-1" />
                       View
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDownloadPrescription(prescription)}
+                    >
                       <Download className="w-4 h-4 mr-1" />
                       Download
                     </Button>
@@ -362,6 +427,136 @@ export default function DoctorPrescriptionsPage() {
           ))}
         </div>
       )}
+
+      {/* Prescription View Modal */}
+      <Dialog open={!!selectedPrescription} onOpenChange={() => setSelectedPrescription(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Prescription Details</span>
+              {selectedPrescription && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownloadPrescription(selectedPrescription)}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedPrescription && (
+            <div className="space-y-6 py-4">
+              {/* Header */}
+              <div className="text-center border-b pb-4">
+                <h2 className="text-2xl font-bold">PRESCRIPTION</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedPrescription.prescription_number}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Date: {new Date(selectedPrescription.created_at).toLocaleDateString()}
+                </p>
+              </div>
+
+              {/* Patient Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Patient Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-muted/30 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Name</p>
+                    <p className="font-medium">{selectedPrescription.consultations?.profiles?.full_name || 'Unknown Patient'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                    <p>{selectedPrescription.consultations?.profiles?.phone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Email</p>
+                    <p>{selectedPrescription.consultations?.profiles?.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Status</p>
+                    <Badge className={getStatusColor(selectedPrescription.status)}>
+                      {selectedPrescription.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Consultation Details */}
+              {selectedPrescription.consultations && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Consultation Details</h3>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <p><span className="font-medium">Date:</span> {new Date(selectedPrescription.consultations.consultation_date).toLocaleDateString()}</p>
+                    <p><span className="font-medium">Time:</span> {selectedPrescription.consultations.time_slot}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Diagnosis */}
+              {selectedPrescription.prescription_data?.diagnosis && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Diagnosis</h3>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <p>{selectedPrescription.prescription_data.diagnosis}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Medications */}
+              {selectedPrescription.prescription_data?.medications && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Medications</h3>
+                  <div className="space-y-3">
+                    {selectedPrescription.prescription_data.medications.map((med: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-lg">{med.name}</h4>
+                          <Badge variant="outline">{med.dosage}</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          <p><span className="font-medium">Frequency:</span> {med.frequency}</p>
+                          <p><span className="font-medium">Duration:</span> {med.duration}</p>
+                          {med.instructions && (
+                            <p className="md:col-span-2"><span className="font-medium">Instructions:</span> {med.instructions}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* General Instructions */}
+              {selectedPrescription.prescription_data?.instructions && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">General Instructions</h3>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <p>{selectedPrescription.prescription_data.instructions}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Follow-up Date */}
+              {selectedPrescription.prescription_data?.follow_up_date && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Follow-up</h3>
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <p><span className="font-medium">Next Visit:</span> {new Date(selectedPrescription.prescription_data.follow_up_date).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-center text-xs text-muted-foreground border-t pt-4">
+                Generated on {new Date().toLocaleString()}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
