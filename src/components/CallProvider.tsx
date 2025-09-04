@@ -8,6 +8,8 @@ interface CallProviderProps {
 }
 
 export function CallProvider({ children }: CallProviderProps) {
+  console.log('🔔 CallProvider initialized');
+  
   const { 
     incomingCall, 
     acceptCall, 
@@ -16,6 +18,8 @@ export function CallProvider({ children }: CallProviderProps) {
     isAccepting,
     isDeclining 
   } = useCall();
+  
+  console.log('🔔 CallProvider state:', { hasIncomingCall: !!incomingCall });
   
   // Initialize call notifications
   useCallNotifications();

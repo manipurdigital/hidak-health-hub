@@ -37,7 +37,7 @@ export function VideoConsultation({
 
   // Auto-connect when there's an active call or when isActive is true
   useEffect(() => {
-    console.debug('VideoConsultation effect:', { 
+    console.log('🎥 VideoConsultation effect:', { 
       activeCallStatus: activeCall?.status, 
       isConnected, 
       isActive,
@@ -45,16 +45,24 @@ export function VideoConsultation({
     });
     
     if (activeCall?.status === 'active' && !isConnected) {
+      console.log('🎥 Initializing video call for active call');
       initializeVideoCall();
     } else if (!activeCall && isConnected) {
+      console.log('🎥 Ending video call - no active call');
       endVideoCall();
     }
   }, [activeCall?.status, isConnected]);
 
   // Auto-initiate call when isActive becomes true
   useEffect(() => {
+    console.log('🎥 VideoConsultation isActive effect:', { 
+      isActive, 
+      activeCall: !!activeCall, 
+      isInitiating 
+    });
+    
     if (isActive && !activeCall && !isInitiating) {
-      console.debug('Auto-initiating call because isActive=true');
+      console.log('🎥 Auto-initiating call because isActive=true');
       handleStartCall();
     }
   }, [isActive, activeCall, isInitiating]);
@@ -123,6 +131,7 @@ export function VideoConsultation({
   };
 
   const handleStartCall = () => {
+    console.log('🎥 handleStartCall called:', { consultationId });
     initiateCall({ consultationId, callType: 'video' });
   };
 

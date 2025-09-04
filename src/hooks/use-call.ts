@@ -37,6 +37,8 @@ export function useCall(consultationId?: string) {
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState<CallSession | null>(null);
 
+  console.log('🔥 useCall hook initialized:', { consultationId, userId: user?.id });
+
   // Get active call session for consultation
   const { data: activeCall, isLoading } = useQuery({
     queryKey: ['active-call', consultationId],
@@ -163,7 +165,7 @@ export function useCall(consultationId?: string) {
       callType?: 'video' | 'audio' 
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
-      console.debug('Initiating call for consultation:', consultationId, 'type:', callType);
+      console.log('🔥 INITIATING CALL for consultation:', consultationId, 'type:', callType, 'user:', user.id);
 
       const channelName = `consultation_${consultationId}_${Date.now()}`;
       
