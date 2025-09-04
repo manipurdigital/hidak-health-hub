@@ -27,6 +27,7 @@ import { DoctorLayout } from '@/components/DoctorLayout';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
 import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
+import ConsultationChatPage from '@/pages/ConsultationChatPage';
 import DashboardPage from '@/pages/DashboardPage';
 import DoctorDashboardPage from '@/pages/doctor/DoctorDashboardPage';
 import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
@@ -115,6 +116,11 @@ function App() {
                   <Route path="/consultation/:consultationId" element={
                     <AuthGuard>
                       <ConsultationRoomPage />
+                    </AuthGuard>
+                  } />
+                  <Route path="/consultation/:consultationId/chat" element={
+                    <AuthGuard>
+                      <ConsultationChatPage />
                     </AuthGuard>
                   } />
                   <Route path="/dashboard" element={
