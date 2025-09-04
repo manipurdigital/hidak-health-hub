@@ -95,6 +95,8 @@ export function useCall(consultationId?: string) {
   useEffect(() => {
     if (!user?.id) return;
 
+    console.log('🔄 Setting up realtime subscription for user:', user.id);
+
     const channel = supabase
       .channel(`user-calls-${user.id}`)
       .on(
@@ -105,7 +107,7 @@ export function useCall(consultationId?: string) {
           table: 'call_sessions'
         },
         (payload) => {
-          console.debug('Call session event:', payload);
+          console.log('📞 Call session realtime event:', payload);
           
           const callSession = payload.new as CallSession;
           
@@ -127,7 +129,7 @@ export function useCall(consultationId?: string) {
           table: 'call_participants'
         },
         async (payload) => {
-          console.debug('Call participant INSERT event:', payload);
+          console.log('👥 Call participant INSERT event:', payload);
           const participant = payload.new as CallParticipant;
           
           // Check if this is for the current user and the call is ringing
@@ -139,7 +141,7 @@ export function useCall(consultationId?: string) {
               .single();
 
             if (callSession?.status === 'ringing' && callSession.initiator_user_id !== user.id) {
-              console.debug('Setting incoming call for user:', user.id);
+              console.log('🔔 Setting incoming call for user:', user.id);
               setIncomingCall(callSession as CallSession);
             }
           }
@@ -155,13 +157,14 @@ export function useCall(consultationId?: string) {
           table: 'call_participants'
         },
         (payload) => {
-          console.debug('Call participant UPDATE event:', payload);
+          console.log('👥 Call participant UPDATE event:', payload);
           queryClient.invalidateQueries({ queryKey: ['call-participants'] });
         }
       )
       .subscribe();
 
     return () => {
+      console.log('🧹 Cleaning up realtime subscription for user:', user.id);
       supabase.removeChannel(channel);
     };
   }, [user?.id]);
