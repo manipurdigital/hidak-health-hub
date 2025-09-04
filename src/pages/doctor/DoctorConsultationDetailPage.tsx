@@ -137,30 +137,87 @@ export default function DoctorConsultationDetailPage() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ status, notes }: { status: string; notes?: string }) => {
-      const updateData: any = { status };
-      if (notes !== undefined) updateData.notes = notes;
-
-      const { error } = await supabase
+  // Separate mutation for saving notes only
+  const saveNotesMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      console.debug('Saving notes for consultation:', id, 'Notes length:', notes.length);
+      
+      const { data, error } = await supabase
         .from('consultations')
-        .update(updateData)
-        .eq('id', consultationId);
+        .update({ notes })
+        .eq('id', id)
+        .select('*')
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Notes save error:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.error('No consultation row was updated');
+        throw new Error('Failed to update consultation - no rows affected');
+      }
+      
+      console.debug('Notes saved successfully:', data.id);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setDoctorNotes(data.notes || '');
       queryClient.invalidateQueries({ queryKey: ['consultation-detail', consultationId] });
-      queryClient.invalidateQueries({ queryKey: ['doctor-upcoming-consultations'] });
       toast({
         title: "Success",
         description: "Doctor notes saved successfully"
       });
     },
     onError: (error: any) => {
+      console.error('Save notes mutation error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || 'Failed to save notes',
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Separate mutation for status updates only
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ status }: { status: string }) => {
+      console.debug('Updating status for consultation:', consultationId, 'New status:', status);
+      
+      const { data, error } = await supabase
+        .from('consultations')
+        .update({ status })
+        .eq('id', consultationId)
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('Status update error:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.error('No consultation row was updated');
+        throw new Error('Failed to update consultation status - no rows affected');
+      }
+      
+      console.debug('Status updated successfully:', data.id, data.status);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultation-detail', consultationId] });
+      queryClient.invalidateQueries({ queryKey: ['doctor-upcoming-consultations'] });
+      toast({
+        title: "Success",
+        description: "Consultation status updated successfully"
+      });
+    },
+    onError: (error: any) => {
+      console.error('Update status mutation error:', error);
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to update status',
         variant: "destructive"
       });
     }
@@ -171,9 +228,11 @@ export default function DoctorConsultationDetailPage() {
   };
 
   const handleSaveNotes = () => {
+    if (!consultationId) return;
+    
     setIsUpdatingNotes(true);
-    updateStatusMutation.mutate({ 
-      status: consultation?.status || 'scheduled', 
+    saveNotesMutation.mutate({ 
+      id: consultationId, 
       notes: doctorNotes 
     }, {
       onSettled: () => {
