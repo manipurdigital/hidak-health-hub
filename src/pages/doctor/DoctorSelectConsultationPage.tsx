@@ -51,13 +51,41 @@ export default function DoctorSelectConsultationPage() {
         .select('user_id, full_name, phone, email')
         .in('user_id', patientIds);
 
-      // Map profiles to consultations
+      // Map profiles to consultations and extract from notes if needed
       const profilesMap = new Map(profiles.map(p => [p.user_id, p]));
       
-      return consultationsData.map(consultation => ({
-        ...consultation,
-        profiles: profilesMap.get(consultation.patient_id) || null
-      }));
+      return consultationsData.map(consultation => {
+        let profile = profilesMap.get(consultation.patient_id);
+        
+        // Extract patient info from patient_notes if profile is missing/incomplete
+        if ((!profile?.full_name || !profile?.phone) && consultation.patient_notes) {
+          const extractPatientInfo = (notes: string) => {
+            const patterns = {
+              name: /Patient:\s*([^,]+)/i,
+              phone: /Phone:\s*([^,]+)/i,
+              email: /Email:\s*([^,]+)/i
+            };
+            
+            const nameMatch = notes.match(patterns.name);
+            const phoneMatch = notes.match(patterns.phone);
+            const emailMatch = notes.match(patterns.email);
+            
+            return {
+              full_name: nameMatch ? nameMatch[1].trim() : profile?.full_name || 'Unknown Patient',
+              phone: phoneMatch ? phoneMatch[1].trim() : profile?.phone || 'N/A',
+              email: emailMatch ? emailMatch[1].trim() : profile?.email || 'N/A',
+              user_id: consultation.patient_id
+            };
+          };
+          
+          profile = extractPatientInfo(consultation.patient_notes);
+        }
+        
+        return {
+          ...consultation,
+          profiles: profile || { full_name: 'Unknown Patient', phone: 'N/A', email: 'N/A', user_id: consultation.patient_id }
+        };
+      });
     },
     enabled: !!user?.id,
   });

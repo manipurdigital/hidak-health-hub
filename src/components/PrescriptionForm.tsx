@@ -52,16 +52,40 @@ export function PrescriptionForm() {
       if (consultationError) throw consultationError;
       
       // Get patient profile separately  
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name, phone, email')
         .eq('user_id', consultationData.patient_id)
-        .single();
+        .maybeSingle();
+
+      // Extract patient info from patient_notes if profile is missing/incomplete
+      let finalProfile = profileData;
+      if ((!profileData?.full_name || !profileData?.phone) && consultationData.patient_notes) {
+        const extractPatientInfo = (notes: string) => {
+          const patterns = {
+            name: /Patient:\s*([^,]+)/i,
+            phone: /Phone:\s*([^,]+)/i,
+            email: /Email:\s*([^,]+)/i
+          };
+          
+          const nameMatch = notes.match(patterns.name);
+          const phoneMatch = notes.match(patterns.phone);
+          const emailMatch = notes.match(patterns.email);
+          
+          return {
+            full_name: nameMatch ? nameMatch[1].trim() : profileData?.full_name || 'Unknown Patient',
+            phone: phoneMatch ? phoneMatch[1].trim() : profileData?.phone || 'N/A',
+            email: emailMatch ? emailMatch[1].trim() : profileData?.email || 'N/A'
+          };
+        };
+        
+        finalProfile = extractPatientInfo(consultationData.patient_notes);
+      }
 
       // Combine the data
       return {
         ...consultationData,
-        profiles: profileData || null
+        profiles: finalProfile || { full_name: 'Unknown Patient', phone: 'N/A', email: 'N/A' }
       };
     },
     enabled: !!consultationId,
