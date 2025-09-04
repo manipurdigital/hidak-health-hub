@@ -90,17 +90,13 @@ export function useCall(consultationId?: string) {
           table: 'call_sessions'
         },
         (payload) => {
-          console.log('Call session updated:', payload);
+          console.debug('Call session event:', payload);
           
           const callSession = payload.new as CallSession;
           
-          // If this is an incoming call for the user (not initiated by them)
-          if (
-            payload.eventType === 'INSERT' &&
-            callSession.status === 'ringing' &&
-            callSession.initiator_user_id !== user.id
-          ) {
-            setIncomingCall(callSession);
+          // Clear incoming call if status changed from ringing
+          if (payload.eventType === 'UPDATE' && callSession.status !== 'ringing') {
+            setIncomingCall(null);
           }
           
           // Invalidate queries to refresh UI
@@ -111,12 +107,40 @@ export function useCall(consultationId?: string) {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'call_participants'
+        },
+        async (payload) => {
+          console.debug('Call participant INSERT event:', payload);
+          const participant = payload.new as CallParticipant;
+          
+          // Check if this is for the current user and the call is ringing
+          if (participant.user_id === user.id) {
+            const { data: callSession } = await supabase
+              .from('call_sessions')
+              .select('*')
+              .eq('id', participant.call_id)
+              .single();
+
+            if (callSession?.status === 'ringing' && callSession.initiator_user_id !== user.id) {
+              console.debug('Setting incoming call for user:', user.id);
+              setIncomingCall(callSession as CallSession);
+            }
+          }
+          
+          queryClient.invalidateQueries({ queryKey: ['call-participants'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'call_participants'
         },
         (payload) => {
-          console.log('Call participant updated:', payload);
+          console.debug('Call participant UPDATE event:', payload);
           queryClient.invalidateQueries({ queryKey: ['call-participants'] });
         }
       )

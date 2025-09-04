@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface NotificationData {
   title: string;
   message: string;
-  type: 'call_started' | 'call_ended' | 'call_missed' | 'appointment_reminder' | 'consultation_update';
+  type: 'call_started' | 'call_ended' | 'call_missed' | 'appointment_reminder' | 'consultation_update' | 'incoming_call';
   user_id: string;
   data?: any;
 }
@@ -50,11 +50,74 @@ export function useCallNotifications() {
       .on(
         'postgres_changes',
         {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'call_sessions'
+        },
+        async (payload) => {
+          console.debug('Call session INSERT event:', payload);
+          const callSession = payload.new as any;
+
+          // Handle incoming call notifications
+          if (callSession.status === 'ringing' && callSession.initiator_user_id !== user.id) {
+            // Get consultation details to find the callee
+            const { data: consultation } = await supabase
+              .from('consultations')
+              .select(`
+                *,
+                doctors!inner(name, full_name, user_id)
+              `)
+              .eq('id', callSession.consultation_id)
+              .single();
+
+            if (!consultation) {
+              console.debug('No consultation found for call:', callSession.consultation_id);
+              return;
+            }
+
+            // Determine if current user is the callee
+            const isUserPatient = consultation.patient_id === user.id;
+            const isUserDoctor = consultation.doctors.user_id === user.id;
+            
+            if (isUserPatient || isUserDoctor) {
+              // Get caller profile
+              const { data: callerProfile } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('user_id', callSession.initiator_user_id)
+                .single();
+
+              const callerName = callSession.initiator_user_id === consultation.patient_id
+                ? callerProfile?.full_name || 'Patient'
+                : consultation.doctors.full_name || consultation.doctors.name || 'Doctor';
+
+              // Create incoming call notification
+              createNotification.mutate({
+                title: 'Incoming Call',
+                message: `${callerName} is calling you`,
+                type: 'incoming_call',
+                user_id: user.id,
+                data: { 
+                  consultation_id: callSession.consultation_id,
+                  call_id: callSession.id,
+                  caller_name: callerName
+                },
+              });
+
+              console.debug('Created incoming call notification for user:', user.id);
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
           event: 'UPDATE',
           schema: 'public',
           table: 'call_sessions'
         },
         async (payload) => {
+          console.debug('Call session UPDATE event:', payload);
           const callSession = payload.new as any;
           const oldCallSession = payload.old as any;
 
