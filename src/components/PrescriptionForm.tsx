@@ -163,11 +163,19 @@ export function PrescriptionForm() {
       doctor_id: consultation.doctor_id,
       patient_id: consultation.patient_id,
       consultation_id: consultationId,
-      diagnosis: diagnosis.trim(),
-      instructions: instructions.trim(),
-      medications: validMedications,
-      status: 'active',
-      follow_up_date: followUpDate || null,
+      prescription_data: {
+        diagnosis: diagnosis.trim(),
+        instructions: instructions.trim(),
+        medications: validMedications,
+        follow_up_date: followUpDate || null,
+        created_date: new Date().toISOString(),
+        patient_info: {
+          name: consultation.profiles?.full_name || 'N/A',
+          phone: consultation.profiles?.phone || 'N/A',
+          email: consultation.profiles?.email || 'N/A'
+        }
+      },
+      status: 'active'
     };
 
     createPrescriptionMutation.mutate(prescriptionData);
