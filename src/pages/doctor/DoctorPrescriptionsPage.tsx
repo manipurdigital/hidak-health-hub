@@ -42,19 +42,6 @@ export default function DoctorPrescriptionsPage() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // First get doctor info
-      const { data: doctorInfo, error: doctorError } = await supabase
-        .from('doctors')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (doctorError) {
-        console.error('Doctor lookup error:', doctorError);
-        return [];
-      }
-      if (!doctorInfo) return [];
-
       const { data, error } = await supabase
         .from('prescriptions')
         .select(`
@@ -65,7 +52,7 @@ export default function DoctorPrescriptionsPage() {
             patient_id
           )
         `)
-        .eq('doctor_id', doctorInfo.id)
+        .eq('doctor_id', user.id)  // Use user.id directly since we now store auth.uid()
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -81,13 +68,19 @@ export default function DoctorPrescriptionsPage() {
               .from('profiles')
               .select('full_name, phone, email')
               .eq('user_id', prescription.consultations.patient_id)
-              .single();
+              .maybeSingle();  // Use maybeSingle to avoid errors when no profile exists
+            
+            // Extract patient info from prescription_data if profile is missing
+            let finalProfile = profile;
+            if (!profile?.full_name && prescription.prescription_data?.patient_info) {
+              finalProfile = prescription.prescription_data.patient_info;
+            }
             
             return {
               ...prescription,
               consultations: {
                 ...prescription.consultations,
-                profiles: profile
+                profiles: finalProfile || { full_name: 'Unknown Patient', phone: 'N/A', email: 'N/A' }
               }
             };
           }
@@ -145,11 +138,11 @@ export default function DoctorPrescriptionsPage() {
             .from('profiles')
             .select('full_name, phone')
             .eq('user_id', consultation.patient_id)
-            .single();
+            .maybeSingle();  // Use maybeSingle to avoid errors
           
           return {
             ...consultation,
-            profiles: profile
+            profiles: profile || { full_name: 'Unknown Patient', phone: 'N/A' }
           };
         })
       );
