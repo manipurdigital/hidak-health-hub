@@ -55,6 +55,19 @@ export function useCall(consultationId?: string) {
         .maybeSingle();
 
       if (error) throw error;
+
+      // Auto-expire stale ringing calls (> 60s)
+      if (data && data.status === 'ringing') {
+        const createdAt = new Date(data.created_at).getTime();
+        if (Date.now() - createdAt > 60_000) {
+          await supabase
+            .from('call_sessions')
+            .update({ status: 'missed' })
+            .eq('id', data.id);
+          return null;
+        }
+      }
+
       return data as CallSession | null;
     },
     enabled: !!consultationId,
