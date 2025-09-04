@@ -151,7 +151,7 @@ export function useCall(consultationId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, queryClient]);
+  }, [user?.id]);
 
   // Update current call ID when active call changes
   useEffect(() => {
@@ -188,19 +188,25 @@ export function useCall(consultationId?: string) {
       // Get consultation details to determine participants
       const { data: consultation, error: consultationError } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          doctors!inner(user_id)
-        `)
+        .select('id, patient_id, doctor_id')
         .eq('id', consultationId)
         .single();
 
       if (consultationError) throw consultationError;
 
-      // Determine the other participant
-      const otherUserId = consultation.patient_id === user.id 
-        ? consultation.doctors.user_id 
-        : consultation.patient_id;
+      // Determine the other participant without relying on FK joins
+      let otherUserId: string;
+      if (consultation.patient_id === user.id) {
+        const { data: doctorRow, error: doctorError } = await supabase
+          .from('doctors')
+          .select('user_id')
+          .eq('id', consultation.doctor_id)
+          .single();
+        if (doctorError) throw doctorError;
+        otherUserId = doctorRow.user_id;
+      } else {
+        otherUserId = consultation.patient_id;
+      }
 
       // Create participant records
       const participants = [

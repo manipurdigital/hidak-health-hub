@@ -73,8 +73,10 @@ import { CenterJobsPage } from '@/pages/center/CenterJobsPage';
 import { CenterPaymentsPage } from '@/pages/center/CenterPaymentsPage';
 import CenterJobTrackingPage from '@/pages/center/CenterJobTrackingPage';
 
+// Create a single QueryClient instance for the whole app (avoid recreating on re-renders)
+const queryClient = new QueryClient();
+
 function App() {
-  const queryClient = new QueryClient();
 
   return (
     <Router>
