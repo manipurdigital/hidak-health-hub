@@ -62,6 +62,7 @@ import { ServiceabilityProvider } from '@/contexts/ServiceabilityContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { CallProvider } from '@/components/CallProvider';
 import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
 
 // Doctor components
@@ -83,8 +84,9 @@ function App() {
             <ServiceabilityProvider>
               <CartProvider>
                 <SubscriptionProvider>
-                  <div className="min-h-screen bg-background">
-                    <Toaster />
+                  <CallProvider>
+                    <div className="min-h-screen bg-background">
+                      <Toaster />
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/" element={<Index />} />
@@ -484,14 +486,15 @@ function App() {
                     {/* Catch all route - must be last */}
                     <Route path="*" element={<NotFound />} />
                 </Routes>
-              </div>
-                  </SubscriptionProvider>
-                </CartProvider>
-              </ServiceabilityProvider>
-            </GoogleMapsProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </Router>
+                    </div>
+                  </CallProvider>
+                </SubscriptionProvider>
+              </CartProvider>
+            </ServiceabilityProvider>
+          </GoogleMapsProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </Router>
   );
 }
 

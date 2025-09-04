@@ -155,6 +155,100 @@ export type Database = {
         }
         Relationships: []
       }
+      call_participants: {
+        Row: {
+          call_id: string
+          created_at: string
+          id: string
+          is_audio_muted: boolean
+          is_video_muted: boolean
+          joined_at: string | null
+          left_at: string | null
+          role: string
+          rtc_uid: string | null
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          id?: string
+          is_audio_muted?: boolean
+          is_video_muted?: boolean
+          joined_at?: string | null
+          left_at?: string | null
+          role: string
+          rtc_uid?: string | null
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          id?: string
+          is_audio_muted?: boolean
+          is_video_muted?: boolean
+          joined_at?: string | null
+          left_at?: string | null
+          role?: string
+          rtc_uid?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_call_fk"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_sessions: {
+        Row: {
+          accepted_at: string | null
+          call_type: string
+          channel_name: string
+          consultation_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          initiator_user_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          call_type?: string
+          channel_name: string
+          consultation_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          initiator_user_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          call_type?: string
+          channel_name?: string
+          consultation_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          initiator_user_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_consultation_fk"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       center_staff: {
         Row: {
           center_id: string

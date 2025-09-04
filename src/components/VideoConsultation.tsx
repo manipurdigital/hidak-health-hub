@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Loader2 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Loader2, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getAgoraTokens, joinRtc, leaveRtc, type AgoraCredentials } from '@/utils/agora';
+import { useCall } from '@/hooks/use-call';
 
 interface VideoConsultationProps {
   consultationId: string;
-  isActive: boolean;
-  onEnd: () => void;
-  onError: (error: string) => void;
+  isActive?: boolean;
+  onEnd?: () => void;
+  onError?: (error: string) => void;
 }
 
 export function VideoConsultation({ 
@@ -24,21 +25,35 @@ export function VideoConsultation({
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [credentials, setCredentials] = useState<AgoraCredentials | null>(null);
+  
+  const { 
+    activeCall, 
+    initiateCall, 
+    endCall, 
+    updateParticipantState,
+    isInitiating,
+    isEnding 
+  } = useCall(consultationId);
 
+  // Auto-connect when there's an active call
   useEffect(() => {
-    if (isActive && !isConnected) {
+    if (activeCall?.status === 'active' && !isConnected) {
       initializeVideoCall();
-    } else if (!isActive && isConnected) {
+    } else if (!activeCall && isConnected) {
       endVideoCall();
     }
-  }, [isActive, isConnected]);
+  }, [activeCall?.status, isConnected]);
 
   const initializeVideoCall = async () => {
     try {
       setIsConnecting(true);
       
-      // Generate unique channel name and UID for this consultation
-      const channelName = `consultation_${consultationId}`;
+      if (!activeCall) {
+        throw new Error('No active call session');
+      }
+      
+      // Use the channel name from the call session
+      const channelName = activeCall.channel_name;
       const uid = `user_${Date.now()}`;
       
       console.log('Getting Agora tokens for channel:', channelName);
@@ -65,7 +80,7 @@ export function VideoConsultation({
       setIsConnecting(false);
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to start video call';
-      onError(errorMessage);
+      onError?.(errorMessage);
       
       toast({
         title: "Connection Failed",
@@ -92,19 +107,67 @@ export function VideoConsultation({
     }
   };
 
+  const handleStartCall = () => {
+    initiateCall({ consultationId, callType: 'video' });
+  };
+
+  const handleEndCall = () => {
+    if (activeCall) {
+      endCall(activeCall.id);
+    }
+    endVideoCall();
+    onEnd?.();
+  };
+
   const toggleAudio = () => {
     setIsAudioMuted(!isAudioMuted);
-    // In a real implementation, you'd call Agora SDK methods here
+    if (activeCall) {
+      updateParticipantState({ 
+        callId: activeCall.id, 
+        isAudioMuted: !isAudioMuted 
+      });
+    }
     console.log(`Audio ${!isAudioMuted ? 'muted' : 'unmuted'}`);
   };
 
   const toggleVideo = () => {
     setIsVideoMuted(!isVideoMuted);
-    // In a real implementation, you'd call Agora SDK methods here
+    if (activeCall) {
+      updateParticipantState({ 
+        callId: activeCall.id, 
+        isVideoMuted: !isVideoMuted 
+      });
+    }
     console.log(`Video ${!isVideoMuted ? 'muted' : 'unmuted'}`);
   };
 
-  if (!isActive) {
+  // Show call interface if there's an active call or if explicitly set to active
+  const shouldShowCall = activeCall?.status === 'active' || isActive;
+  
+  if (!shouldShowCall && !activeCall) {
+    return (
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="text-center">
+            <Button
+              onClick={handleStartCall}
+              disabled={isInitiating}
+              className="flex items-center gap-2"
+            >
+              {isInitiating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Phone className="w-4 h-4" />
+              )}
+              {isInitiating ? 'Starting Call...' : 'Start Video Call'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!shouldShowCall) {
     return null;
   }
 
@@ -161,8 +224,8 @@ export function VideoConsultation({
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={onEnd}
-                disabled={isConnecting}
+                onClick={handleEndCall}
+                disabled={isConnecting || isEnding}
               >
                 <PhoneOff className="w-4 h-4" />
               </Button>
