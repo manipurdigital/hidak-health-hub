@@ -175,8 +175,11 @@ export default function DoctorConsultationDetailPage() {
     updateStatusMutation.mutate({ 
       status: consultation?.status || 'scheduled', 
       notes: doctorNotes 
+    }, {
+      onSettled: () => {
+        setIsUpdatingNotes(false);
+      }
     });
-    setIsUpdatingNotes(false);
   };
 
   const getStatusBadge = (status: string) => {
