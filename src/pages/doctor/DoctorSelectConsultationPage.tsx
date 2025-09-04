@@ -30,23 +30,34 @@ export default function DoctorSelectConsultationPage() {
       if (doctorError) throw doctorError;
       if (!doctorInfo) return [];
 
-      const { data, error } = await supabase
+      // Fetch consultations without join
+      const { data: consultationsData, error } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_patient_id_fkey(
-            full_name,
-            phone,
-            email
-          )
-        `)
+        .select('*')
         .eq('doctor_id', doctorInfo.id)
         .in('status', ['completed', 'in_progress', 'scheduled'])
         .order('consultation_date', { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      return data || [];
+      if (!consultationsData?.length) return [];
+
+      // Get unique patient IDs
+      const patientIds = [...new Set(consultationsData.map(c => c.patient_id).filter(Boolean))];
+      
+      // Batch fetch patient profiles
+      const { data: profiles = [] } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone, email')
+        .in('user_id', patientIds);
+
+      // Map profiles to consultations
+      const profilesMap = new Map(profiles.map(p => [p.user_id, p]));
+      
+      return consultationsData.map(consultation => ({
+        ...consultation,
+        profiles: profilesMap.get(consultation.patient_id) || null
+      }));
     },
     enabled: !!user?.id,
   });
@@ -128,10 +139,12 @@ export default function DoctorSelectConsultationPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{consultation.profiles?.full_name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          ({consultation.profiles?.phone})
-                        </span>
+                        <span className="font-medium">{consultation.profiles?.full_name || 'Unknown Patient'}</span>
+                        {consultation.profiles?.phone && (
+                          <span className="text-sm text-muted-foreground">
+                            ({consultation.profiles.phone})
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -152,10 +165,10 @@ export default function DoctorSelectConsultationPage() {
                         </div>
                       )}
 
-                      {consultation.doctor_notes && (
+                      {consultation.notes && (
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Doctor Notes:</p>
-                          <p className="text-sm">{consultation.doctor_notes}</p>
+                          <p className="text-sm">{consultation.notes}</p>
                         </div>
                       )}
                     </div>
