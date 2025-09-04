@@ -37,7 +37,7 @@ interface ConsultationDetail {
   status: string;
   consultation_type: string;
   patient_notes: string;
-  doctor_notes: string;
+  notes: string;
   total_amount: number;
   created_at: string;
   completed_at: string | null;
@@ -111,7 +111,7 @@ export default function DoctorConsultationDetailPage() {
 
       const consultation = data as unknown as ConsultationDetail;
 
-      setDoctorNotes(consultation.doctor_notes || '');
+      setDoctorNotes(consultation.notes || '');
       return consultation;
     },
     enabled: !!consultationId,
@@ -140,7 +140,7 @@ export default function DoctorConsultationDetailPage() {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ status, notes }: { status: string; notes?: string }) => {
       const updateData: any = { status };
-      if (notes !== undefined) updateData.doctor_notes = notes;
+      if (notes !== undefined) updateData.notes = notes;
 
       const { error } = await supabase
         .from('consultations')
