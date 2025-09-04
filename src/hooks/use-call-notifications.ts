@@ -60,6 +60,7 @@ export function useCallNotifications() {
 
           // Handle incoming call notifications
           if (callSession.status === 'ringing' && callSession.initiator_user_id !== user.id) {
+            console.debug('Processing incoming call notification - not the initiator');
             // Get consultation details to find the callee
             const { data: consultation } = await supabase
               .from('consultations')
@@ -105,7 +106,15 @@ export function useCallNotifications() {
               });
 
               console.debug('Created incoming call notification for user:', user.id);
+            } else {
+              console.debug('User is not involved in this call - patient:', consultation.patient_id, 'doctor:', consultation.doctors.user_id, 'current user:', user.id);
             }
+          } else {
+            console.debug('Skipping incoming call notification - user is initiator or status is not ringing:', {
+              status: callSession.status,
+              initiator: callSession.initiator_user_id,
+              currentUser: user.id
+            });
           }
         }
       )

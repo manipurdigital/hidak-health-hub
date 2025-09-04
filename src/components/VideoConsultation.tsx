@@ -35,14 +35,29 @@ export function VideoConsultation({
     isEnding 
   } = useCall(consultationId);
 
-  // Auto-connect when there's an active call
+  // Auto-connect when there's an active call or when isActive is true
   useEffect(() => {
+    console.debug('VideoConsultation effect:', { 
+      activeCallStatus: activeCall?.status, 
+      isConnected, 
+      isActive,
+      consultationId 
+    });
+    
     if (activeCall?.status === 'active' && !isConnected) {
       initializeVideoCall();
     } else if (!activeCall && isConnected) {
       endVideoCall();
     }
   }, [activeCall?.status, isConnected]);
+
+  // Auto-initiate call when isActive becomes true
+  useEffect(() => {
+    if (isActive && !activeCall && !isInitiating) {
+      console.debug('Auto-initiating call because isActive=true');
+      handleStartCall();
+    }
+  }, [isActive, activeCall, isInitiating]);
 
   const initializeVideoCall = async () => {
     try {

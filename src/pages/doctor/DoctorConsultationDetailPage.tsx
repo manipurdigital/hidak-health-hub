@@ -474,14 +474,24 @@ export default function DoctorConsultationDetailPage() {
               )}
               
               <Button
-                onClick={() => { setVideoError(null); setIsVideoCallActive(true); }}
+                onClick={() => { 
+                  setVideoError(null); 
+                  setIsVideoCallActive(true); 
+                  console.debug('Manual video call start for consultation:', consultationId);
+                }}
                 variant="default"
               >
                 <Video className="h-4 w-4 mr-2" />
                 {isVideoCallActive ? 'Call Active' : 'Start Video Call'}
               </Button>
               {isVideoCallActive && (
-                <Button variant="destructive" onClick={() => setIsVideoCallActive(false)}>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    setIsVideoCallActive(false);
+                    console.debug('Manual video call end for consultation:', consultationId);
+                  }}
+                >
                   End Call
                 </Button>
               )}

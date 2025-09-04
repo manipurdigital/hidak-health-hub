@@ -163,6 +163,7 @@ export function useCall(consultationId?: string) {
       callType?: 'video' | 'audio' 
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
+      console.debug('Initiating call for consultation:', consultationId, 'type:', callType);
 
       const channelName = `consultation_${consultationId}_${Date.now()}`;
       
@@ -180,6 +181,7 @@ export function useCall(consultationId?: string) {
         .single();
 
       if (callError) throw callError;
+      console.debug('Call session created:', callSession.id);
 
       // Get consultation details to determine participants
       const { data: consultation, error: consultationError } = await supabase
@@ -193,6 +195,11 @@ export function useCall(consultationId?: string) {
 
       if (consultationError) throw consultationError;
 
+      // Determine the other participant
+      const otherUserId = consultation.patient_id === user.id 
+        ? consultation.doctors.user_id 
+        : consultation.patient_id;
+
       // Create participant records
       const participants = [
         {
@@ -203,9 +210,9 @@ export function useCall(consultationId?: string) {
         },
         {
           call_id: callSession.id,
-          user_id: consultation.patient_id === user.id ? consultation.doctors.user_id : consultation.patient_id,
+          user_id: otherUserId,
           role: consultation.patient_id === user.id ? 'doctor' : 'patient',
-          rtc_uid: `${consultation.patient_id === user.id ? consultation.doctors.user_id : consultation.patient_id}_${Date.now()}`,
+          rtc_uid: `${otherUserId}_${Date.now()}`,
         }
       ];
 
@@ -214,17 +221,42 @@ export function useCall(consultationId?: string) {
         .insert(participants);
 
       if (participantsError) throw participantsError;
+      console.debug('Call participants created');
+
+      // Create notification for the callee
+      console.debug('Creating incoming call notification for user:', otherUserId);
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: otherUserId,
+          title: 'Incoming Call',
+          message: `You have an incoming ${callType} call for your consultation`,
+          type: 'incoming_call',
+          data: {
+            callSessionId: callSession.id,
+            consultationId: consultationId,
+            callType: callType,
+            channelName: channelName
+          }
+        });
+
+      if (notificationError) {
+        console.error('Failed to create notification:', notificationError);
+        // Don't throw here, call should still work
+      }
 
       return callSession;
     },
     onSuccess: (callSession) => {
       setCurrentCallId(callSession.id);
+      console.debug('Call initiated successfully:', callSession.id);
       toast({
         title: "Call Initiated",
         description: "Waiting for the other participant to answer...",
       });
     },
     onError: (error: any) => {
+      console.error('Failed to initiate call:', error);
       toast({
         title: "Call Failed",
         description: error.message || 'Failed to initiate call',
