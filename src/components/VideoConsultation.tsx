@@ -53,19 +53,20 @@ export function VideoConsultation({
     }
   }, [activeCall?.status, isConnected]);
 
-  // Auto-initiate call when isActive becomes true
+  // Auto-initiate call when isActive becomes true - use dependency array to prevent infinite calls
   useEffect(() => {
     console.log('🎥 VideoConsultation isActive effect:', { 
       isActive, 
       activeCall: !!activeCall, 
-      isInitiating 
+      isInitiating,
+      consultationId 
     });
     
-    if (isActive && !activeCall && !isInitiating) {
+    if (isActive && !activeCall && !isInitiating && consultationId) {
       console.log('🎥 Auto-initiating call because isActive=true');
       handleStartCall();
     }
-  }, [isActive, activeCall, isInitiating]);
+  }, [isActive, !!activeCall, isInitiating, consultationId]);
 
   const initializeVideoCall = async () => {
     try {
