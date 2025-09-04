@@ -150,7 +150,7 @@ export default function DoctorConsultationDetailPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['consultation-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['consultation-detail', consultationId] });
       queryClient.invalidateQueries({ queryKey: ['doctor-upcoming-consultations'] });
       toast({
         title: "Success",
