@@ -35,7 +35,7 @@ export default function DoctorSelectConsultationPage() {
         .from('consultations')
         .select('*')
         .eq('doctor_id', doctorInfo.id)
-        .in('status', ['completed', 'in_progress', 'scheduled'])
+        .in('status', ['pending', 'completed', 'in_progress', 'scheduled'])
         .order('consultation_date', { ascending: false })
         .limit(20);
 

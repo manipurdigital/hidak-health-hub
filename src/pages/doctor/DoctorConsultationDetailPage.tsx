@@ -127,8 +127,8 @@ export default function DoctorConsultationDetailPage() {
         .from('consultation_messages')
         .select('*', { count: 'exact', head: true })
         .eq('consultation_id', consultationId)
-        .eq('sender_type', 'patient')
-        .gte('sent_at', consultation.completed_at);
+        .eq('sender_id', consultation.patient_id)
+        .gte('created_at', consultation.completed_at);
 
       if (error) throw error;
       return count || 0;
@@ -154,7 +154,7 @@ export default function DoctorConsultationDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['doctor-upcoming-consultations'] });
       toast({
         title: "Success",
-        description: "Consultation updated successfully"
+        description: "Doctor notes saved successfully"
       });
     },
     onError: (error: any) => {
@@ -449,7 +449,7 @@ export default function DoctorConsultationDetailPage() {
 
               <Button
                 variant="outline"
-                onClick={() => navigate('/doctor/prescriptions')}
+                onClick={() => navigate(`/doctor/prescriptions/create/${consultation.id}`)}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Create Prescription
