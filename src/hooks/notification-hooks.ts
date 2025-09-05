@@ -130,6 +130,7 @@ export const useUpdateNotificationPreferences = () => {
 // Real-time notifications hook
 export const useNotificationsRealtime = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const channel = supabase
@@ -137,7 +138,31 @@ export const useNotificationsRealtime = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('🔔 Notification INSERT event:', payload);
+          const notification = payload.new as any;
+          
+          // Show toast for incoming call notifications as fallback
+          if (notification.data?.event_type === 'incoming_call') {
+            console.log('🔔 Showing fallback incoming call toast from notification');
+            toast({
+              title: 'Incoming Call',
+              description: notification.message || 'You have an incoming call',
+            });
+          }
+          
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+          queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'notifications'
         },
@@ -151,7 +176,7 @@ export const useNotificationsRealtime = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, toast]);
 };
 
 // Trigger notification for booking events

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,9 @@ export function useCallNotifications() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Deduplication for incoming call toasts
+  const toastDedupeRef = useRef<Set<string>>(new Set());
 
   // Mutation to create notifications
   const createNotification = useMutation({
@@ -58,53 +61,100 @@ export function useCallNotifications() {
           console.debug('Call session INSERT event:', payload);
           const callSession = payload.new as any;
 
-          // Handle incoming call notifications - ONLY show toast, don't create DB notification
-          // The DB notification is created by the initiator in use-call.ts
+          // Handle incoming call notifications - Show toast for callee
           if (callSession.status === 'ringing' && callSession.initiator_user_id !== user.id) {
-            console.debug('🔔 Processing incoming call toast notification');
-            // Get consultation details to find the callee
+            console.log('🔔 Processing incoming call for call_id:', callSession.id);
+            
+            // Check deduplication first
+            const dedupeKey = `call-${callSession.id}`;
+            if (toastDedupeRef.current.has(dedupeKey)) {
+              console.log('🔔 Skipping duplicate toast for call:', callSession.id);
+              return;
+            }
+
+            // Helper to show toast and mark as shown
+            const showIncomingCallToast = (callerName: string) => {
+              toastDedupeRef.current.add(dedupeKey);
+              setTimeout(() => toastDedupeRef.current.delete(dedupeKey), 15000); // Clear after 15s
+              
+              toast({
+                title: 'Incoming Call',
+                description: `${callerName} is calling you`,
+              });
+              
+              console.log('🔔 Showed incoming call toast for user:', user.id, 'from:', callerName);
+            };
+
+            // Get consultation without restrictive joins
             const { data: consultation } = await supabase
               .from('consultations')
-              .select(`
-                *,
-                doctors!inner(name, full_name, user_id)
-              `)
+              .select('*')
               .eq('id', callSession.consultation_id)
               .single();
 
             if (!consultation) {
-              console.debug('No consultation found for call:', callSession.consultation_id);
+              console.log('🔔 No consultation found for call:', callSession.consultation_id);
               return;
             }
 
-            // Determine if current user is the callee
-            const isUserPatient = consultation.patient_id === user.id;
-            const isUserDoctor = consultation.doctors.user_id === user.id;
+            console.log('🔔 Consultation participants - patient:', consultation.patient_id, 'doctor:', consultation.doctor_id, 'current user:', user.id);
+
+            // Check if current user is involved with retry for call_participants
+            const checkParticipation = async (retryCount = 0): Promise<boolean> => {
+              const { data: participant } = await supabase
+                .from('call_participants')
+                .select('*')
+                .eq('call_id', callSession.id)
+                .eq('user_id', user.id)
+                .single();
+
+              if (participant) {
+                console.log('🔔 Found participant record for user:', user.id);
+                return true;
+              }
+
+              // Retry up to 3 times with 300ms delays for race conditions
+              if (retryCount < 3) {
+                console.log('🔔 No participant record yet, retrying...', retryCount + 1);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                return checkParticipation(retryCount + 1);
+              }
+
+              console.log('🔔 No participant record found after retries');
+              return false;
+            };
+
+            const isParticipant = await checkParticipation();
             
-            if (isUserPatient || isUserDoctor) {
-              // Get caller profile
+            if (isParticipant) {
+              // Get caller name from profiles
               const { data: callerProfile } = await supabase
                 .from('profiles')
                 .select('full_name')
                 .eq('user_id', callSession.initiator_user_id)
                 .single();
 
+              // Get doctor name if needed
+              let doctorName = '';
+              if (consultation.doctor_id) {
+                const { data: doctorData } = await supabase
+                  .from('doctors')
+                  .select('name, full_name')
+                  .eq('id', consultation.doctor_id)
+                  .single();
+                doctorName = doctorData?.full_name || doctorData?.name || 'Doctor';
+              }
+
               const callerName = callSession.initiator_user_id === consultation.patient_id
                 ? callerProfile?.full_name || 'Patient'
-                : consultation.doctors.full_name || consultation.doctors.name || 'Doctor';
+                : doctorName || 'Doctor';
 
-              // Show toast notification instead of DB notification to prevent duplicates
-              toast({
-                title: 'Incoming Call',
-                description: `${callerName} is calling you`,
-              });
-
-              console.debug('🔔 Showed incoming call toast for user:', user.id);
+              showIncomingCallToast(callerName);
             } else {
-              console.debug('User is not involved in this call - patient:', consultation.patient_id, 'doctor:', consultation.doctors.user_id, 'current user:', user.id);
+              console.log('🔔 User is not a participant in this call');
             }
           } else {
-            console.debug('Skipping incoming call notification - user is initiator or status is not ringing:', {
+            console.log('🔔 Skipping call notification - user is initiator or status not ringing:', {
               status: callSession.status,
               initiator: callSession.initiator_user_id,
               currentUser: user.id
