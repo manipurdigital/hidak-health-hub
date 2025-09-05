@@ -21,7 +21,7 @@ export function FirstVisitWhatsAppDialog() {
       >
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold text-foreground">
-            🏥 Healthcare Services
+            🏥 Hakshel Healthcare Services
           </DialogTitle>
         </DialogHeader>
         
