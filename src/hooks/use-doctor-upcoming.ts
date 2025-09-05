@@ -83,8 +83,8 @@ export const useDoctorUpcomingConsultations = () => {
           let finalProfile = profile;
           
           if (profileError || !profile?.full_name) {
-            console.warn('Could not fetch complete profile for patient:', consultation.patient_id, profileError);
-            
+            console.debug('Could not fetch complete profile for patient:', consultation.patient_id, profileError);
+
             // Extract patient details from patient_notes if available
             if (consultation.patient_notes) {
               const extractPatientInfo = (notes: string) => {

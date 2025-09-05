@@ -13,66 +13,28 @@ const RTC_ROLE = {
   SUBSCRIBER: 2,
 };
 
-// Official Agora token generation using RtcTokenBuilder algorithm
+// Use official Agora Access Token builder via ESM
+import { RtcTokenBuilder, RtcRole } from "https://esm.sh/agora-access-token@2.0.2";
+
+// Official token generator using Agora library
 function generateAgoraToken(appId: string, appCertificate: string, channelName: string, uid: string, role: number, expireTime: number): string {
-  console.log('🎥 Generating Agora token for:', { appId, channelName, uid, role, expireTime });
-  
   const now = Math.floor(Date.now() / 1000);
-  const privilegeExpiredTs = now + expireTime;
-  
-  try {
-    // Create message structure based on Agora's official token algorithm
-    const uidInt = parseInt(uid) || 0;
-    
-    // Build the message according to Agora's specification
-    const message = JSON.stringify({
-      salt: Math.floor(Math.random() * 0xFFFFFFFF),
-      ts: now,
-      privileges: {
-        1: privilegeExpiredTs, // Join channel privilege
-        2: privilegeExpiredTs, // Publish audio privilege  
-        3: privilegeExpiredTs, // Publish video privilege
-        4: privilegeExpiredTs, // Publish data stream privilege
-      }
-    });
-    
-    // Create signature using HMAC-like approach
-    const content = `${appId}${channelName}${uidInt}${message}`;
-    const key = new TextEncoder().encode(appCertificate);
-    const data = new TextEncoder().encode(content);
-    
-    // Simple HMAC-SHA256 implementation for token signing
-    const signature = btoa(String.fromCharCode(...new Uint8Array(
-      await crypto.subtle.importKey(
-        'raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-      ).then(cryptoKey => 
-        crypto.subtle.sign('HMAC', cryptoKey, data)
-      ).then(result => new Uint8Array(result.slice(0, 32)))
-    )));
-    
-    // Build token in Agora's expected format
-    const version = '006';
-    const tokenData = `${version}${appId}${Math.floor(privilegeExpiredTs).toString(16)}${signature}${btoa(message)}`;
-    
-    console.log('✅ Generated Agora token successfully');
-    return tokenData;
-  } catch (error) {
-    console.error('❌ Token generation error:', error);
-    
-    // Simplified fallback token that works with Agora SDK
-    const uidInt = parseInt(uid) || 0;
-    const tokenContent = {
-      iss: appId,
-      exp: privilegeExpiredTs,
-      aud: channelName,
-      uid: uidInt,
-      role: role
-    };
-    
-    const fallbackToken = `006${appId}${Math.floor(privilegeExpiredTs).toString(16)}${btoa(JSON.stringify(tokenContent))}`;
-    console.log('🔄 Using fallback token format');
-    return fallbackToken;
-  }
+  const privilegeExpiredTs = now + expireTime; // seconds
+
+  const rtcRole = role === RtcRole.PUBLISHER ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+
+  // For Web SDK, using account (string) UID is recommended
+  const token = RtcTokenBuilder.buildTokenWithAccount(
+    appId,
+    appCertificate,
+    channelName,
+    String(uid),
+    rtcRole,
+    privilegeExpiredTs,
+    privilegeExpiredTs
+  );
+
+  return token;
 }
 
 serve(async (req) => {
