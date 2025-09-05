@@ -63,6 +63,7 @@ import { CartProvider } from '@/contexts/CartContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CallProvider } from '@/components/CallProvider';
+import { FirstVisitWhatsAppDialog } from '@/components/FirstVisitWhatsAppDialog';
 import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
 
 // Doctor components
@@ -487,7 +488,7 @@ function App() {
                     
                     {/* Catch all route - must be last */}
                     <Route path="*" element={<NotFound />} />
-                </Routes>
+                 </Routes>
                     </div>
                   </CallProvider>
                 </SubscriptionProvider>
@@ -495,6 +496,7 @@ function App() {
             </ServiceabilityProvider>
           </GoogleMapsProvider>
         </AuthProvider>
+        <FirstVisitWhatsAppDialog />
       </QueryClientProvider>
     </Router>
   );
