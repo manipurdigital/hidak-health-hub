@@ -84,7 +84,9 @@ export function VideoConsultation({
       console.log('🎥 Getting Agora tokens for channel:', channelName);
       
       // Get Agora tokens from our edge function
+      console.log('🎥 About to call getAgoraTokens with:', { channelName, uid });
       const agoraCredentials = await getAgoraTokens(channelName, uid);
+      console.log('🎥 Received credentials:', agoraCredentials);
       setCredentials(agoraCredentials);
       
       console.log('🎥 Joining RTC with credentials:', agoraCredentials);

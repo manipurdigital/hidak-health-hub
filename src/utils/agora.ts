@@ -22,17 +22,27 @@ export async function getAgoraTokens(channelName: string, uid: string): Promise<
   try {
     console.log('🎥 Getting Agora tokens for channel:', channelName, 'uid:', uid);
     
-    const { data, error } = await supabase.functions.invoke('agora-tokens', {
+    console.log('🎥 Calling supabase.functions.invoke with agora-tokens...');
+    const response = await supabase.functions.invoke('agora-tokens', {
       body: {
         channelName,
         uid,
         role: 'publisher'
       }
     });
+    
+    console.log('🎥 Edge function response:', response);
+    const { data, error } = response;
 
     if (error) {
       console.error('❌ Error getting Agora tokens:', error);
-      throw new Error('Failed to get video call credentials');
+      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+      throw new Error(`Failed to get video call credentials: ${error.message || 'Unknown error'}`);
+    }
+    
+    if (!data) {
+      console.error('❌ No data received from agora-tokens function');
+      throw new Error('No data received from video call service');
     }
 
     console.log('✅ Successfully got Agora credentials:', { 
