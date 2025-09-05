@@ -29,7 +29,7 @@ export function FirstVisitWhatsAppDialog() {
 
   const handleWhatsAppClick = () => {
     const message = encodeURIComponent(
-      "Hi! I'm interested in your services. I'd like to know more about placing medicine orders, booking home lab collections, and doctor consultations."
+      "Hi! I'd like to place an order for medicines, book home lab collection, or schedule a doctor consultation. Please help me get started."
     );
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
     handleClose();
@@ -41,7 +41,7 @@ export function FirstVisitWhatsAppDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md mx-4">
+      <DialogContent className="sm:max-w-lg mx-4">
         <DialogHeader className="relative">
           <Button
             variant="ghost"
@@ -52,42 +52,52 @@ export function FirstVisitWhatsAppDialog() {
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </Button>
-          <DialogTitle className="text-center text-xl font-semibold text-foreground">
-            Welcome! Get Started Instantly
+          <DialogTitle className="text-center text-2xl font-bold text-foreground">
+            🚀 Start Your Healthcare Journey Now!
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 pt-4">
-          <div className="text-center space-y-2">
-            <p className="text-muted-foreground">
-              Choose how you'd like to get started with our healthcare services:
+          <div className="text-center space-y-3">
+            <p className="text-lg font-semibold text-foreground">
+              Order Instantly via WhatsApp
             </p>
             <div className="text-sm text-muted-foreground space-y-1">
-              <p>• Order medicines with home delivery</p>
-              <p>• Book convenient home lab collection</p>
-              <p>• Schedule doctor consultations</p>
+              <p>✅ Medicines delivered to your doorstep</p>
+              <p>✅ Home lab collection services</p>
+              <p>✅ Doctor consultations</p>
             </div>
+            <p className="text-sm font-medium text-primary">
+              Skip the forms - Order directly on WhatsApp for fastest service!
+            </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="text-center">
-              <p className="text-sm font-medium text-foreground mb-3">
-                Quick & Easy via WhatsApp
+              <p className="text-lg font-bold text-foreground mb-4">
+                👇 Tap to Order on WhatsApp 👇
               </p>
               <button
                 onClick={handleWhatsAppClick}
-                className="inline-block transition-transform hover:scale-105"
+                className="inline-block transition-all duration-300 hover:scale-105 hover:shadow-lg"
               >
                 <img 
                   src={whatsappButtonImage} 
-                  alt="Order via WhatsApp" 
-                  className="h-12 w-auto mx-auto"
+                  alt="Order via WhatsApp - Fast & Easy" 
+                  className="h-16 w-auto mx-auto rounded-lg shadow-md"
                 />
               </button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Chat with us directly for instant ordering
+              </p>
             </div>
 
-            <div className="text-center text-sm text-muted-foreground">
-              <span>OR</span>
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2 my-3">
+                <div className="h-px bg-border flex-1"></div>
+                <span className="text-xs text-muted-foreground">OR</span>
+                <div className="h-px bg-border flex-1"></div>
+              </div>
             </div>
 
             <Button 
@@ -95,7 +105,7 @@ export function FirstVisitWhatsAppDialog() {
               variant="outline" 
               className="w-full"
             >
-              Continue Browsing Our Website
+              Browse Website (Longer Process)
             </Button>
           </div>
 

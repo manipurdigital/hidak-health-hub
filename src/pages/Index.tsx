@@ -10,6 +10,7 @@ import { HowItWorks } from "@/components/home/HowItWorks";
 import { TestimonialsStrip } from "@/components/home/TestimonialsStrip";
 import { MobileQuickNav } from "@/components/home/MobileQuickNav";
 import { TrendingMedicinesCarousel } from "@/components/TrendingMedicinesCarousel";
+import { WhatsAppOrderBanner } from "@/components/WhatsAppOrderBanner";
 import Footer from "@/components/Footer";
 import { FeatureGuard } from "@/components/FeatureGuard";
 import { HomeLocationGate } from "@/components/HomeLocationGate";
@@ -45,6 +46,7 @@ const HomePage = () => {
       }} />
       <main>
         <HeroSection />
+        <WhatsAppOrderBanner />
         <HomeQuickActions />
         <PopularCategoriesStrip />
         <HowItWorks />
