@@ -5,6 +5,8 @@ import { Video, VideoOff, Mic, MicOff, PhoneOff, Loader2, Phone } from 'lucide-r
 import { useToast } from '@/hooks/use-toast';
 import { getAgoraTokens, joinRtc, leaveRtc, toggleAudio, toggleVideo, type AgoraCredentials, type AgoraClient } from '@/utils/agora';
 import { useCall } from '@/hooks/use-call';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface VideoConsultationProps {
   consultationId: string;
@@ -35,6 +37,15 @@ export function VideoConsultation({
     isInitiating,
     isEnding 
   } = useCall(consultationId);
+
+  // Use stable uid from auth user
+  const { data: { user } } = useQuery({
+    queryKey: ['auth-user'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getUser();
+      return data;
+    }
+  });
 
   // Auto-connect when there's an active call or when isActive is true
   useEffect(() => {
@@ -70,51 +81,53 @@ export function VideoConsultation({
   }, [isActive, !!activeCall, isInitiating, consultationId]);
 
   const initializeVideoCall = async () => {
+    if (!consultationId || !activeCall?.channel_name || !user?.id) {
+      console.error('❌ Missing consultation ID, channel name, or user ID');
+      toast({
+        title: "Setup Error",
+        description: "Missing required information for video call",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsConnecting(true);
+      console.log('🔄 Initializing video call for consultation:', consultationId);
       
-      if (!activeCall) {
-        throw new Error('No active call session');
-      }
+      // Use stable uid from auth user
+      const uid = user.id.slice(0, 8); // Use first 8 chars of user ID for stable uid
       
-      // Use the channel name from the call session
-      const channelName = activeCall.channel_name;
-      const uid = `user_${Date.now()}`;
-      
-      console.log('🎥 Getting Agora tokens for channel:', channelName);
-      
-      // Get Agora tokens from our edge function
-      console.log('🎥 About to call getAgoraTokens with:', { channelName, uid });
-      const agoraCredentials = await getAgoraTokens(channelName, uid);
-      console.log('🎥 Received credentials:', agoraCredentials);
+      console.log('📞 Getting Agora credentials...');
+      const agoraCredentials = await getAgoraTokens(activeCall.channel_name, uid);
+      console.log('✅ Got Agora credentials:', agoraCredentials);
       setCredentials(agoraCredentials);
       
-      console.log('🎥 Joining RTC with credentials:', agoraCredentials);
+      toast({
+        title: "Connecting",
+        description: "Joining video call...",
+      });
       
-      // Join the RTC channel
+      console.log('🔗 Joining RTC channel...');
       const client = await joinRtc(agoraCredentials);
       setAgoraClient(client);
-      
       setIsConnected(true);
-      setIsConnecting(false);
       
+      console.log('✅ Video call connected successfully');
       toast({
-        title: "Video Call Connected",
-        description: "You're now connected to the video call.",
+        title: "Connected",
+        description: "Video call is ready",
       });
-      
     } catch (error) {
-      console.error('❌ Video call initialization failed:', error);
-      setIsConnecting(false);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start video call';
-      onError?.(errorMessage);
-      
+      console.error('❌ Failed to initialize video call:', error);
       toast({
         title: "Connection Failed",
-        description: errorMessage,
-        variant: "destructive",
+        description: error instanceof Error ? error.message : 'Failed to initialize video call',
+        variant: "destructive"
       });
+      onError?.(error instanceof Error ? error.message : 'Failed to initialize video call');
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -137,9 +150,34 @@ export function VideoConsultation({
     }
   };
 
-  const handleStartCall = () => {
-    console.log('🎥 handleStartCall called:', { consultationId });
-    initiateCall({ consultationId, callType: 'video' });
+  const handleStartCall = async () => {
+    if (!consultationId) {
+      console.error('❌ No consultation ID provided');
+      toast({
+        title: "Error",
+        description: "No consultation ID provided",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log('🚀 Starting call for consultation:', consultationId);
+      initiateCall({ consultationId });
+      console.log('✅ Call initiated successfully');
+      toast({
+        title: "Call Started",
+        description: "Video call has been initiated",
+      });
+    } catch (error) {
+      console.error('❌ Failed to start call:', error);
+      toast({
+        title: "Failed to Start Call",
+        description: error instanceof Error ? error.message : 'Failed to start call',
+        variant: "destructive"
+      });
+      onError?.(error instanceof Error ? error.message : 'Failed to start call');
+    }
   };
 
   const handleEndCall = () => {

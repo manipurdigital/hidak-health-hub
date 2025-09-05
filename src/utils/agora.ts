@@ -19,43 +19,40 @@ export interface AgoraClient {
 let agoraClient: AgoraClient | null = null;
 
 export async function getAgoraTokens(channelName: string, uid: string): Promise<AgoraCredentials> {
+  console.log('🔑 Requesting Agora tokens for channel:', channelName, 'uid:', uid);
+  
   try {
-    console.log('🎥 Getting Agora tokens for channel:', channelName, 'uid:', uid);
-    
-    console.log('🎥 Calling supabase.functions.invoke with agora-tokens...');
-    const response = await supabase.functions.invoke('agora-tokens', {
-      body: {
-        channelName,
-        uid,
-        role: 'publisher'
-      }
+    const { data, error } = await supabase.functions.invoke('agora-tokens', {
+      body: { channelName, uid, role: 'publisher' }
     });
-    
-    console.log('🎥 Edge function response:', response);
-    const { data, error } = response;
 
     if (error) {
-      console.error('❌ Error getting Agora tokens:', error);
-      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
-      throw new Error(`Failed to get video call credentials: ${error.message || 'Unknown error'}`);
-    }
-    
-    if (!data) {
-      console.error('❌ No data received from agora-tokens function');
-      throw new Error('No data received from video call service');
+      console.error('❌ Supabase function error:', error);
+      throw new Error(`Token service error: ${error.message}`);
     }
 
-    console.log('✅ Successfully got Agora credentials:', { 
-      appId: data.appId, 
+    if (!data || !data.token || !data.appId) {
+      console.error('❌ Invalid response from agora-tokens function:', data);
+      throw new Error('Invalid token response - missing required fields');
+    }
+
+    console.log('✅ Successfully obtained Agora tokens:', {
+      hasToken: !!data.token,
+      appId: data.appId,
       channelName: data.channelName,
       uid: data.uid,
-      hasToken: !!data.token
+      expiresAt: data.expiresAt
     });
-
-    return data;
+    
+    return {
+      token: data.token,
+      appId: data.appId,
+      channelName: data.channelName || channelName,
+      uid: data.uid || uid
+    };
   } catch (error) {
-    console.error('❌ Agora token generation failed:', error);
-    throw error;
+    console.error('❌ Failed to get Agora tokens:', error);
+    throw new Error(`Failed to get video call credentials: ${error instanceof Error ? error.message : 'Network or authentication error'}`);
   }
 }
 
@@ -116,28 +113,35 @@ export async function joinRtc(credentials: AgoraCredentials): Promise<AgoraClien
     client.on("user-published", async (user, mediaType) => {
       console.log('👤 Remote user published:', user.uid, 'mediaType:', mediaType);
       
-      // Subscribe to remote user
-      await client.subscribe(user, mediaType);
-      console.log('✅ Subscribed to remote user:', user.uid);
-
-      if (mediaType === "video") {
-        const remoteVideoTrack = user.videoTrack;
-        if (remoteVideoTrack) {
-          // Find remote video container and play
-          const remoteVideoContainer = document.getElementById('remote-video');
-          if (remoteVideoContainer) {
-            remoteVideoTrack.play(remoteVideoContainer);
-            console.log('✅ Playing remote video for user:', user.uid);
+      try {
+        await client.subscribe(user, mediaType);
+        console.log('✅ Subscribed to remote user:', user.uid, 'for', mediaType);
+        
+        if (mediaType === 'video') {
+          const remoteVideoElement = document.getElementById('remote-video');
+          if (remoteVideoElement && user.videoTrack) {
+            user.videoTrack.play(remoteVideoElement);
+            console.log('📺 Playing remote video for user:', user.uid);
+          } else {
+            console.warn('⚠️ Remote video element not found or no video track');
           }
         }
-      }
-
-      if (mediaType === "audio") {
-        const remoteAudioTrack = user.audioTrack;
-        if (remoteAudioTrack) {
-          remoteAudioTrack.play();
-          console.log('✅ Playing remote audio for user:', user.uid);
+        
+        if (mediaType === 'audio' && user.audioTrack) {
+          user.audioTrack.play();
+          console.log('🔊 Playing remote audio for user:', user.uid);
         }
+      } catch (error) {
+        console.error('❌ Failed to subscribe to remote user:', user.uid, error);
+        // Retry subscription after a short delay
+        setTimeout(async () => {
+          try {
+            await client.subscribe(user, mediaType);
+            console.log('🔄 Retry: Successfully subscribed to remote user:', user.uid);
+          } catch (retryError) {
+            console.error('❌ Retry failed for remote user:', user.uid, retryError);
+          }
+        }, 1000);
       }
     });
 
