@@ -30,6 +30,14 @@ export function FirstVisitWhatsAppDialog() {
             <p className="text-lg font-semibold text-foreground">
               All orders are currently via WhatsApp only
             </p>
+            
+            {/* Animated Discount Banner */}
+            <div className="animate-fade-in bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 border border-green-200 dark:border-green-700/50 rounded-lg p-3 animate-pulse">
+              <p className="text-green-700 dark:text-green-300 font-bold text-sm">
+                🎉 Up to 30% discount on Generic Medicines
+              </p>
+            </div>
+            
             <div className="text-sm text-muted-foreground space-y-2">
               <p>✅ Medicines delivered to your doorstep</p>
               <p>✅ Home lab collection services</p>
