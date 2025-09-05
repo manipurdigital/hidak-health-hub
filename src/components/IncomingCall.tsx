@@ -97,53 +97,7 @@ export function IncomingCall({
     }
   }, [callSession?.id]);
 
-  // Play ringtone sound (optional)
-  useEffect(() => {
-    let audioContext: AudioContext | null = null;
-    let oscillator: OscillatorNode | null = null;
-
-    if (callSession && callSession.status === 'ringing') {
-      // Create a simple ringtone
-      try {
-        audioContext = new AudioContext();
-        const playRingtone = () => {
-          if (!audioContext) return;
-          
-          oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-          gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-          
-          oscillator.start();
-          oscillator.stop(audioContext.currentTime + 0.5);
-        };
-
-        // Play ringtone every 2 seconds
-        const ringtoneInterval = setInterval(playRingtone, 2000);
-        playRingtone(); // Play immediately
-
-        return () => {
-          clearInterval(ringtoneInterval);
-          if (oscillator) {
-            try {
-              oscillator.stop();
-            } catch (e) {
-              // Oscillator might already be stopped
-            }
-          }
-          if (audioContext) {
-            audioContext.close();
-          }
-        };
-      } catch (error) {
-        console.warn('Could not create audio context for ringtone:', error);
-      }
-    }
-  }, [callSession?.status]);
+  // Note: Ringtone is now handled globally in CallProvider
 
   if (!callSession || callSession.status !== 'ringing') {
     return null;
