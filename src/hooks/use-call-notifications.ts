@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface NotificationData {
   title: string;
   message: string;
-  type: 'call_started' | 'call_ended' | 'call_missed' | 'appointment_reminder' | 'consultation_update' | 'incoming_call';
+  type: 'info' | 'success' | 'warning' | 'error';
   user_id: string;
   data?: any;
 }
@@ -58,9 +58,10 @@ export function useCallNotifications() {
           console.debug('Call session INSERT event:', payload);
           const callSession = payload.new as any;
 
-          // Handle incoming call notifications
+          // Handle incoming call notifications - ONLY show toast, don't create DB notification
+          // The DB notification is created by the initiator in use-call.ts
           if (callSession.status === 'ringing' && callSession.initiator_user_id !== user.id) {
-            console.debug('Processing incoming call notification - not the initiator');
+            console.debug('🔔 Processing incoming call toast notification');
             // Get consultation details to find the callee
             const { data: consultation } = await supabase
               .from('consultations')
@@ -92,20 +93,13 @@ export function useCallNotifications() {
                 ? callerProfile?.full_name || 'Patient'
                 : consultation.doctors.full_name || consultation.doctors.name || 'Doctor';
 
-              // Create incoming call notification
-              createNotification.mutate({
+              // Show toast notification instead of DB notification to prevent duplicates
+              toast({
                 title: 'Incoming Call',
-                message: `${callerName} is calling you`,
-                type: 'incoming_call',
-                user_id: user.id,
-                data: { 
-                  consultation_id: callSession.consultation_id,
-                  call_id: callSession.id,
-                  caller_name: callerName
-                },
+                description: `${callerName} is calling you`,
               });
 
-              console.debug('Created incoming call notification for user:', user.id);
+              console.debug('🔔 Showed incoming call toast for user:', user.id);
             } else {
               console.debug('User is not involved in this call - patient:', consultation.patient_id, 'doctor:', consultation.doctors.user_id, 'current user:', user.id);
             }
@@ -170,9 +164,10 @@ export function useCallNotifications() {
               createNotification.mutate({
                 title: 'Call Accepted',
                 message: `${recipientName} accepted your call`,
-                type: 'call_started',
+                type: 'success',
                 user_id: callSession.initiator_user_id,
                 data: { 
+                  event_type: 'call_accepted',
                   consultation_id: callSession.consultation_id,
                   call_id: callSession.id
                 },
@@ -199,9 +194,10 @@ export function useCallNotifications() {
               createNotification.mutate({
                 title: 'Call Declined',
                 message: `${recipientName} declined your call`,
-                type: 'call_ended',
+                type: 'warning',
                 user_id: callSession.initiator_user_id,
                 data: { 
+                  event_type: 'call_declined',
                   consultation_id: callSession.consultation_id,
                   call_id: callSession.id
                 },
@@ -217,9 +213,10 @@ export function useCallNotifications() {
                 createNotification.mutate({
                   title: 'Call Ended',
                   message: 'The video call has ended',
-                  type: 'call_ended',
+                  type: 'info',
                   user_id: userId,
                   data: { 
+                    event_type: 'call_ended',
                     consultation_id: callSession.consultation_id,
                     call_id: callSession.id
                   },
@@ -239,9 +236,10 @@ export function useCallNotifications() {
                   message: isInitiator 
                     ? 'Your call was not answered'
                     : 'You missed a video call',
-                  type: 'call_missed',
+                  type: 'warning',
                   user_id: userId,
                   data: { 
+                    event_type: 'call_missed',
                     consultation_id: callSession.consultation_id,
                     call_id: callSession.id
                   },
@@ -328,9 +326,13 @@ export function useCallNotifications() {
                 createNotification.mutate({
                   title: notificationTitle,
                   message: notificationMessage,
-                  type: 'consultation_update',
+                  type: consultation.status === 'cancelled' ? 'warning' : 'success',
                   user_id: userId,
-                  data: { consultation_id: consultation.id },
+                  data: { 
+                    event_type: 'consultation_update',
+                    consultation_id: consultation.id,
+                    status: consultation.status
+                  },
                 });
               }
             });
@@ -368,9 +370,13 @@ export function useCallNotifications() {
         createNotification.mutate({
           title: 'Appointment Reminder',
           message: `Your consultation with Dr. ${consultation.doctors.name} is in ${reminderTime} minutes`,
-          type: 'appointment_reminder',
+          type: 'info',
           user_id: consultation.patient_id,
-          data: { consultation_id: consultationId },
+          data: { 
+            event_type: 'appointment_reminder',
+            consultation_id: consultationId,
+            reminder_minutes: reminderTime
+          },
         });
 
         // Get patient profile for doctor reminder
@@ -385,9 +391,13 @@ export function useCallNotifications() {
           createNotification.mutate({
             title: 'Appointment Reminder',
             message: `Your consultation with ${reminderPatientProfile?.full_name || 'Patient'} is in ${reminderTime} minutes`,
-            type: 'appointment_reminder',
+            type: 'info',
             user_id: consultation.doctors.user_id,
-            data: { consultation_id: consultationId },
+            data: { 
+              event_type: 'appointment_reminder',
+              consultation_id: consultationId,
+              reminder_minutes: reminderTime
+            },
           });
         }
       }, reminderTime_ms - now);

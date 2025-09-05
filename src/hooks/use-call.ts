@@ -247,16 +247,17 @@ export function useCall(consultationId?: string) {
       if (participantsError) throw participantsError;
       console.debug('Call participants created');
 
-      // Create notification for the callee
-      console.debug('Creating incoming call notification for user:', otherUserId);
+      // Create notification for the callee with proper type
+      console.debug('🔔 Creating incoming call notification for user:', otherUserId);
       const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
           user_id: otherUserId,
           title: 'Incoming Call',
           message: `You have an incoming ${callType} call for your consultation`,
-          type: 'incoming_call',
+          type: 'info', // Use proper severity type
           data: {
+            event_type: 'incoming_call', // Store actual event type here
             callSessionId: callSession.id,
             consultationId: consultationId,
             callType: callType,
@@ -265,8 +266,10 @@ export function useCall(consultationId?: string) {
         });
 
       if (notificationError) {
-        console.error('Failed to create notification:', notificationError);
+        console.error('❌ Failed to create incoming call notification:', notificationError);
         // Don't throw here, call should still work
+      } else {
+        console.debug('✅ Successfully created incoming call notification');
       }
 
       return callSession;
