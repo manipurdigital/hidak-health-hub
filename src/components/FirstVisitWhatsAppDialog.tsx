@@ -28,7 +28,7 @@ export function FirstVisitWhatsAppDialog() {
         <div className="space-y-6 pt-4">
           <div className="text-center space-y-4">
             <p className="text-lg font-semibold text-foreground">
-              All orders are currently via WhatsApp only
+              Please place your orders through WhatsApp for now.
             </p>
             
             {/* Animated Discount Banner */}
