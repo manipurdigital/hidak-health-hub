@@ -38,14 +38,16 @@ export function VideoConsultation({
     isEnding 
   } = useCall(consultationId);
 
-  // Use stable uid from auth user
-  const { data: { user } } = useQuery({
+  // Use stable uid from auth user - fixed destructuring
+  const { data: authData } = useQuery({
     queryKey: ['auth-user'],
     queryFn: async () => {
       const { data } = await supabase.auth.getUser();
       return data;
     }
   });
+  
+  const user = authData?.user;
 
   // Auto-connect when there's an active call or when isActive is true
   useEffect(() => {
