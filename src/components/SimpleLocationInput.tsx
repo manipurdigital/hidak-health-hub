@@ -3,8 +3,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { GPSLocationPicker } from '@/components/GPSLocationPicker';
+import { MapLocationPicker } from '@/components/MapLocationPicker';
 import { Separator } from '@/components/ui/separator';
-import { MapPin } from 'lucide-react';
+import { MapPin, Map } from 'lucide-react';
 
 interface SimpleLocationInputProps {
   onLocationSelect: (location: { latitude: number; longitude: number; address?: string }) => void;
@@ -16,12 +17,21 @@ export const SimpleLocationInput = ({
   placeholder = "Enter your address"
 }: SimpleLocationInputProps) => {
   const [address, setAddress] = useState('');
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   const handleGPSLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
     if (location.address) {
       setAddress(location.address);
     }
     onLocationSelect(location);
+  };
+
+  const handleMapLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
+    if (location.address) {
+      setAddress(location.address);
+    }
+    onLocationSelect(location);
+    setShowMapPicker(false);
   };
 
   return (
@@ -44,10 +54,29 @@ export const SimpleLocationInput = ({
           <Separator className="flex-1" />
         </div>
 
-        <GPSLocationPicker
-          onLocationSelect={handleGPSLocationSelect}
-        />
+        <div className="flex gap-2">
+          <GPSLocationPicker
+            onLocationSelect={handleGPSLocationSelect}
+          />
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowMapPicker(true)}
+            className="flex items-center gap-2"
+          >
+            <Map className="h-4 w-4" />
+            Choose from Map
+          </Button>
+        </div>
       </div>
+
+      <MapLocationPicker
+        isOpen={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onLocationSelect={handleMapLocationSelect}
+        title="Select Location on Map"
+      />
     </div>
   );
 };
