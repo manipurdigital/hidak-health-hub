@@ -133,9 +133,12 @@ export const useUploadServiceRequestFile = () => {
 
   return useMutation({
     mutationFn: async ({ file, folder }: { file: File; folder: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User must be authenticated to upload files');
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${folder}/${fileName}`;
+      const filePath = `${user.id}/${folder}/${fileName}`;
 
       const { data, error } = await supabase.storage
         .from('intake-uploads')
