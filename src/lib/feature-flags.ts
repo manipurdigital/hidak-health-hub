@@ -8,6 +8,7 @@ export const FEATURE_FLAGS = {
   ENABLE_CARE_PLUS: false, // Care+ subscription feature
   ENABLE_SUPPORT_CHAT: true, // AI support chat widget
   ENABLE_LOCATION_GATE: false, // Location gate on homepage - disabled for future implementation
+  ENABLE_FIRST_VISIT_FLOW: true, // Location-based first visit flow with WhatsApp gate
   SHOW_TRENDING_MEDICINES: true, // Show trending medicines section
 } as const;
 
