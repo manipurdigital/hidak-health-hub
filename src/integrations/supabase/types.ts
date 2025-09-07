@@ -1847,6 +1847,139 @@ export type Database = {
         }
         Relationships: []
       }
+      service_request_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          request_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          request_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_files_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_request_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_type: string
+          item_value: string
+          notes: string | null
+          quantity: number | null
+          request_id: string
+          service_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_type: string
+          item_value: string
+          notes?: string | null
+          quantity?: number | null
+          request_id: string
+          service_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          item_value?: string
+          notes?: string | null
+          quantity?: number | null
+          request_id?: string
+          service_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          customer_address: Json | null
+          customer_email: string | null
+          customer_gender: string | null
+          customer_lat: number | null
+          customer_lng: number | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          services: string[]
+          status: string
+          total_estimated_amount: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          customer_address?: Json | null
+          customer_email?: string | null
+          customer_gender?: string | null
+          customer_lat?: number | null
+          customer_lng?: number | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          services: string[]
+          status?: string
+          total_estimated_amount?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          customer_address?: Json | null
+          customer_email?: string | null
+          customer_gender?: string | null
+          customer_lat?: number | null
+          customer_lng?: number | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          services?: string[]
+          status?: string
+          total_estimated_amount?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null

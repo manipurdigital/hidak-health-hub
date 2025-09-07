@@ -19,6 +19,13 @@ export function FirstVisitWhatsAppDialog({ onClose }: FirstVisitWhatsAppDialogPr
     handleClose();
   };
 
+  const handleEnterWebsite = () => {
+    localStorage.setItem('first_visit_completed', 'true');
+    onClose();
+    // Redirect to request flow instead of homepage
+    window.location.href = '/request';
+  };
+
   const handleClose = () => {
     setIsOpen(false);
     onClose();
@@ -80,7 +87,7 @@ export function FirstVisitWhatsAppDialog({ onClose }: FirstVisitWhatsAppDialogPr
               <div className="pt-3">
                 <Button
                   variant="ghost"
-                  onClick={handleClose}
+                  onClick={handleEnterWebsite}
                   className="w-full text-muted-foreground hover:text-foreground"
                 >
                   Continue to website

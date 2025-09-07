@@ -30,6 +30,7 @@ import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import { ConsultationSuccessPage } from '@/pages/ConsultationSuccessPage';
 import { ConsultationRoomPage } from '@/pages/ConsultationRoomPage';
 import ConsultationChatPage from '@/pages/ConsultationChatPage';
+import ServiceRequestPage from '@/pages/ServiceRequestPage';
 import DashboardPage from '@/pages/DashboardPage';
 import DoctorDashboardPage from '@/pages/doctor/DoctorDashboardPage';
 import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
@@ -93,9 +94,10 @@ export function AppRoutes() {
       <Route path="/lab-tests/:id" element={<LabTestDetailPage />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/prescriptions" element={<PrescriptionsPage />} />
-      <Route path="/doctors" element={<DoctorsPage />} />
-      <Route path="/doctors/:id" element={<DoctorProfilePage />} />
-      <Route path="/wellness" element={<WellnessPage />} />
+        <Route path="/doctors" element={<DoctorsPage />} />
+        <Route path="/doctors/:id" element={<DoctorProfilePage />} />
+        <Route path="/wellness" element={<WellnessPage />} />
+        <Route path="/request" element={<ServiceRequestPage />} />
       
       {/* Consultation Routes */}
       <Route path="/consult-success/:consultId" element={
