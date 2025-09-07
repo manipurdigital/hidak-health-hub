@@ -22,7 +22,8 @@ import {
   Activity,
   ChevronDown,
   Package,
-  Download
+  Download,
+  MessageCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -107,6 +108,14 @@ export function AdminSidebar() {
                     <Link to="/admin/medicines">
                       <Pill className="mr-2 h-4 w-4" />
                       Medicines
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link to="/admin/medicine-requests">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Medicine Requests
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

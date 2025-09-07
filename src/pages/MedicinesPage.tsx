@@ -27,6 +27,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useServiceability } from '@/contexts/ServiceabilityContext';
 import { QuickLocationInput } from '@/components/QuickLocationInput';
+import { MedicineRequestForm } from '@/components/MedicineRequestForm';
 
 interface Medicine {
   id: string;
@@ -525,14 +526,25 @@ const MedicinesPage = () => {
                 ))}
               </div>
             ) : medicines.length === 0 ? (
-              <EmptyState
-                title="No medicines found"
-                description={filters.q ? `No medicines found for "${filters.q}"` : 'Try adjusting your search or filters'}
-                action={{
-                  label: "Clear Filters",
-                  onClick: clearFilters
-                }}
-              />
+              <div className="text-center space-y-8">
+                <EmptyState
+                  title="No medicines found"
+                  description={filters.q ? `No medicines found for "${filters.q}"` : 'Try adjusting your search or filters'}
+                  action={{
+                    label: "Clear Filters",
+                    onClick: clearFilters
+                  }}
+                />
+                
+                {/* Medicine Request Form */}
+                <div className="border-t pt-8">
+                  <h3 className="text-xl font-semibold text-center mb-4">Can't find what you're looking for?</h3>
+                  <p className="text-muted-foreground text-center mb-6">
+                    Submit a request and we'll help you find the medicine you need
+                  </p>
+                  <MedicineRequestForm />
+                </div>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {medicines.map((medicine) => (

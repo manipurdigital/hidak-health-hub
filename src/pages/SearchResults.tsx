@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSearchSuggestions, addRecentSearch } from "@/hooks/useSearchSuggestions";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { SearchResult } from "@/integrations/supabase/search";
+import { MedicineRequestForm } from '@/components/MedicineRequestForm';
 
 export default function SearchResults() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -95,15 +96,25 @@ export default function SearchResults() {
         )}
 
         {!isLoading && !error && debouncedQuery && totalResults === 0 && (
-          <div className="text-center py-12">
-            <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-semibold mb-2">No results found</h2>
-            <p className="text-muted-foreground mb-4">
-              No matches for "{debouncedQuery}". Try a different search term.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Try brand name (e.g., Calpol) or salt (e.g., Paracetamol 650)
-            </p>
+          <div className="text-center py-12 space-y-8">
+            <div>
+              <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-xl font-semibold mb-2">No results found</h2>
+              <p className="text-muted-foreground mb-4">
+                No matches for "{debouncedQuery}". Try a different search term.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Try brand name (e.g., Calpol) or salt (e.g., Paracetamol 650)
+              </p>
+            </div>
+            
+            <div className="border-t pt-8">
+              <h3 className="text-xl font-semibold text-center mb-4">Looking for a specific medicine?</h3>
+              <p className="text-muted-foreground text-center mb-6">
+                Can't find what you're searching for? Let us help you find it!
+              </p>
+              <MedicineRequestForm />
+            </div>
           </div>
         )}
 

@@ -1105,6 +1105,57 @@ export type Database = {
         }
         Relationships: []
       }
+      medicine_requests: {
+        Row: {
+          admin_notes: string | null
+          completed_at: string | null
+          contacted_at: string | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          estimated_price: number | null
+          id: string
+          medicine_names: string
+          notes: string | null
+          status: string
+          substitutes_available: boolean | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          estimated_price?: number | null
+          id?: string
+          medicine_names: string
+          notes?: string | null
+          status?: string
+          substitutes_available?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          estimated_price?: number | null
+          id?: string
+          medicine_names?: string
+          notes?: string | null
+          status?: string
+          substitutes_available?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       medicines: {
         Row: {
           action_class: string | null

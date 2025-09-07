@@ -65,6 +65,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CallProvider } from '@/components/CallProvider';
 import { FirstVisitWhatsAppDialog } from '@/components/FirstVisitWhatsAppDialog';
 import AdminBaseLocationsPage from './pages/admin/AdminBaseLocationsPage';
+import { AdminMedicineRequestsPage } from './pages/admin/AdminMedicineRequestsPage';
 
 // Doctor components
 import DoctorAvailabilityPage from '@/pages/doctor/DoctorAvailabilityPage';
@@ -212,6 +213,16 @@ function App() {
                       <AdminGuard>
                         <AdminLayoutWrapper>
                           <AdminMedicinesPage />
+                        </AdminLayoutWrapper>
+                      </AdminGuard>
+                    }
+                  />
+                  <Route
+                    path="/admin/medicine-requests"
+                    element={
+                      <AdminGuard>
+                        <AdminLayoutWrapper>
+                          <AdminMedicineRequestsPage />
                         </AdminLayoutWrapper>
                       </AdminGuard>
                     }
