@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
@@ -78,6 +78,7 @@ import CenterJobTrackingPage from '@/pages/center/CenterJobTrackingPage';
 const queryClient = new QueryClient();
 
 function App() {
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(true);
 
   return (
     <Router>
@@ -496,7 +497,9 @@ function App() {
             </ServiceabilityProvider>
           </GoogleMapsProvider>
         </AuthProvider>
-        <FirstVisitWhatsAppDialog />
+        {showWhatsAppDialog && (
+          <FirstVisitWhatsAppDialog onClose={() => setShowWhatsAppDialog(false)} />
+        )}
       </QueryClientProvider>
     </Router>
   );
