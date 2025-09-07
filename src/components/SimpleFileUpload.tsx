@@ -10,9 +10,10 @@ interface SimpleFileUploadProps {
   accept: string;
   maxSize: number;
   label: string;
+  onAuthRequired?: () => void;
 }
 
-export const SimpleFileUpload = ({ onFileSelect, accept, maxSize, label }: SimpleFileUploadProps) => {
+export const SimpleFileUpload = ({ onFileSelect, accept, maxSize, label, onAuthRequired }: SimpleFileUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -44,7 +45,11 @@ export const SimpleFileUpload = ({ onFileSelect, accept, maxSize, label }: Simpl
       const input = document.getElementById(`file-${label}`) as HTMLInputElement;
       if (input) input.value = '';
     } catch (error) {
-      console.error('Upload failed:', error);
+      if (error instanceof Error && error.message === 'Authentication required' && onAuthRequired) {
+        onAuthRequired();
+      } else {
+        console.error('Upload failed:', error);
+      }
     } finally {
       setIsUploading(false);
     }

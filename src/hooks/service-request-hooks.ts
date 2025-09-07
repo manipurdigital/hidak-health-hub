@@ -132,9 +132,19 @@ export const useUploadServiceRequestFile = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ file, folder }: { file: File; folder: string }) => {
+    mutationFn: async ({ file, folder, onAuthRequired }: { 
+      file: File; 
+      folder: string; 
+      onAuthRequired?: () => void; 
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User must be authenticated to upload files');
+      if (!user) {
+        if (onAuthRequired) {
+          onAuthRequired();
+          throw new Error('Authentication required');
+        }
+        throw new Error('User must be authenticated to upload files');
+      }
       
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
@@ -155,11 +165,13 @@ export const useUploadServiceRequestFile = () => {
     },
     onError: (error) => {
       console.error('Error uploading file:', error);
-      toast({
-        title: "Upload failed",
-        description: "Please try uploading the file again.",
-        variant: "destructive",
-      });
+      if (error.message !== 'Authentication required') {
+        toast({
+          title: "Upload failed",
+          description: "Please try uploading the file again.",
+          variant: "destructive",
+        });
+      }
     },
   });
 };

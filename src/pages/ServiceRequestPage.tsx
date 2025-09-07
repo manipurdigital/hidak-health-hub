@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { SimpleSearchInput } from '@/components/SimpleSearchInput';
 import { SimpleFileUpload } from '@/components/SimpleFileUpload';
+import { AuthPromptDialog } from '@/components/auth/AuthPromptDialog';
 import { SimpleLocationInput } from '@/components/SimpleLocationInput';
 import { useServiceability } from '@/contexts/ServiceabilityContext';
 import { useCreateServiceRequest, ServiceRequestData, ServiceRequestItem, ServiceRequestFile, useUploadServiceRequestFile } from '@/hooks/service-request-hooks';
@@ -34,6 +35,8 @@ const ServiceRequestPage = () => {
   const [items, setItems] = useState<ServiceRequestItem[]>([]);
   const [files, setFiles] = useState<ServiceRequestFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState<{ file: File; fileType: string } | null>(null);
 
   // Pre-fill customer details from profile if available
   useEffect(() => {
@@ -93,12 +96,44 @@ const ServiceRequestPage = () => {
     try {
       const result = await uploadFile.mutateAsync({ 
         file, 
-        folder: fileType 
+        folder: fileType,
+        onAuthRequired: () => {
+          setPendingUpload({ file, fileType });
+          setShowAuthDialog(true);
+        }
       });
       setFiles(prev => [...prev, result]);
     } catch (error) {
+      if (error instanceof Error && error.message === 'Authentication required') {
+        // Auth dialog will be shown, don't log error
+        return;
+      }
       console.error('File upload failed:', error);
     }
+  };
+
+  const handleAuthSuccess = async () => {
+    setShowAuthDialog(false);
+    
+    // Retry the pending upload
+    if (pendingUpload) {
+      try {
+        const result = await uploadFile.mutateAsync({ 
+          file: pendingUpload.file, 
+          folder: pendingUpload.fileType 
+        });
+        setFiles(prev => [...prev, result]);
+      } catch (error) {
+        console.error('File upload failed after auth:', error);
+      } finally {
+        setPendingUpload(null);
+      }
+    }
+  };
+
+  const handleAuthCancel = () => {
+    setShowAuthDialog(false);
+    setPendingUpload(null);
   };
 
   const removeFile = (index: number) => {
@@ -385,12 +420,18 @@ const ServiceRequestPage = () => {
                   accept="image/*,.pdf"
                   maxSize={5 * 1024 * 1024}
                   label="Prescription Files"
+                  onAuthRequired={() => {
+                    setShowAuthDialog(true);
+                  }}
                 />
                 <SimpleFileUpload
                   onFileSelect={(file) => handleFileUpload(file, 'report')}
                   accept="image/*,.pdf"
                   maxSize={5 * 1024 * 1024}
                   label="Lab Reports"
+                  onAuthRequired={() => {
+                    setShowAuthDialog(true);
+                  }}
                 />
               </div>
             </div>
@@ -518,6 +559,13 @@ const ServiceRequestPage = () => {
           </div>
         </CardContent>
       </Card>
+      
+      <AuthPromptDialog
+        isOpen={showAuthDialog}
+        onClose={handleAuthCancel}
+        onAuthSuccess={handleAuthSuccess}
+        message="You need to be signed in to upload files. Please sign in or create an account to continue with your file upload."
+      />
     </div>
   );
 };
