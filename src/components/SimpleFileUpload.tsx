@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, File, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Upload, File, X, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SimpleFileUploadProps {
   onFileSelect: (file: File) => Promise<void>;
@@ -16,7 +18,25 @@ interface SimpleFileUploadProps {
 export const SimpleFileUpload = ({ onFileSelect, accept, maxSize, label, onAuthRequired }: SimpleFileUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,12 +84,31 @@ export const SimpleFileUpload = ({ onFileSelect, accept, maxSize, label, onAuthR
   return (
     <div className="space-y-3">
       <Label>{label}</Label>
+      
+      {!isAuthenticated && (
+        <Alert>
+          <LogIn className="h-4 w-4" />
+          <AlertDescription>
+            <div className="flex items-center justify-between">
+              <span>Sign in to upload files</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onAuthRequired}
+              >
+                Sign In
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Input
         id={`file-${label}`}
         type="file"
         accept={accept}
         onChange={handleFileChange}
-        disabled={isUploading}
+        disabled={isUploading || !isAuthenticated}
       />
       
       {selectedFile && (

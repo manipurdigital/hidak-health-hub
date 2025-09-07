@@ -36,10 +36,16 @@ export const useCreateServiceRequest = () => {
 
   return useMutation({
     mutationFn: async (data: ServiceRequestData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+
       // Create the service request
       const { data: request, error: requestError } = await supabase
         .from('service_requests')
         .insert({
+          user_id: user.id,
           customer_name: data.customerName,
           customer_phone: data.customerPhone,
           customer_email: data.customerEmail,
@@ -48,6 +54,7 @@ export const useCreateServiceRequest = () => {
           customer_lng: data.customerLng,
           customer_gender: data.customerGender,
           services: data.services,
+          status: 'pending'
         })
         .select()
         .single();
@@ -91,12 +98,15 @@ export const useCreateServiceRequest = () => {
 
       return request;
     },
-    onSuccess: () => {
+    onSuccess: (serviceRequest) => {
       toast({
         title: "Request submitted successfully",
         description: "We'll contact you soon with pricing and availability.",
       });
       queryClient.invalidateQueries({ queryKey: ['serviceRequests'] });
+      
+      // Return the service request for navigation
+      return serviceRequest;
     },
     onError: (error) => {
       console.error('Error creating service request:', error);

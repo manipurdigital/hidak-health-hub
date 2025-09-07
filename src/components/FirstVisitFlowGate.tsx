@@ -9,7 +9,7 @@ import { FirstVisitWhatsAppDialog } from '@/components/FirstVisitWhatsAppDialog'
 import { useServiceability } from '@/contexts/ServiceabilityContext';
 import { MapIcon, Navigation, AlertTriangle } from 'lucide-react';
 
-const STORAGE_KEY = 'firstVisitFlowCompleted';
+const STORAGE_KEY = 'svc:first_visit_completed';
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '918794265302';
 
 interface FirstVisitFlowGateProps {
@@ -38,8 +38,8 @@ export function FirstVisitFlowGate({ children }: FirstVisitFlowGateProps) {
     if (locationSelected && location) {
       setIsCheckingServiceability(true);
       
-      // Wait a bit for serviceability context to update
-      const timer = setTimeout(() => {
+      // Use loading state from context instead of timeout
+      if (!isCheckingServiceability) {
         setIsCheckingServiceability(false);
         
         // Check if location is serviceable
@@ -50,9 +50,7 @@ export function FirstVisitFlowGate({ children }: FirstVisitFlowGateProps) {
         } else {
           setCurrentStep('blocked');
         }
-      }, 2000);
-
-      return () => clearTimeout(timer);
+      }
     }
   }, [location, locationSelected, inDeliveryArea, inLabArea]);
 

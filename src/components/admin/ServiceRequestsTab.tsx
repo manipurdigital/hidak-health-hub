@@ -1,13 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, User, Phone, Calendar, Package, Download } from "lucide-react";
 import { useServiceRequests } from "@/hooks/service-request-hooks";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const ServiceRequestsTab = () => {
-  const { data: serviceRequests, isLoading } = useServiceRequests();
+  const { data: serviceRequests, isLoading, refetch } = useServiceRequests();
+  const { toast } = useToast();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -24,9 +28,60 @@ const ServiceRequestsTab = () => {
     }
   };
 
-  const downloadFile = (filePath: string, fileName: string) => {
-    // This would need to be implemented with proper file download logic
-    console.log('Download file:', filePath, fileName);
+  const downloadFile = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-intake-download-url', {
+        body: { filePath }
+      });
+
+      if (error) throw error;
+
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = data.downloadUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Download started",
+        description: `Downloading ${fileName}`,
+      });
+    } catch (error: any) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Download failed",
+        description: error.message || "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateRequestStatus = async (requestId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('service_requests')
+        .update({ status: newStatus })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status updated",
+        description: `Request status changed to ${newStatus}`,
+      });
+
+      refetch(); // Refresh the data
+    } catch (error: any) {
+      console.error('Status update failed:', error);
+      toast({
+        title: "Update failed",
+        description: error.message || "Failed to update status",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -58,6 +113,7 @@ const ServiceRequestsTab = () => {
               <TableHead>Items</TableHead>
               <TableHead>Files</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
           </TableHeader>
@@ -129,6 +185,22 @@ const ServiceRequestsTab = () => {
                   <Badge className={getStatusColor(request.status)}>
                     {request.status}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={request.status}
+                    onValueChange={(value) => updateRequestStatus(request.id, value)}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">

@@ -38,7 +38,7 @@ const ServiceRequestPage = () => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<{ file: File; fileType: string } | null>(null);
 
-  // Pre-fill customer details from profile if available
+  // Pre-fill customer details from profile and load draft
   useEffect(() => {
     const loadUserProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -59,8 +59,44 @@ const ServiceRequestPage = () => {
       }
     };
 
+    // Load draft from localStorage
+    const loadDraft = () => {
+      try {
+        const draft = localStorage.getItem('svc:request_draft');
+        if (draft) {
+          const parsed = JSON.parse(draft);
+          if (parsed.services) setSelectedServices(parsed.services);
+          if (parsed.items) setItems(parsed.items);
+          if (parsed.customerDetails) {
+            setCustomerDetails(prev => ({ ...prev, ...parsed.customerDetails }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load draft:', error);
+      }
+    };
+
     loadUserProfile();
+    loadDraft();
   }, []);
+
+  // Save draft to localStorage
+  useEffect(() => {
+    const draft = {
+      services: selectedServices,
+      items,
+      customerDetails
+    };
+    
+    // Only save if there's meaningful data
+    if (selectedServices.length > 0 || items.length > 0 || customerDetails.name || customerDetails.phone) {
+      try {
+        localStorage.setItem('svc:request_draft', JSON.stringify(draft));
+      } catch (error) {
+        console.error('Failed to save draft:', error);
+      }
+    }
+  }, [selectedServices, items, customerDetails]);
 
   const services = [
     { id: 'medicine', name: 'Medicines', icon: Pill, description: 'Order prescription and OTC medicines' },
@@ -158,8 +194,13 @@ const ServiceRequestPage = () => {
         files,
       };
 
-      await createServiceRequest.mutateAsync(requestData);
-      navigate('/');
+      const result = await createServiceRequest.mutateAsync(requestData);
+      
+      // Clear draft on successful submission
+      localStorage.removeItem('svc:request_draft');
+      
+      // Navigate to success page with request details
+      navigate(`/service-request-success?id=${result.id}&services=${selectedServices.join(',')}`);
     } catch (error) {
       console.error('Submission failed:', error);
     } finally {
@@ -236,7 +277,11 @@ const ServiceRequestPage = () => {
                 value={customerDetails.name}
                 onChange={(e) => setCustomerDetails(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter your full name"
+                className={!customerDetails.name.trim() && customerDetails.name !== '' ? 'border-destructive' : ''}
               />
+              {!customerDetails.name.trim() && customerDetails.name !== '' && (
+                <p className="text-xs text-destructive mt-1">Name is required</p>
+              )}
             </div>
 
             <div>
@@ -246,7 +291,11 @@ const ServiceRequestPage = () => {
                 value={customerDetails.phone}
                 onChange={(e) => setCustomerDetails(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="Enter your phone number"
+                className={!customerDetails.phone.trim() && customerDetails.phone !== '' ? 'border-destructive' : ''}
               />
+              {!customerDetails.phone.trim() && customerDetails.phone !== '' && (
+                <p className="text-xs text-destructive mt-1">Phone number is required</p>
+              )}
             </div>
 
             <div>
