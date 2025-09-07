@@ -20,6 +20,8 @@ import { useNotifyAdminWhatsApp } from "@/hooks/manual-assignment-hooks";
 import { LabOrdersTab } from "@/components/admin/LabOrdersTab";
 import { ConsultationOrdersTab } from "@/components/admin/ConsultationOrdersTab";
 import { DeleteAllOrdersButton } from "@/components/admin/DeleteAllOrdersButton";
+import { useServiceRequests } from "@/hooks/service-request-hooks";
+import ServiceRequestsTab from "@/components/admin/ServiceRequestsTab";
 
 interface Order {
   id: string;
@@ -396,10 +398,11 @@ ${order.shipping_address}${googleMapsLink}
         </div>
 
         <Tabs defaultValue="medicine" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="medicine">Medicine Orders</TabsTrigger>
             <TabsTrigger value="lab">Lab Orders</TabsTrigger>
             <TabsTrigger value="consultations">Doctor Consultations</TabsTrigger>
+            <TabsTrigger value="service-requests">Service Requests</TabsTrigger>
           </TabsList>
           
           <TabsContent value="medicine">
@@ -538,6 +541,10 @@ ${order.shipping_address}${googleMapsLink}
           
           <TabsContent value="consultations">
             <ConsultationOrdersTab filters={filters} />
+          </TabsContent>
+          
+          <TabsContent value="service-requests">
+            <ServiceRequestsTab />
           </TabsContent>
         </Tabs>
 
