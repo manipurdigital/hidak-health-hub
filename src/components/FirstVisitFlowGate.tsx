@@ -23,7 +23,7 @@ export function FirstVisitFlowGate({ children }: FirstVisitFlowGateProps) {
   const [isCheckingServiceability, setIsCheckingServiceability] = useState(false);
   const [locationSelected, setLocationSelected] = useState(false);
   
-  const { location, setManualLocation, deliveryCoverage, labCoverage, error } = useServiceability();
+  const { location, setManualLocation, inDeliveryArea, inLabArea, error } = useServiceability();
 
   useEffect(() => {
     // Check if first visit flow was already completed
@@ -43,7 +43,7 @@ export function FirstVisitFlowGate({ children }: FirstVisitFlowGateProps) {
         setIsCheckingServiceability(false);
         
         // Check if location is serviceable
-        const isServiceable = deliveryCoverage || labCoverage;
+        const isServiceable = inDeliveryArea || inLabArea;
         
         if (isServiceable) {
           setCurrentStep('whatsapp');
@@ -54,7 +54,7 @@ export function FirstVisitFlowGate({ children }: FirstVisitFlowGateProps) {
 
       return () => clearTimeout(timer);
     }
-  }, [location, locationSelected, deliveryCoverage, labCoverage]);
+  }, [location, locationSelected, inDeliveryArea, inLabArea]);
 
   const handleLocationSelect = (location: { latitude: number; longitude: number; address?: string }) => {
     setManualLocation({ lat: location.latitude, lng: location.longitude, address: location.address });
@@ -175,12 +175,6 @@ export function FirstVisitFlowGate({ children }: FirstVisitFlowGateProps) {
               )}
 
               <div className="space-y-3">
-                <Button
-                  onClick={handleContactWhatsApp}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white"
-                >
-                  Contact us on WhatsApp
-                </Button>
                 <Button
                   variant="outline"
                   onClick={handleChangeLocation}
