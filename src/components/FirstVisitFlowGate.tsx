@@ -35,21 +35,16 @@ export function FirstVisitFlowGate({ children }: FirstVisitFlowGateProps) {
 
   useEffect(() => {
     // Check serviceability when location changes
-    if (locationSelected && location) {
-      setIsCheckingServiceability(true);
+    if (locationSelected && location && (inDeliveryArea !== null || inLabArea !== null)) {
+      setIsCheckingServiceability(false);
       
-      // Use loading state from context instead of timeout
-      if (!isCheckingServiceability) {
-        setIsCheckingServiceability(false);
-        
-        // Check if location is serviceable
-        const isServiceable = inDeliveryArea || inLabArea;
-        
-        if (isServiceable) {
-          setCurrentStep('whatsapp');
-        } else {
-          setCurrentStep('blocked');
-        }
+      // Check if location is serviceable
+      const isServiceable = inDeliveryArea || inLabArea;
+      
+      if (isServiceable) {
+        setCurrentStep('whatsapp');
+      } else {
+        setCurrentStep('blocked');
       }
     }
   }, [location, locationSelected, inDeliveryArea, inLabArea]);
