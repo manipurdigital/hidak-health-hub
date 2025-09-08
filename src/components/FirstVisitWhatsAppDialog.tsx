@@ -32,10 +32,12 @@ export function FirstVisitWhatsAppDialog({ onClose }: FirstVisitWhatsAppDialogPr
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent 
         className="sm:max-w-lg mx-4"
         overlayClassName="bg-background/80 backdrop-blur-sm"
+        hideClose
+        preventClose
       >
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold text-foreground">
@@ -83,19 +85,6 @@ export function FirstVisitWhatsAppDialog({ onClose }: FirstVisitWhatsAppDialogPr
               <p className="text-sm text-muted-foreground mt-2 font-medium">
                 🚀 Instant response • Human support • Fast service
               </p>
-              
-              <div className="pt-3">
-                <Button
-                  variant="ghost"
-                  onClick={handleEnterWebsite}
-                  className="w-full text-muted-foreground hover:text-foreground"
-                >
-                  Continue to website
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1">
-                  (WhatsApp recommended for faster service)
-                </p>
-              </div>
             </div>
           </div>
         </div>
