@@ -59,6 +59,9 @@ export default function DoctorConsultationDetailPage() {
   const [isUpdatingNotes, setIsUpdatingNotes] = useState(false);
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  
+  // Get active call for this consultation
+  const { activeCall } = useCall(consultationId);
 
   const { data: consultation, isLoading } = useQuery({
     queryKey: ['consultation-detail', consultationId],
