@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, differenceInHours, isPast } from 'date-fns';
-import { VideoConsultation } from '@/components/VideoConsultation';
+import { VideoConsultationEnhanced } from '@/components/enhanced/VideoConsultationEnhanced';
 
 interface ConsultationDetail {
   id: string;
@@ -526,7 +526,7 @@ export default function DoctorConsultationDetailPage() {
             </div>
 
             {/* Inline video consultation UI */}
-            <VideoConsultation
+            <VideoConsultationEnhanced
               consultationId={consultation.id}
               isActive={isVideoCallActive}
               onEnd={() => setIsVideoCallActive(false)}

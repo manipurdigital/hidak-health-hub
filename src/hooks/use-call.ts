@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +36,10 @@ export function useCall(consultationId?: string) {
   const queryClient = useQueryClient();
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState<CallSession | null>(null);
+  
+  // Use refs to prevent unnecessary re-renders and race conditions
+  const lastInitiateRef = useRef<number>(0);
+  const initiateDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log('🔥 useCall hook initialized:', { consultationId, userId: user?.id });
 
@@ -91,111 +95,117 @@ export function useCall(consultationId?: string) {
     enabled: !!currentCallId,
   });
 
-  // Listen for real-time call updates
+  // Auto-expire old ringing calls periodically
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('🔄 Setting up realtime subscription for user:', user.id);
+    const cleanup = setInterval(async () => {
+      try {
+        const { data: expiredCalls } = await supabase
+          .from('call_sessions')
+          .select('id')
+          .eq('status', 'ringing')
+          .lt('created_at', new Date(Date.now() - 30_000).toISOString());
+
+        if (expiredCalls && expiredCalls.length > 0) {
+          console.log('🕐 Auto-expiring old ringing calls:', expiredCalls.map(c => c.id));
+          await supabase
+            .from('call_sessions')
+            .update({ status: 'missed' })
+            .in('id', expiredCalls.map(c => c.id));
+        }
+      } catch (error) {
+        console.error('❌ Failed to cleanup expired calls:', error);
+      }
+    }, 15_000); // Check every 15 seconds
+
+    return () => clearInterval(cleanup);
+  }, [user?.id]);
+
+  // Listen for real-time call updates with better debouncing
+  useEffect(() => {
+    if (!user?.id || !consultationId) return;
+
+    console.log('🔄 Setting up realtime subscription for consultation:', consultationId);
 
     const channel = supabase
-      .channel(`user-calls-${user.id}`)
+      .channel(`consultation-calls-${consultationId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'call_sessions'
+          table: 'call_sessions',
+          filter: `consultation_id=eq.${consultationId}`
         },
         (payload) => {
           console.log('📞 Call session realtime event:', payload);
           
-          const callSession = payload.new as CallSession;
-          
-          // Clear incoming call if status changed from ringing
-          if (payload.eventType === 'UPDATE' && callSession.status !== 'ringing') {
-            setIncomingCall(null);
-          }
-          
-          // Invalidate queries to refresh UI
-          queryClient.invalidateQueries({ queryKey: ['active-call'] });
-          queryClient.invalidateQueries({ queryKey: ['call-participants'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'call_participants'
-        },
-        async (payload) => {
-          console.log('👥 Call participant INSERT event:', payload);
-          const participant = payload.new as CallParticipant;
-          
-          // Check if this is for the current user and the call is ringing
-          if (participant.user_id === user.id) {
-            const { data: callSession } = await supabase
-              .from('call_sessions')
-              .select('*')
-              .eq('id', participant.call_id)
-              .single();
-
-            if (callSession?.status === 'ringing' && callSession.initiator_user_id !== user.id) {
-              console.log('🔔 Setting incoming call for user:', user.id);
-              setIncomingCall(callSession as CallSession);
-            }
-          }
-          
-          queryClient.invalidateQueries({ queryKey: ['call-participants'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'call_participants'
-        },
-        (payload) => {
-          console.log('👥 Call participant UPDATE event:', payload);
-          queryClient.invalidateQueries({ queryKey: ['call-participants'] });
+          // Debounce rapid updates
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['active-call', consultationId] });
+            queryClient.invalidateQueries({ queryKey: ['call-participants'] });
+          }, 100);
         }
       )
       .subscribe();
 
     return () => {
-      console.log('🧹 Cleaning up realtime subscription for user:', user.id);
+      console.log('🧹 Cleaning up realtime subscription for consultation:', consultationId);
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, consultationId, queryClient]);
 
   // Update current call ID when active call changes
   useEffect(() => {
     setCurrentCallId(activeCall?.id || null);
   }, [activeCall]);
 
-  // Mutation to initiate a call
+  // Mutation to initiate a call with debouncing
   const initiateCall = useMutation({
     mutationFn: async ({ consultationId, callType = 'video' }: { 
       consultationId: string; 
       callType?: 'video' | 'audio' 
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
+      
+      // Implement debouncing to prevent rapid successive calls
+      const now = Date.now();
+      if (now - lastInitiateRef.current < 2000) {
+        throw new Error('Please wait before initiating another call');
+      }
+      lastInitiateRef.current = now;
+
       console.log('🔥 INITIATING CALL for consultation:', consultationId, 'type:', callType, 'user:', user.id);
 
-      // Check for existing ringing call first to prevent duplicates
-      const { data: existingCall } = await supabase
+      // Check for existing active or ringing calls more comprehensively
+      const { data: existingCalls } = await supabase
         .from('call_sessions')
         .select('*')
         .eq('consultation_id', consultationId)
-        .eq('status', 'ringing')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .in('status', ['ringing', 'active'])
+        .order('created_at', { ascending: false });
 
-      if (existingCall) {
-        console.log('🔄 Found existing ringing call, not creating duplicate:', existingCall.id);
-        return existingCall as CallSession;
+      // If there's any existing active/ringing call, return it
+      if (existingCalls && existingCalls.length > 0) {
+        const existingCall = existingCalls[0];
+        console.log('🔄 Found existing call, not creating duplicate:', existingCall.id, 'status:', existingCall.status);
+        
+        // If it's an old ringing call (>30s), mark as missed and create new one
+        if (existingCall.status === 'ringing') {
+          const callAge = Date.now() - new Date(existingCall.created_at).getTime();
+          if (callAge > 30_000) {
+            console.log('🕐 Existing call is too old, marking as missed and creating new one');
+            await supabase
+              .from('call_sessions')
+              .update({ status: 'missed' })
+              .eq('id', existingCall.id);
+          } else {
+            return existingCall as CallSession;
+          }
+        } else {
+          return existingCall as CallSession;
+        }
       }
 
       const channelName = `consultation_${consultationId}_${Date.now()}`;

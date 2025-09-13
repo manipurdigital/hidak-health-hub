@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CallSession } from '@/hooks/use-call';
@@ -6,31 +6,46 @@ import { CallSession } from '@/hooks/use-call';
 export function useGlobalIncomingCalls() {
   const { user } = useAuth();
   const [incomingCall, setIncomingCall] = useState<CallSession | null>(null);
+  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
 
     console.log('🌐 Setting up global incoming call listener for user:', user.id);
 
-    // Check for existing incoming calls on mount
+    // Enhanced check for existing incoming calls with better filtering
     const checkExistingCalls = async () => {
-      const { data: existingCalls } = await supabase
-        .from('call_sessions')
-        .select(`
-          *,
-          call_participants!inner(user_id)
-        `)
-        .eq('status', 'ringing')
-        .eq('call_participants.user_id', user.id)
-        .neq('initiator_user_id', user.id);
+      try {
+        const { data: existingCalls } = await supabase
+          .from('call_sessions')
+          .select(`
+            *,
+            call_participants!inner(user_id)
+          `)
+          .eq('status', 'ringing')
+          .eq('call_participants.user_id', user.id)
+          .neq('initiator_user_id', user.id)
+          .gte('created_at', new Date(Date.now() - 30_000).toISOString()) // Only calls from last 30s
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (existingCalls && existingCalls.length > 0) {
-        console.log('🔔 Found existing incoming call:', existingCalls[0]);
-        setIncomingCall(existingCalls[0] as CallSession);
+        if (existingCalls && existingCalls.length > 0) {
+          const call = existingCalls[0] as CallSession;
+          console.log('🔔 Found existing incoming call:', call.id);
+          setIncomingCall(call);
+        } else {
+          console.log('📞 No existing incoming calls found');
+        }
+      } catch (error) {
+        console.error('❌ Error checking existing calls:', error);
       }
     };
 
+    // Initial check
     checkExistingCalls();
+    
+    // Periodic check every 5 seconds as fallback
+    checkTimeoutRef.current = setInterval(checkExistingCalls, 5000);
 
     // Listen for real-time incoming calls
     const channel = supabase
@@ -84,6 +99,10 @@ export function useGlobalIncomingCalls() {
     return () => {
       console.log('🧹 Cleaning up global incoming call listener');
       supabase.removeChannel(channel);
+      if (checkTimeoutRef.current) {
+        clearInterval(checkTimeoutRef.current);
+        checkTimeoutRef.current = null;
+      }
     };
   }, [user?.id]);
 
