@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { IncomingCall } from '@/components/IncomingCall';
 import { useCall } from '@/hooks/use-call';
 import { useCallNotifications } from '@/hooks/use-call-notifications';
+import { useGlobalIncomingCalls } from '@/hooks/use-global-incoming-calls';
 import { ringtoneManager } from '@/lib/ringtone';
 import { browserNotificationManager } from '@/lib/browser-notifications';
 
@@ -12,11 +13,13 @@ interface CallProviderProps {
 export function CallProvider({ children }: CallProviderProps) {
   console.log('🔔 CallProvider initialized');
   
+  // Use global incoming call detection instead of consultation-specific
+  const { incomingCall, clearIncomingCall } = useGlobalIncomingCalls();
+  
+  // Get call actions from a general useCall hook
   const { 
-    incomingCall, 
     acceptCall, 
-    declineCall, 
-    dismissIncomingCall,
+    declineCall,
     isAccepting,
     isDeclining 
   } = useCall();
@@ -90,9 +93,15 @@ export function CallProvider({ children }: CallProviderProps) {
       {/* Global incoming call modal */}
       <IncomingCall
         callSession={incomingCall}
-        onAccept={acceptCall}
-        onDecline={declineCall}
-        onDismiss={dismissIncomingCall}
+        onAccept={(callId) => {
+          acceptCall(callId);
+          clearIncomingCall();
+        }}
+        onDecline={(callId) => {
+          declineCall(callId);
+          clearIncomingCall();
+        }}
+        onDismiss={clearIncomingCall}
         isAccepting={isAccepting}
         isDeclining={isDeclining}
       />

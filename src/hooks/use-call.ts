@@ -183,6 +183,21 @@ export function useCall(consultationId?: string) {
       if (!user?.id) throw new Error('User not authenticated');
       console.log('🔥 INITIATING CALL for consultation:', consultationId, 'type:', callType, 'user:', user.id);
 
+      // Check for existing ringing call first
+      const { data: existingCall } = await supabase
+        .from('call_sessions')
+        .select('*')
+        .eq('consultation_id', consultationId)
+        .eq('status', 'ringing')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingCall) {
+        console.log('🔄 Reusing existing ringing call:', existingCall.id);
+        return existingCall as CallSession;
+      }
+
       const channelName = `consultation_${consultationId}_${Date.now()}`;
       
       // Create call session
