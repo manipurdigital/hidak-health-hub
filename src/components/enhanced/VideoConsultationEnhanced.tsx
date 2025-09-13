@@ -112,12 +112,16 @@ export function VideoConsultationEnhanced({
         }
       }
 
-      // Create ZegoCloud instance with appId and server secret
+      // Create ZegoCloud instance with appId and token
       console.log('🔗 Creating ZegoCloud instance...');
-      const zego = ZegoUIKitPrebuilt.create(
+      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
         credentials.appId,
-        credentials.token
+        credentials.token,
+        credentials.roomId,
+        credentials.userId
       );
+      
+      const zego = ZegoUIKitPrebuilt.create(kitToken);
       
       // Enhanced join configuration
       const joinConfig = {
