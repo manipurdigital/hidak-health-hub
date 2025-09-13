@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Phone, PhoneOff, Loader2 } from 'lucide-react';
+import { Phone, PhoneOff, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getZegoToken } from '@/utils/zego';
 import { useCall } from '@/hooks/use-call';
 import { useAuth } from '@/contexts/AuthContext';
+import { PermissionGate } from '@/components/PermissionGate';
 
 interface VideoConsultationEnhancedProps {
   consultationId: string;
@@ -29,6 +30,7 @@ export function VideoConsultationEnhanced({
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [zegoCredentials, setZegoCredentials] = useState<any>(null);
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
   
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const zegoInstanceRef = useRef<any>(null);
@@ -91,12 +93,36 @@ export function VideoConsultationEnhanced({
         userId: credentials.userId
       });
 
-      // Create ZegoCloud instance with the correct API
-      const zego = ZegoUIKitPrebuilt.create(credentials.token);
+      // Request media permissions first
+      console.log('🎥 Requesting camera and microphone permissions...');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        
+        // Close the stream immediately after permission check
+        stream.getTracks().forEach(track => track.stop());
+        console.log('✅ Media permissions granted');
+      } catch (permissionError) {
+        console.error('❌ Media permissions denied:', permissionError);
+        throw new Error('Camera and microphone access required for video calls');
+      }
+
+      // Create ZegoCloud instance with appId and server secret
+      console.log('🔗 Creating ZegoCloud instance...');
+      const zego = ZegoUIKitPrebuilt.create(
+        credentials.appId,
+        credentials.token
+      );
       
       // Enhanced join configuration
       const joinConfig = {
         container: videoContainerRef.current,
+        sharedLinks: [{
+          name: 'Personal link',
+          url: window.location.href,
+        }],
         scenario: {
           mode: ZegoUIKitPrebuilt.VideoConference,
         },
@@ -127,6 +153,11 @@ export function VideoConsultationEnhanced({
         },
         onUserLeave: (users: any[]) => {
           console.log('👋 Users left:', users.length);
+        },
+        onError: (error: any) => {
+          console.error('❌ ZegoCloud error:', error);
+          setConnectionError(`ZegoCloud error: ${error.message || 'Unknown error'}`);
+          setIsConnecting(false);
         }
       };
 
@@ -234,6 +265,27 @@ export function VideoConsultationEnhanced({
       });
     }
   }, [activeCall, endCall, endVideoCall, isEnding, toast]);
+
+  // Show permission gate if permissions not granted
+  if (!permissionsGranted) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center space-y-4">
+            <AlertCircle className="w-12 h-12 text-primary" />
+            <h3 className="text-lg font-semibold">Setup Required</h3>
+            <p className="text-muted-foreground text-center">
+              Grant permissions to enable video calls
+            </p>
+            <PermissionGate
+              onPermissionsGranted={() => setPermissionsGranted(true)}
+              requiredPermissions={['camera', 'microphone']}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Render different states
   if (!activeCall || activeCall.status === 'ended') {
