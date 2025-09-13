@@ -234,9 +234,28 @@ export function VideoConsultationEnhanced({
     };
   }, [endVideoCall]);
 
-  // Handle start call with debouncing
+  // Handle start call with permission request
   const handleStartCall = useCallback(async () => {
     if (isInitiating) return;
+    
+    // Check permissions first
+    if (!permissionsGranted) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        stream.getTracks().forEach(track => track.stop());
+        setPermissionsGranted(true);
+      } catch (error) {
+        toast({
+          title: "Permission Required",
+          description: "Camera and microphone access required for video calls",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     try {
       console.log('🎬 Starting video call for consultation:', consultationId);
@@ -249,7 +268,7 @@ export function VideoConsultationEnhanced({
         variant: "destructive",
       });
     }
-  }, [consultationId, initiateCall, isInitiating, toast]);
+  }, [consultationId, initiateCall, isInitiating, toast, permissionsGranted]);
 
   // Handle end call
   const handleEndCall = useCallback(async () => {
@@ -269,42 +288,7 @@ export function VideoConsultationEnhanced({
     }
   }, [activeCall, endCall, endVideoCall, isEnding, toast]);
 
-  // Only show permission gate when no call exists AND we're not in an active consultation
-  if (!permissionsGranted && !activeCall && !isActive) {
-    return (
-      <Card className="w-full">
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center space-y-4">
-            <AlertCircle className="w-12 h-12 text-primary" />
-            <h3 className="text-lg font-semibold">Camera & Microphone Access Required</h3>
-            <div className="text-center space-y-3">
-              <p className="text-muted-foreground">
-                To start your video consultation, please allow access to:
-              </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-                <p className="text-sm font-medium text-blue-900 mb-2">Required for Video Consultation:</p>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li>📹 <strong>Camera access</strong> - to see each other during consultation</li>
-                  <li>🎤 <strong>Microphone access</strong> - to communicate clearly with your doctor</li>
-                  <li>🔔 <strong>Sound notifications</strong> - to hear incoming calls with audio alerts</li>
-                </ul>
-              </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
-                <p className="text-xs text-amber-700">
-                  <strong>Note:</strong> Your browser will ask for permission. Please click "Allow" when prompted.
-                </p>
-              </div>
-            </div>
-            <PermissionGate
-              onPermissionsGranted={() => setPermissionsGranted(true)}
-              requiredPermissions={['camera', 'microphone']}
-            />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // Render different states
   // Render different states
   if (!activeCall || activeCall.status === 'ended') {
     return (
@@ -313,7 +297,7 @@ export function VideoConsultationEnhanced({
           <div className="flex flex-col items-center space-y-4">
             <h3 className="text-lg font-semibold">Video Consultation</h3>
             <p className="text-muted-foreground text-center">
-              Start a video call to begin your consultation
+              Ready to start your video consultation
             </p>
             <Button 
               onClick={handleStartCall}
