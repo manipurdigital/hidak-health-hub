@@ -206,9 +206,9 @@ export function VideoConsultationEnhanced({
     initializationRef.current = false;
   }, []);
 
-  // Auto-initialize when call becomes active
+  // Auto-initialize when call becomes active and permissions are granted
   useEffect(() => {
-    if (activeCall?.status === 'active' && isActive) {
+    if (activeCall?.status === 'active' && isActive && permissionsGranted) {
       console.log('🚀 Auto-initializing video call for active call');
       initializeVideoCall();
     } else if (!activeCall || activeCall.status !== 'active') {
@@ -221,7 +221,7 @@ export function VideoConsultationEnhanced({
         endVideoCall();
       }
     };
-  }, [activeCall, isActive, initializeVideoCall, endVideoCall]);
+  }, [activeCall, isActive, permissionsGranted, initializeVideoCall, endVideoCall]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -266,8 +266,8 @@ export function VideoConsultationEnhanced({
     }
   }, [activeCall, endCall, endVideoCall, isEnding, toast]);
 
-  // Show permission gate if permissions not granted
-  if (!permissionsGranted) {
+  // Show permission gate only if we need to start a call but don't have permissions
+  if (!permissionsGranted && (!activeCall || activeCall.status === 'ended')) {
     return (
       <Card className="w-full">
         <CardContent className="p-6">
