@@ -97,38 +97,54 @@ export function VideoConsultation({
       
       if (videoContainerRef.current) {
         console.log('🔗 Initializing Zego UI Kit...');
-        
-        const zp = ZegoUIKitPrebuilt.create(zegoCredentials.token);
-        zegoCloudInstance.current = zp;
-        
-        // Configure the video call
-        zp.joinRoom({
-          container: videoContainerRef.current,
-          scenario: {
-            mode: ZegoUIKitPrebuilt.VideoConference,
-          },
-          showPreJoinView: false,
-          showLeaveRoomConfirmDialog: false,
-          onJoinRoom: () => {
-            console.log('✅ Joined Zego room successfully');
-            setIsConnected(true);
-            toast({
-              title: "Connected",
-              description: "Video call is ready",
-            });
-          },
-          onLeaveRoom: () => {
-            console.log('🎥 Left Zego room');
-            setIsConnected(false);
-            onEnd?.();
-          },
-          onUserJoin: (users: any[]) => {
-            console.log('👥 Users joined:', users);
-          },
-          onUserLeave: (users: any[]) => {
-            console.log('👋 Users left:', users);
-          }
+        console.log('🔗 Using credentials:', { 
+          appId: zegoCredentials.appId, 
+          roomId: zegoCredentials.roomId, 
+          userId: zegoCredentials.userId 
         });
+        
+        try {
+          // Clear any existing instances
+          if (zegoCloudInstance.current) {
+            zegoCloudInstance.current.destroy();
+            zegoCloudInstance.current = null;
+          }
+
+          const zp = ZegoUIKitPrebuilt.create(zegoCredentials.token);
+          zegoCloudInstance.current = zp;
+          
+          // Configure the video call with minimal settings to avoid errors
+          await zp.joinRoom({
+            container: videoContainerRef.current,
+            scenario: {
+              mode: ZegoUIKitPrebuilt.VideoConference,
+            },
+            showPreJoinView: false,
+            showLeaveRoomConfirmDialog: false,
+            onJoinRoom: () => {
+              console.log('✅ Joined Zego room successfully');
+              setIsConnected(true);
+              toast({
+                title: "Connected",
+                description: "Video call is ready",
+              });
+            },
+            onLeaveRoom: () => {
+              console.log('🎥 Left Zego room');
+              setIsConnected(false);
+              onEnd?.();
+            },
+            onUserJoin: (users: any[]) => {
+              console.log('👥 Users joined:', users);
+            },
+            onUserLeave: (users: any[]) => {
+              console.log('👋 Users left:', users);
+            }
+          });
+        } catch (zegoError) {
+          console.error('❌ ZegoCloud initialization error:', zegoError);
+          throw new Error(`ZegoCloud initialization failed: ${zegoError.message}`);
+        }
       }
     } catch (error) {
       console.error('❌ Failed to initialize video call:', error);

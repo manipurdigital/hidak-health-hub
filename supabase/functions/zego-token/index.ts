@@ -66,7 +66,10 @@ serve(async (req) => {
     }
 
     const { roomId, userId } = await req.json();
+    console.log('📋 Request body parsed:', { roomId, userId });
+    
     if (!roomId || !userId) {
+      console.error('❌ Missing parameters:', { roomId, userId });
       return new Response(JSON.stringify({ error: 'Missing required parameters: roomId and userId' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -76,8 +79,14 @@ serve(async (req) => {
     const appId = Deno.env.get('ZEGO_APP_ID');
     const serverSecret = Deno.env.get('ZEGO_SERVER_SECRET');
     
+    console.log('🔧 Checking Zego credentials:', { 
+      hasAppId: !!appId, 
+      hasServerSecret: !!serverSecret,
+      appIdValue: appId 
+    });
+    
     if (!appId || !serverSecret) {
-      console.error('Missing Zego credentials');
+      console.error('❌ Missing Zego credentials');
       return new Response(JSON.stringify({ error: 'Server configuration error' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -85,7 +94,9 @@ serve(async (req) => {
     }
 
     // Generate token
+    console.log('🔐 Generating token for:', { appId: parseInt(appId), userId, roomId });
     const token = await generateZegoToken(parseInt(appId), serverSecret, userId, roomId);
+    console.log('✅ Token generated successfully, length:', token.length);
     
     console.log('✅ Successfully generated Zego token for user:', user.id);
 
