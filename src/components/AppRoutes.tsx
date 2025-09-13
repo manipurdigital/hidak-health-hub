@@ -129,14 +129,10 @@ export function AppRoutes() {
       } />
       
       {/* Doctor Routes */}
-      <Route path="/doctor" element={
+      <Route path="/doctor/pending" element={<DoctorPendingPage />} />
+      <Route path="/doctor/*" element={
         <DoctorGuard>
-          <DoctorDashboardPage />
-        </DoctorGuard>
-      } />
-      <Route path="/doctor/availability" element={
-        <DoctorGuard>
-          <DoctorAvailabilityPage />
+          <DoctorLayout />
         </DoctorGuard>
       } />
       
