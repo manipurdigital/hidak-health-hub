@@ -273,18 +273,23 @@ export function VideoConsultationEnhanced({
         <CardContent className="p-6">
           <div className="flex flex-col items-center space-y-4">
             <AlertCircle className="w-12 h-12 text-primary" />
-            <h3 className="text-lg font-semibold">Setup Required</h3>
+            <h3 className="text-lg font-semibold">Camera & Microphone Access Required</h3>
             <div className="text-center space-y-3">
               <p className="text-muted-foreground">
-                Grant permissions to enable video calls
+                To start your video consultation, please allow access to:
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-                <p className="text-sm font-medium text-blue-900 mb-2">For Video Consultation:</p>
+                <p className="text-sm font-medium text-blue-900 mb-2">Required for Video Consultation:</p>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>✓ Camera access - to see each other during consultation</li>
-                  <li>✓ Microphone access - to communicate clearly</li>
-                  <li>✓ Sound notifications - to hear incoming calls</li>
+                  <li>📹 <strong>Camera access</strong> - to see each other during consultation</li>
+                  <li>🎤 <strong>Microphone access</strong> - to communicate clearly with your doctor</li>
+                  <li>🔔 <strong>Sound notifications</strong> - to hear incoming calls with audio alerts</li>
                 </ul>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                <p className="text-xs text-amber-700">
+                  <strong>Note:</strong> Your browser will ask for permission. Please click "Allow" when prompted.
+                </p>
               </div>
             </div>
             <PermissionGate
