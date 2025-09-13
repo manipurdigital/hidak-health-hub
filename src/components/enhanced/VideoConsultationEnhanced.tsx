@@ -93,20 +93,23 @@ export function VideoConsultationEnhanced({
         userId: credentials.userId
       });
 
-      // Request media permissions first
-      console.log('🎥 Requesting camera and microphone permissions...');
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-        
-        // Close the stream immediately after permission check
-        stream.getTracks().forEach(track => track.stop());
-        console.log('✅ Media permissions granted');
-      } catch (permissionError) {
-        console.error('❌ Media permissions denied:', permissionError);
-        throw new Error('Camera and microphone access required for video calls');
+      // Request media permissions first if not already granted
+      if (!permissionsGranted) {
+        console.log('🎥 Requesting camera and microphone permissions...');
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+          });
+          
+          // Close the stream immediately after permission check
+          stream.getTracks().forEach(track => track.stop());
+          console.log('✅ Media permissions granted');
+          setPermissionsGranted(true);
+        } catch (permissionError) {
+          console.error('❌ Media permissions denied:', permissionError);
+          throw new Error('Camera and microphone access required for video calls');
+        }
       }
 
       // Create ZegoCloud instance with appId and server secret
@@ -266,8 +269,8 @@ export function VideoConsultationEnhanced({
     }
   }, [activeCall, endCall, endVideoCall, isEnding, toast]);
 
-  // Show permission gate only if we need to start a call but don't have permissions
-  if (!permissionsGranted && (!activeCall || activeCall.status === 'ended')) {
+  // Only show permission gate when no call exists AND we're not in an active consultation
+  if (!permissionsGranted && !activeCall && !isActive) {
     return (
       <Card className="w-full">
         <CardContent className="p-6">
