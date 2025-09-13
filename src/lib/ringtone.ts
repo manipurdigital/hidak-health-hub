@@ -46,29 +46,54 @@ export class RingtoneManager {
   private playRingtone() {
     if (!this.audioContext || !this.isPlaying) return;
 
-    // Create oscillator for ringtone
-    this.oscillator = this.audioContext.createOscillator();
+    // Create a more realistic dual-tone ringtone
+    this.createDualToneRing();
+  }
+
+  private createDualToneRing() {
+    if (!this.audioContext || !this.isPlaying) return;
+
+    // Create two oscillators for dual-tone effect
+    const osc1 = this.audioContext.createOscillator();
+    const osc2 = this.audioContext.createOscillator();
     this.gainNode = this.audioContext.createGain();
 
     // Connect nodes
-    this.oscillator.connect(this.gainNode);
+    osc1.connect(this.gainNode);
+    osc2.connect(this.gainNode);
     this.gainNode.connect(this.audioContext.destination);
 
-    // Set ringtone frequency (classic phone ring)
-    this.oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
-    this.oscillator.frequency.setValueAtTime(554, this.audioContext.currentTime + 0.1);
+    // Set frequencies for realistic phone ring (440Hz and 480Hz)
+    osc1.frequency.setValueAtTime(440, this.audioContext.currentTime);
+    osc2.frequency.setValueAtTime(480, this.audioContext.currentTime);
 
-    // Set volume
-    this.gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+    // Create tremolo effect by modulating volume
+    this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+    this.gainNode.gain.linearRampToValueAtTime(0.4, this.audioContext.currentTime + 0.1);
+    this.gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.4);
+    this.gainNode.gain.linearRampToValueAtTime(0.4, this.audioContext.currentTime + 0.5);
+    this.gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.8);
 
-    // Start and schedule stop
-    this.oscillator.start();
-    this.oscillator.stop(this.audioContext.currentTime + 0.8);
+    // Set waveform to sine for smoother sound
+    osc1.type = 'sine';
+    osc2.type = 'sine';
 
-    // Schedule next ring
-    this.oscillator.onended = () => {
+    // Start oscillators
+    osc1.start();
+    osc2.start();
+
+    // Stop after ring duration
+    const ringDuration = 1.0;
+    osc1.stop(this.audioContext.currentTime + ringDuration);
+    osc2.stop(this.audioContext.currentTime + ringDuration);
+
+    // Store reference for cleanup
+    this.oscillator = osc1; // Store primary oscillator for cleanup
+
+    // Schedule next ring with pause
+    osc1.onended = () => {
       if (this.isPlaying) {
-        setTimeout(() => this.playRingtone(), 200);
+        setTimeout(() => this.playRingtone(), 1000); // 1 second pause between rings
       }
     };
   }

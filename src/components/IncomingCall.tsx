@@ -113,84 +113,98 @@ export function IncomingCall({
 
   return (
     <Dialog open={true} onOpenChange={() => onDismiss()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-center">
+          <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             Incoming {callSession.call_type === 'video' ? 'Video' : 'Audio'} Call
           </DialogTitle>
         </DialogHeader>
         
-        <div className="text-center space-y-6">
-          {/* Caller Avatar */}
-          <div className="flex justify-center">
-            <Avatar className="w-24 h-24">
-              <AvatarFallback className="text-2xl bg-primary/10">
+        <div className="text-center space-y-8 py-4">
+          {/* Caller Avatar with pulsing animation */}
+          <div className="flex justify-center relative">
+            <div className="absolute inset-0 animate-ping">
+              <div className="w-32 h-32 rounded-full bg-primary/20"></div>
+            </div>
+            <div className="absolute inset-2 animate-pulse">
+              <div className="w-28 h-28 rounded-full bg-primary/30"></div>
+            </div>
+            <Avatar className="w-24 h-24 relative z-10 border-4 border-primary/30 shadow-lg">
+              <AvatarFallback className="text-3xl bg-gradient-to-br from-primary/20 to-primary/30 text-primary font-bold">
                 {callerDetails?.name?.charAt(0) || '?'}
               </AvatarFallback>
             </Avatar>
           </div>
 
           {/* Caller Info */}
-          <div>
-            <h3 className="text-xl font-semibold">
+          <div className="space-y-2">
+            <h3 className="text-2xl font-bold text-foreground">
               {callerDetails?.name || 'Unknown Caller'}
             </h3>
-            <p className="text-muted-foreground">
+            <p className="text-lg text-muted-foreground font-medium">
               {callerDetails?.role}
             </p>
             {callSession.call_type === 'video' && (
-              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
-                <Video className="w-4 h-4" />
-                Video Call
-              </p>
+              <div className="flex items-center justify-center gap-2 mt-3 px-4 py-2 bg-primary/10 rounded-full inline-flex">
+                <Video className="w-5 h-5 text-primary" />
+                <span className="text-primary font-medium">Video Call</span>
+              </div>
             )}
             {callSession.call_type === 'audio' && (
-              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
-                <Mic className="w-4 h-4" />
-                Audio Call
-              </p>
+              <div className="flex items-center justify-center gap-2 mt-3 px-4 py-2 bg-primary/10 rounded-full inline-flex">
+                <Mic className="w-5 h-5 text-primary" />
+                <span className="text-primary font-medium">Audio Call</span>
+              </div>
             )}
           </div>
 
-          {/* Timer */}
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
+          {/* Pulsing "Incoming..." text */}
+          <div className="animate-pulse">
+            <p className="text-lg text-primary font-semibold">Incoming Call...</p>
+          </div>
+
+          {/* Timer with enhanced styling */}
+          <div className="text-center space-y-3">
+            <p className="text-sm text-muted-foreground font-medium">
               Auto-decline in {timeLeft}s
             </p>
-            <div className="w-full bg-muted rounded-full h-2 mt-2">
+            <div className="w-full bg-muted/50 rounded-full h-3 shadow-inner">
               <div 
-                className="bg-primary h-2 rounded-full transition-all duration-1000 ease-linear"
+                className="bg-gradient-to-r from-primary to-primary/80 h-3 rounded-full transition-all duration-1000 ease-linear shadow-sm"
                 style={{ width: `${(timeLeft / 30) * 100}%` }}
               />
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-center gap-8">
+          {/* Action Buttons with enhanced animations */}
+          <div className="flex items-center justify-center gap-12 pt-4">
             <Button
               size="lg"
               variant="destructive"
-              className="rounded-full w-16 h-16"
+              className="rounded-full w-20 h-20 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 bg-red-500 hover:bg-red-600 border-4 border-red-200"
               onClick={handleDecline}
               disabled={isDeclining || isAccepting}
             >
-              <PhoneOff className="w-6 h-6" />
+              <PhoneOff className="w-8 h-8" />
             </Button>
             
             <Button
               size="lg"
-              className="rounded-full w-16 h-16 bg-green-600 hover:bg-green-700"
+              className="rounded-full w-20 h-20 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 bg-green-500 hover:bg-green-600 border-4 border-green-200 animate-pulse"
               onClick={handleAccept}
               disabled={isAccepting || isDeclining}
             >
-              <Phone className="w-6 h-6" />
+              <Phone className="w-8 h-8" />
             </Button>
           </div>
 
           {(isAccepting || isDeclining) && (
-            <p className="text-sm text-muted-foreground">
-              {isAccepting ? 'Accepting call...' : 'Declining call...'}
-            </p>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-sm text-muted-foreground font-medium">
+                {isAccepting ? 'Accepting call...' : 'Declining call...'}
+              </p>
+            </div>
           )}
         </div>
       </DialogContent>
