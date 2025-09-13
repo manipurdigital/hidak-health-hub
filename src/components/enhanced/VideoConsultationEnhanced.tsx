@@ -274,9 +274,19 @@ export function VideoConsultationEnhanced({
           <div className="flex flex-col items-center space-y-4">
             <AlertCircle className="w-12 h-12 text-primary" />
             <h3 className="text-lg font-semibold">Setup Required</h3>
-            <p className="text-muted-foreground text-center">
-              Grant permissions to enable video calls
-            </p>
+            <div className="text-center space-y-3">
+              <p className="text-muted-foreground">
+                Grant permissions to enable video calls
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <p className="text-sm font-medium text-blue-900 mb-2">For Video Consultation:</p>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>✓ Camera access - to see each other during consultation</li>
+                  <li>✓ Microphone access - to communicate clearly</li>
+                  <li>✓ Sound notifications - to hear incoming calls</li>
+                </ul>
+              </div>
+            </div>
             <PermissionGate
               onPermissionsGranted={() => setPermissionsGranted(true)}
               requiredPermissions={['camera', 'microphone']}

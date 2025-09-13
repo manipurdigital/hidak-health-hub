@@ -165,8 +165,13 @@ export function PermissionGate({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          This application needs access to your device to provide call functionality.
+          To join video calls, please allow access to your camera, microphone, and notifications. This ensures you can:
         </p>
+        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 mt-2">
+          <li>See and be seen during video consultations</li>
+          <li>Speak and hear during calls</li>
+          <li>Receive incoming call notifications with sound</li>
+        </ul>
 
         <div className="space-y-3">
           {requiredPermissions.map(permission => (
@@ -188,9 +193,20 @@ export function PermissionGate({
           {isRequesting ? 'Requesting Permissions...' : 'Grant Permissions'}
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center">
-          Click "Grant Permissions" and allow access when prompted by your browser.
-        </p>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground text-center">
+            Click "Grant Permissions" and allow access when prompted by your browser.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-blue-700 font-medium">Important for Patients:</p>
+            <ul className="text-xs text-blue-600 mt-1 space-y-1">
+              <li>• Allow <strong>microphone</strong> access to speak with your doctor</li>
+              <li>• Allow <strong>camera</strong> access for video consultation</li>
+              <li>• Allow <strong>notifications</strong> to hear incoming calls</li>
+              <li>• Ensure your device volume is turned up</li>
+            </ul>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
