@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Loader2, Phone } from 'lucide-react';
+import { Phone, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getAgoraTokens, joinRtc, leaveRtc, toggleAudio, toggleVideo, type AgoraCredentials, type AgoraClient } from '@/utils/agora';
+import { getZegoToken, ZegoCredentials } from '@/utils/zego';
 import { useCall } from '@/hooks/use-call';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
 
 interface VideoConsultationProps {
   consultationId: string;
@@ -24,21 +25,19 @@ export function VideoConsultation({
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [isAudioMuted, setIsAudioMuted] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
-  const [credentials, setCredentials] = useState<AgoraCredentials | null>(null);
-  const [agoraClient, setAgoraClient] = useState<AgoraClient | null>(null);
+  const [credentials, setCredentials] = useState<ZegoCredentials | null>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const zegoCloudInstance = useRef<any>(null);
   
   const { 
     activeCall, 
     initiateCall, 
     endCall, 
-    updateParticipantState,
     isInitiating,
     isEnding 
   } = useCall(consultationId);
 
-  // Use stable uid from auth user - fixed destructuring
+  // Get user data
   const { data: authData } = useQuery({
     queryKey: ['auth-user'],
     queryFn: async () => {
@@ -49,15 +48,8 @@ export function VideoConsultation({
   
   const user = authData?.user;
 
-  // Auto-connect when there's an active call or when isActive is true
+  // Auto-connect when there's an active call
   useEffect(() => {
-    console.log('🎥 VideoConsultation effect:', { 
-      activeCallStatus: activeCall?.status, 
-      isConnected, 
-      isActive,
-      consultationId 
-    });
-    
     if (activeCall?.status === 'active' && !isConnected) {
       console.log('🎥 Initializing video call for active call');
       initializeVideoCall();
@@ -67,15 +59,8 @@ export function VideoConsultation({
     }
   }, [activeCall?.status, isConnected]);
 
-  // Auto-initiate call when isActive becomes true - use dependency array to prevent infinite calls
+  // Auto-initiate call when isActive becomes true
   useEffect(() => {
-    console.log('🎥 VideoConsultation isActive effect:', { 
-      isActive, 
-      activeCall: !!activeCall, 
-      isInitiating,
-      consultationId 
-    });
-    
     if (isActive && !activeCall && !isInitiating && consultationId) {
       console.log('🎥 Auto-initiating call because isActive=true');
       handleStartCall();
@@ -95,31 +80,56 @@ export function VideoConsultation({
 
     try {
       setIsConnecting(true);
-      console.log('🔄 Initializing video call for consultation:', consultationId);
+      console.log('🔄 Initializing Zego video call for consultation:', consultationId);
       
-      // Use stable uid from auth user
-      const uid = user.id.slice(0, 8); // Use first 8 chars of user ID for stable uid
+      const userId = user.id.slice(0, 8);
+      const roomId = activeCall.channel_name;
       
-      console.log('📞 Getting Agora credentials...');
-      const agoraCredentials = await getAgoraTokens(activeCall.channel_name, uid);
-      console.log('✅ Got Agora credentials:', agoraCredentials);
-      setCredentials(agoraCredentials);
+      console.log('📞 Getting Zego credentials...');
+      const zegoCredentials = await getZegoToken(roomId, userId);
+      console.log('✅ Got Zego credentials:', zegoCredentials);
+      setCredentials(zegoCredentials);
       
       toast({
         title: "Connecting",
         description: "Joining video call...",
       });
       
-      console.log('🔗 Joining RTC channel...');
-      const client = await joinRtc(agoraCredentials);
-      setAgoraClient(client);
-      setIsConnected(true);
-      
-      console.log('✅ Video call connected successfully');
-      toast({
-        title: "Connected",
-        description: "Video call is ready",
-      });
+      if (videoContainerRef.current) {
+        console.log('🔗 Initializing Zego UI Kit...');
+        
+        const zp = ZegoUIKitPrebuilt.create(zegoCredentials.token);
+        zegoCloudInstance.current = zp;
+        
+        // Configure the video call
+        zp.joinRoom({
+          container: videoContainerRef.current,
+          scenario: {
+            mode: ZegoUIKitPrebuilt.VideoConference,
+          },
+          showPreJoinView: false,
+          showLeaveRoomConfirmDialog: false,
+          onJoinRoom: () => {
+            console.log('✅ Joined Zego room successfully');
+            setIsConnected(true);
+            toast({
+              title: "Connected",
+              description: "Video call is ready",
+            });
+          },
+          onLeaveRoom: () => {
+            console.log('🎥 Left Zego room');
+            setIsConnected(false);
+            onEnd?.();
+          },
+          onUserJoin: (users: any[]) => {
+            console.log('👥 Users joined:', users);
+          },
+          onUserLeave: (users: any[]) => {
+            console.log('👋 Users left:', users);
+          }
+        });
+      }
     } catch (error) {
       console.error('❌ Failed to initialize video call:', error);
       toast({
@@ -135,18 +145,18 @@ export function VideoConsultation({
 
   const endVideoCall = async () => {
     try {
-      if (isConnected && agoraClient) {
-        console.log('🎥 Ending video call...');
-        await leaveRtc();
-        setIsConnected(false);
-        setCredentials(null);
-        setAgoraClient(null);
-        
-        toast({
-          title: "Video Call Ended",
-          description: "You have left the video call.",
-        });
+      if (zegoCloudInstance.current) {
+        console.log('🎥 Ending Zego video call...');
+        zegoCloudInstance.current.destroy();
+        zegoCloudInstance.current = null;
       }
+      setIsConnected(false);
+      setCredentials(null);
+      
+      toast({
+        title: "Video Call Ended",
+        description: "You have left the video call.",
+      });
     } catch (error) {
       console.error('❌ Error ending video call:', error);
     }
@@ -187,43 +197,6 @@ export function VideoConsultation({
       endCall(activeCall.id);
     }
     endVideoCall();
-    onEnd?.();
-  };
-
-  const handleToggleAudio = async () => {
-    try {
-      const newMutedState = !isAudioMuted;
-      await toggleAudio(newMutedState);
-      setIsAudioMuted(newMutedState);
-      
-      if (activeCall) {
-        updateParticipantState({ 
-          callId: activeCall.id, 
-          isAudioMuted: newMutedState 
-        });
-      }
-      console.log(`🎥 Audio ${newMutedState ? 'muted' : 'unmuted'}`);
-    } catch (error) {
-      console.error('❌ Failed to toggle audio:', error);
-    }
-  };
-
-  const handleToggleVideo = async () => {
-    try {
-      const newMutedState = !isVideoMuted;
-      await toggleVideo(newMutedState);
-      setIsVideoMuted(newMutedState);
-      
-      if (activeCall) {
-        updateParticipantState({ 
-          callId: activeCall.id, 
-          isVideoMuted: newMutedState 
-        });
-      }
-      console.log(`🎥 Video ${newMutedState ? 'muted' : 'unmuted'}`);
-    } catch (error) {
-      console.error('❌ Failed to toggle video:', error);
-    }
   };
 
   // Show call interface if there's an active call or if explicitly set to active
@@ -266,78 +239,37 @@ export function VideoConsultation({
                 <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
                 <h3 className="text-lg font-semibold mb-2">Connecting...</h3>
                 <p className="text-muted-foreground">
-                  Setting up your video call
+                  Setting up your video call with Zego Cloud
                 </p>
               </div>
             </div>
           )}
           
-          {/* Video containers for local and remote video */}
-          <div className="relative w-full h-full">
-            {/* Remote video (main view) */}
-            <div 
-              id="remote-video" 
-              className="w-full h-full bg-gray-900 rounded-lg"
-            >
-              {!isConnecting && (
-                <div className="w-full h-full flex items-center justify-center text-white">
-                  <div className="text-center">
-                    <Video className="w-16 h-16 mx-auto mb-4" />
-                    <p>Waiting for other participant...</p>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Local video (picture-in-picture) */}
-            <div 
-              id="local-video" 
-              className="absolute top-4 right-4 w-32 h-24 bg-gray-800 rounded-lg border-2 border-white shadow-lg"
-            >
-              {!isConnecting && (
-                <div className="w-full h-full flex items-center justify-center text-white text-xs">
-                  You
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Video Controls */}
-          {(isConnected || isConnecting) && (
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-background/80 rounded-lg p-2">
-              <Button
-                variant={isAudioMuted ? "destructive" : "outline"}
-                size="sm"
-                onClick={handleToggleAudio}
-                disabled={isConnecting}
-              >
-                {isAudioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </Button>
-              
-              <Button
-                variant={isVideoMuted ? "destructive" : "outline"}
-                size="sm"
-                onClick={handleToggleVideo}
-                disabled={isConnecting}
-              >
-                {isVideoMuted ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
-              </Button>
-              
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleEndCall}
-                disabled={isConnecting || isEnding}
-              >
-                <PhoneOff className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+          {/* Zego Cloud Video Container */}
+          <div 
+            ref={videoContainerRef}
+            className="w-full h-full rounded-lg"
+            style={{ minHeight: '400px' }}
+          />
           
           {/* Connection info */}
           {isConnected && credentials && (
             <div className="absolute top-4 left-4 bg-background/80 rounded px-2 py-1 text-xs text-muted-foreground">
-              Channel: {credentials.channelName}
+              Room: {credentials.roomId}
+            </div>
+          )}
+          
+          {/* Manual end call button */}
+          {isConnected && (
+            <div className="absolute top-4 right-4">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleEndCall}
+                disabled={isEnding}
+              >
+                End Call
+              </Button>
             </div>
           )}
         </div>
