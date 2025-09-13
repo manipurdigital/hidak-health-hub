@@ -59,13 +59,13 @@ export function VideoConsultation({
     }
   }, [activeCall?.status, isConnected]);
 
-  // Auto-initiate call when isActive becomes true
+  // Auto-initiate call when isActive becomes true (only once)
   useEffect(() => {
     if (isActive && !activeCall && !isInitiating && consultationId) {
       console.log('🎥 Auto-initiating call because isActive=true');
       handleStartCall();
     }
-  }, [isActive, !!activeCall, isInitiating, consultationId]);
+  }, [isActive, consultationId]); // Only depend on isActive and consultationId
 
   const initializeVideoCall = async () => {
     if (!consultationId || !activeCall?.channel_name || !user?.id) {
