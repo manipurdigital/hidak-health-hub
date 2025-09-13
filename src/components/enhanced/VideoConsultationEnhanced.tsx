@@ -91,7 +91,7 @@ export function VideoConsultationEnhanced({
         userId: credentials.userId
       });
 
-      // Create ZegoCloud instance with enhanced configuration
+      // Create ZegoCloud instance with the correct API
       const zego = ZegoUIKitPrebuilt.create(credentials.token);
       
       // Enhanced join configuration
@@ -99,12 +99,6 @@ export function VideoConsultationEnhanced({
         container: videoContainerRef.current,
         scenario: {
           mode: ZegoUIKitPrebuilt.VideoConference,
-          config: {
-            role: ZegoUIKitPrebuilt.Host,
-            enableMicrophoneWhenJoining: true,
-            enableCameraWhenJoining: true,
-            useFrontFacingCamera: true
-          }
         },
         showPreJoinView: false,
         showLeavingView: false,
