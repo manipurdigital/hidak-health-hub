@@ -47,33 +47,31 @@ export function useGlobalIncomingCalls() {
     // Periodic check every 5 seconds as fallback
     checkTimeoutRef.current = setInterval(checkExistingCalls, 5000);
 
-    // Listen for real-time incoming calls
+    // Enhanced real-time listener for incoming calls with multiple channels
     const channel = supabase
-      .channel(`global-incoming-calls-${user.id}`)
+      .channel(`enhanced-incoming-calls-${user.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'call_participants'
+          table: 'call_participants',
+          filter: `user_id=eq.${user.id}`
         },
         async (payload) => {
-          console.log('👥 Global call participant INSERT:', payload);
+          console.log('👥 Enhanced call participant INSERT:', payload);
           const participant = payload.new as any;
           
-          // Check if this participant is for the current user
-          if (participant.user_id === user.id) {
-            // Get the call session details
-            const { data: callSession } = await supabase
-              .from('call_sessions')
-              .select('*')
-              .eq('id', participant.call_id)
-              .single();
+          // Get the call session details
+          const { data: callSession } = await supabase
+            .from('call_sessions')
+            .select('*')
+            .eq('id', participant.call_id)
+            .single();
 
-            if (callSession?.status === 'ringing' && callSession.initiator_user_id !== user.id) {
-              console.log('🔔 Global incoming call detected:', callSession);
-              setIncomingCall(callSession as CallSession);
-            }
+          if (callSession?.status === 'ringing' && callSession.initiator_user_id !== user.id) {
+            console.log('🔔 Enhanced incoming call detected:', callSession);
+            setIncomingCall(callSession as CallSession);
           }
         }
       )

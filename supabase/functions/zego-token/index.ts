@@ -40,12 +40,12 @@ async function generateZegoToken(appId: number, serverSecret: string, userId: st
 }
 
 serve(async (req) => {
-// Handle CORS preflight requests
-if (req.method === 'OPTIONS') {
-  return new Response(null, { headers: corsHeaders });
-}
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
-console.log('🔧 Zego token request received:', req.method);
+  console.log('🔧 Zego token request received:', req.method);
 
   try {
     const supabaseClient = createClient(

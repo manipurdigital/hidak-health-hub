@@ -11,8 +11,6 @@ interface CallProviderProps {
 }
 
 const CallProviderComponent = ({ children }: CallProviderProps) => {
-  console.log('🔔 CallProvider initialized');
-  
   // Use global incoming call detection instead of consultation-specific
   const { incomingCall, clearIncomingCall } = useGlobalIncomingCalls();
   

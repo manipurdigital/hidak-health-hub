@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { callStateManager } from '@/lib/call-state-manager';
 
 export interface CallSession {
   id: string;
@@ -37,11 +38,17 @@ export function useCall(consultationId?: string) {
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState<CallSession | null>(null);
   
-  // Use refs to prevent unnecessary re-renders and race conditions
+  // Stable refs to prevent re-renders
+  const consultationIdRef = useRef(consultationId);
+  const userIdRef = useRef(user?.id);
   const lastInitiateRef = useRef<number>(0);
   const initiateDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  console.log('🔥 useCall hook initialized:', { consultationId, userId: user?.id });
+  // Update refs when values change
+  useEffect(() => {
+    consultationIdRef.current = consultationId;
+    userIdRef.current = user?.id;
+  }, [consultationId, user?.id]);
 
   // Get active call session for consultation
   const { data: activeCall, isLoading } = useQuery({

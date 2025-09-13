@@ -28,6 +28,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { format, differenceInHours, isPast } from 'date-fns';
 import { VideoConsultationEnhanced } from '@/components/enhanced/VideoConsultationEnhanced';
+import { useCall } from '@/hooks/use-call';
 
 interface ConsultationDetail {
   id: string;
@@ -525,10 +526,10 @@ export default function DoctorConsultationDetailPage() {
               </Button>
             </div>
 
-            {/* Inline video consultation UI */}
+            {/* Inline video consultation UI - Auto-activate when call is active */}
             <VideoConsultationEnhanced
               consultationId={consultation.id}
-              isActive={isVideoCallActive}
+              isActive={consultation?.status === 'in_progress' || isVideoCallActive || !!activeCall}
               onEnd={() => setIsVideoCallActive(false)}
               onError={(err) => setVideoError(err)}
             />
