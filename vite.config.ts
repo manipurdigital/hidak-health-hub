@@ -8,24 +8,15 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-  },
-  // vite.config.js
-import { defineConfig } from 'vite'
-
-export default defineConfig({
-  server: {
     allowedHosts: [
-      'localhost',
-      '127.0.0.1',
-      '4fe68ddf-c348-4af3-b961-2325f2d2cd89-00-vkb25r9ijln8.riker.replit.dev'
-    ]
-  }
-})
-
+      "localhost",
+      "127.0.0.1",
+      "4fe68ddf-c348-4af3-b961-2325f2d2cd89-00-vkb25r9ijln8.riker.replit.dev",
+    ],
+  },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -34,7 +25,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test-setup.ts'],
+    environment: "jsdom",
+    setupFiles: ["./src/test-setup.ts"],
   },
 }));
